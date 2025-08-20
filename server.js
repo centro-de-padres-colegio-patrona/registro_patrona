@@ -99,7 +99,6 @@ app.post('/login', (req, res) => {
     //res.status(401).send('Credenciales incorrectas');
     res.redirect('/signup');
   }
-  //res.sendFile(path.join(__dirname, 'src', 'login', 'signup.html'));
 });
 
 app.get('/login', (req, res) => {
@@ -112,7 +111,7 @@ app.get('/login-error', (req, res) => {
 
 // Ruta para la página "welcome" (welcome.html)
 app.get('/signup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'login', 'singup.html'));
+  res.sendFile(path.join(__dirname, 'src', 'login', 'signup.html'));
 });
 
 
@@ -133,13 +132,13 @@ app.get('/api/user', async (req, res) => {
   }*/
   // Si no existe, podés crearlo o manejarlo como desees
   if (!user || user === undefined) {
-    console.log(`Usuario ${profile.emails[0].value} no encontrado`)
+    console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
     user = await db_support.usersDB.create({
       googleId: req.user.id,
-      displayName: profile.displayName,
-      email: profile.emails?.[0].value || '',
-      photo: profile.photos?.[0].value || '',
-      personalInfo: {nombres: profile.name.givenName, apellidos: profile.name.familyName},
+      displayName: req.user.displayName,
+      email: req.user.emails?.[0].value || '',
+      photo: req.user.photos?.[0].value || '',
+      personalInfo: {nombres: req.user.name.givenName, apellidos: req.user.name.familyName},
       hijos: null,
       padres: null,
       invitados: null,

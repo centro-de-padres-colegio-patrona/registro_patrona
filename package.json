@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "An example of oAuth2.0 using node",
   "main": "src/server.js",
-  "repository": "https://gitlab.com/l.herreramena/registro_patrona.git",
+  "repository": "git@github.com:centro-de-padres-colegio-patrona/registro_patrona.git",
   "author": "l.herreramena",
   "license": "MIT",
   "scripts": {

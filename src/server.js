@@ -23,13 +23,14 @@ const clientSecret = '2cf3fb6940a31ff7e3889e6bb2a858c476047f38'
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-
+const urlRender = 'https://registro-patrona.onrender.com'
+const callbackURLLocal = '/auth/google/callback'
 passport.use(new GoogleStrategy({
   /*clientID: '480144311844-5dkepdksb6r6adtt7v72nh5rp32ofirf.apps.googleusercontent.com',
   clientSecret: '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',*/
   clientID: '547108669206-gt688r7nm2186tetj2jopln6nhghsmr5.apps.googleusercontent.com',
   clientSecret: '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',
-  callbackURL: '/auth/google/callback'
+  callbackURL: urlRender + callbackURLLocal
 }, async (accessToken, refreshToken, profile, done) => {
   // Aquí puedes guardar al usuario en tu base de datos
     try {

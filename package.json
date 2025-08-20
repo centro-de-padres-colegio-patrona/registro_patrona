@@ -7,7 +7,7 @@
   "author": "l.herreramena",
   "license": "MIT",
   "scripts": {
-    "start": "node server.js"
+    "start": "node src/server.js"
   },
   "dependencies": {
     "axios": "^0.21.1",

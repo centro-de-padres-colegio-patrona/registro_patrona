@@ -3,7 +3,9 @@ const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
 
-const db_support = require('./backend/db_support');
+const PORT = process.env.PORT || 3000;
+
+const db_support = require('../backend/db_support');
 //const listado_cursos = require('./backend/listadoCurso');
 
 const path = require('path'); 
@@ -75,6 +77,9 @@ passport.deserializeUser((obj, done) => done(null, obj));
 // inside the public directory
 const app = express()
 app.use(express.static(__dirname + '/public'))
+app.use(express.static(__dirname + '/src'))
+app.use(express.static(__dirname + '/views'))
+
 app.use(express.urlencoded({ extended: true }));
 app.use(session({ secret: 'Peroconrespeto', resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
@@ -85,7 +90,7 @@ app.set('view engine', 'ejs');
 
 // Ruta para la página "hello world" (index.html)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src/', 'index.html'));
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 app.post('/login', (req, res) => {
@@ -302,10 +307,12 @@ app.get('/authenticated', (req, res) => {
   //console.log(JSON.stringify(req))
   //res.render('dashboard', { user: req.user });
   // Send the dashboard.html file as a response
-  const dashboardPath = path.join(__dirname, 'views', 'dashboard.html');
+  const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
   res.sendFile(dashboardPath);
 });
 
 
 // Start the server on port 8080
-app.listen(5001)
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
+})

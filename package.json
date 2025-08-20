@@ -2,9 +2,9 @@
   "name": "registro-patrona",
   "version": "1.0.0",
   "description": "An example of oAuth2.0 using node",
-  "main": "index.js",
+  "main": "src/server.js",
   "repository": "https://gitlab.com/l.herreramena/registro_patrona.git",
-  "author": "lherrera",
+  "author": "l.herreramena",
   "license": "MIT",
   "scripts": {
     "start": "node server.js"

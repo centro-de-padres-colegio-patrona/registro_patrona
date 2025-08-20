@@ -1,0 +1,21 @@
+{
+  "name": "registro-patrona",
+  "version": "1.0.0",
+  "description": "An example of oAuth2.0 using node",
+  "main": "index.js",
+  "repository": "https://gitlab.com/l.herreramena/registro_patrona.git",
+  "author": "lherrera",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "express": "^4.16.3",
+    "express-session": "^1.17.3",
+    "passport": "^0.6.0",
+    "passport-google-oauth20": "^2.0.0",
+    "ejs": "^3.1.9",
+    "mongoose": "^7.6.0"
+  }
+}

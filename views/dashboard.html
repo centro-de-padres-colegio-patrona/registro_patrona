@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro Familiar - Fiesta a la Chilena 2025</title>
+  <style>
+    label { display: block; margin-top: 10px; }
+    input, select { width: 300px; padding: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Registro Familiar Fiesta a la Chilena Colegio Patrona</h2>
+
+  <script>
+    let currentUser = null;
+    fetch('/api/user')
+      .then(response => {
+        console.log('Respuesta del servidor:', response);
+        if (!response.ok) throw new Error('Usuario no autenticado');
+        return response.json();
+      })
+      .then(user => {
+        //document.getElementById('user-name').textContent = user.name || user.username;
+        currentUser = user.user;
+        fillUserInfo(currentUser);
+        console.log('Datos del usuario:', user); // Útil para debugging
+      })
+      .catch(error => {
+        console.log('Error servidor:', error);
+        window.location.href = '/'; // Redirige si no está autenticado
+      });
+  </script>
+
+  <form id="registro-form">
+    <!-- Sección hijos -->
+    <div id="children-section">
+      <h3>Hijos/as en el colegio</h3>
+      <div class="child-form">
+        <label>Curso:</label>
+        <select name="childCourse[]">
+          <option value="Prekínder">Prekínder</option>
+          <option value="Kínder">Kínder</option>
+          <option value="1° Básico">1° Básico</option>
+          <option value="2° Básico">2° Básico</option>
+          <option value="3° Básico">3° Básico</option>
+          <option value="4° Básico">4° Básico</option>
+          <option value="5° Básico">5° Básico</option>
+          <option value="6° Básico">6° Básico</option>
+          <option value="7° Básico">7° Básico</option>
+          <option value="8° Básico">8° Básico</option>
+          <option value="I° Medio">I° Medio</option>
+          <option value="II° Medio">II° Medio</option>
+          <option value="III° Medio">III° Medio</option>
+          <option value="IV° Medio">IV° Medio</option>
+        </select>
+        <label>Sección:</label>
+        <select name="childSeccion[]">
+          <option value="A">A</option>
+          <option value="B">B</option>
+        </select>
+        <label>Nombres:</label>
+        <select name="childName[]">
+        </select>
+        <label>RUN:</label><input type="text" name="childRun[]">
+      </div>
+    </div>
+    <button type="button" onclick="addChild()">+ Agregar otro hijo/a</button>
+
+    <!-- Sección padres -->
+    <div id="parent-section">
+      <h3>Padres/Madres/Apoderados</h3>
+      <div class="parent-form">
+        <label>Apellidos:</label><input type="text" name="parentSurname[]">
+        <label>Nombres:</label><input type="text" name="parentName[]">
+        <label>RUN:</label><input type="text" name="parentRun[]">
+        <label>Correo:</label><input type="email" name="parentEmail[]">
+        <label>Teléfono (opcional):</label><input type="tel" name="parentPhone[]">
+        <label>Parentesco:</label>
+        <select name="relationship[]">
+          <option value="Padre">Padre</option>
+          <option value="Madre">Madre</option>
+          <option value="Apoderado">Apoderado</option>
+        </select>
+      </div>
+    </div>
+    <button type="button" onclick="addParent()">+ Agregar otro padre/madre/apoderado</button>
+
+    <!-- Sección otros asistentes -->
+    <div id="guest-section">
+      <h3>Otros asistentes al evento</h3>
+      <div class="guest-form">
+        <label>Apellidos:</label><input type="text" name="guestSurname[]">
+        <label>Nombres:</label><input type="text" name="guestName[]">
+        <label>RUN:</label><input type="text" name="guestRun[]">
+        <label>Correo:</label><input type="email" name="guestEmail[]">
+        <label>Teléfono (opcional):</label><input type="tel" name="guestPhone[]">
+        <label>Parentesco:</label>
+        <select name="relationship[]">
+          <option value="Hermana/o">Hermana/o</option>
+          <option value="Abuela/o">Abuelo</option>
+          <option value="Otra/o">Otra/o</option>
+        </select>
+      </div>
+    </div>
+    <button type="button" onclick="addGuest()">+ Agregar otro invitado/a</button>
+
+    <br><br>
+    <button type="submit">Enviar</button>
+  </form>
+
+  <script>  
+    document.addEventListener('DOMContentLoaded', () => {
+      const childrenSection = document.getElementById('children-section');
+
+      childrenSection.addEventListener('change', (e) => {
+        const target = e.target;
+
+        if (target.name === 'childCourse[]' || target.name === 'childSeccion[]') {
+          const childForm = target.closest('.child-form');
+          const curso = childForm.querySelector("select[name='childCourse[]']").value;
+          const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
+          const nombreSelect = childForm.querySelector("select[name='childName[]']");
+          const runInput = childForm.querySelector("input[name='childRun[]']");
+
+          if (curso && seccion) {
+            fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
+              .then(res => res.json())
+              .then(alumnos => {
+                nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+                alumnos.forEach(nombre => {
+                  const option = document.createElement('option');
+                  option.value = nombre;
+                  option.textContent = nombre;
+                  nombreSelect.appendChild(option);
+                });
+                runInput.value = '';
+              })
+              .catch(err => console.error('Error al obtener nombres:', err));
+          }
+        }
+      });
+    });
+  </script>
+
+  <script>
+    function addChild() {
+      const section = document.getElementById('children-section');
+      const clone = section.querySelector('.child-form').cloneNode(true);
+      section.appendChild(clone);
+    }
+
+    function addParent() {
+      const section = document.getElementById('parent-section');
+      const form = section.querySelector('.parent-form');
+      const button = document.querySelector("button[onclick='addParent()']");
+
+      console.log('form.length: ', form.length);
+
+      if (form.length >= 2) {
+        button.disabled = true;
+        button.textContent = 'Máximo alcanzado';
+        return;
+      }
+
+      const clone = form.cloneNode(true);
+
+      // Limpia los campos del nuevo formulario
+      clone.querySelectorAll('input').forEach(input => input.value = '');
+      clone.querySelector("select[name='relationship[]']").value = '';
+
+      section.appendChild(clone);
+
+      // Desactiva si ya se llegó al máximo
+      if (section.querySelectorAll('.parent-form').length >= 2) {
+        button.disabled = true;
+        button.textContent = 'Máximo alcanzado';
+      }
+    }
+
+    function addGuest() {
+      const section = document.getElementById('guest-section');
+      const forms = section.querySelectorAll('.guest-form');
+      const button = document.querySelector("button[onclick='addGuest()']");
+      const maxGuests = 2;
+
+      if (forms.length >= maxGuests) {
+        button.disabled = true;
+        button.textContent = 'Máximo de invitados alcanzado';
+        return;
+      }
+
+      const clone = forms[0].cloneNode(true);
+
+      // Limpia los campos del nuevo formulario
+      clone.querySelectorAll('input').forEach(input => input.value = '');
+      clone.querySelector("select[name='relationship[]']").value = 'Otro';
+
+      section.appendChild(clone);
+
+      // Desactiva el botón si se alcanzó el máximo
+      if (section.querySelectorAll('.guest-form').length >= maxGuests) {
+        button.disabled = true;
+        button.textContent = 'Máximo de invitados alcanzado';
+      }
+    }
+
+    function fillChildrenSection(user) {
+      const hijos = user.hijos || [];
+      const section = document.getElementById('children-section');
+
+      // Elimina formularios existentes excepto el primero
+      const baseForm = section.querySelector('.child-form');
+      section.querySelectorAll('.child-form').forEach((form, index) => {
+        if (index > 0) form.remove();
+      });
+
+      hijos.forEach((hijo, index) => {
+        // Clona si no es el primero
+        const form = index === 0 ? baseForm : baseForm.cloneNode(true);
+        if (index > 0) section.appendChild(form);
+
+        // Asigna valores
+        form.querySelector("select[name='childCourse[]']").value = hijo.curso;
+        form.querySelector("select[name='childSeccion[]']").value = hijo.seccion;
+
+        // Simula llamada a API para cargar nombres válidos
+        fetch(`/api/alumnos?curso=${encodeURIComponent(hijo.curso)}&seccion=${encodeURIComponent(hijo.seccion)}`)
+          .then(res => res.json())
+          .then(alumnos => {
+            const nombreSelect = form.querySelector("select[name='childName[]']");
+            nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+            alumnos.forEach(nombre => {
+              const option = document.createElement('option');
+              option.value = nombre;
+              option.textContent = nombre;
+              nombreSelect.appendChild(option);
+            });
+
+            // Selecciona el nombre si está en la lista
+            nombreSelect.value = hijo.nombre;
+          })
+          .catch(err => console.error('Error al cargar nombres:', err));
+
+        form.querySelector("input[name='childRun[]']").value = hijo.run;
+      });
+    }
+
+    function fillParentSection(currentUser) {
+      const padres = currentUser.padres || [];
+      const section = document.getElementById('parent-section');
+      const baseForm = section.querySelector('.parent-form');
+
+      // Elimina formularios extra si ya hay más de uno
+      section.querySelectorAll('.parent-form').forEach((form, index) => {
+        if (index > 0) form.remove();
+      });
+
+      padres.forEach((padre, index) => {
+        const form = index === 0 ? baseForm : baseForm.cloneNode(true);
+        if (index > 0) section.appendChild(form);
+
+        form.querySelector("input[name='parentSurname[]']").value = padre.apellido || '';
+        form.querySelector("input[name='parentName[]']").value = padre.nombre || '';
+        form.querySelector("input[name='parentRun[]']").value = padre.run || '';
+        form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
+        form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
+        form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
+      });
+    }
+
+    function fillGuestSection(currentUser) {
+      const invitados = currentUser.invitados || [];
+      const section = document.getElementById('guest-section');
+      const baseForm = section.querySelector('.guest-form');
+
+      // Elimina formularios extra si ya hay más de uno
+      section.querySelectorAll('.guest-form').forEach((form, index) => {
+        if (index > 0) form.remove();
+      });
+
+      invitados.forEach((invitado, index) => {
+        const form = index === 0 ? baseForm : baseForm.cloneNode(true);
+        if (index > 0) section.appendChild(form);
+
+        form.querySelector("input[name='guestSurname[]']").value = invitado.apellido || '';
+        form.querySelector("input[name='guestName[]']").value = invitado.nombre || '';
+        form.querySelector("input[name='guestRun[]']").value = invitado.run || '';
+        form.querySelector("input[name='guestEmail[]']").value = invitado.correo || '';
+        form.querySelector("input[name='guestPhone[]']").value = invitado.telefono || '';
+        form.querySelector("select[name='relationship[]']").value = invitado.parentesco || 'Otro';
+      });
+    }
+
+    function fillUserInfo(user) {
+      fillChildrenSection(user);
+      fillParentSection(user);
+      fillGuestSection(user);
+    }
+
+    document.getElementById('registro-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Recopila hijos
+      const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
+        nombre: child.querySelector("select[name='childName[]']").value,
+        run: child.querySelector("input[name='childRun[]']").value,
+        curso: child.querySelector("select[name='childCourse[]']").value,
+        seccion: child.querySelector("select[name='childSeccion[]']").value
+      }));
+
+      // Recopila padres
+      const padres = Array.from(document.querySelectorAll(".parent-form")).map(parent => ({
+        nombre: parent.querySelector("input[name='parentName[]']").value,
+        apellido: parent.querySelector("input[name='parentSurname[]']").value,
+        run: parent.querySelector("input[name='parentRun[]']").value,
+        correo: parent.querySelector("input[name='parentEmail[]']").value,
+        telefono: parent.querySelector("input[name='parentPhone[]']").value,
+        parentesco: parent.querySelector("select[name='relationship[]']").value
+      }));
+
+      // Recopila invitados
+      const invitados = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
+        nombre: guest.querySelector("input[name='guestName[]']").value,
+        apellido: guest.querySelector("input[name='guestSurname[]']").value,
+        run: guest.querySelector("input[name='guestRun[]']").value,
+        correo: guest.querySelector("input[name='guestEmail[]']").value,
+        telefono: guest.querySelector("input[name='guestPhone[]']").value,
+        parentesco: guest.querySelector("select[name='relationship[]']").value
+      }));
+
+      /*const formData = new FormData(this);
+      const data = {};
+
+      formData.forEach((value, key) => {
+        if (!data[key]) {
+          data[key] = [];
+        }
+        data[key].push(value);
+      });*/
+
+      fetch('/api/registro', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({...currentUser, hijos, padres, invitados})
+      })
+      .then(res => res.json())
+      .then(response => {
+        alert('Registro enviado con éxito');
+        console.log(response);
+      })
+      .catch(error => {
+        console.error('Error al enviar:', error);
+      });
+    });
+  </script>
+</body>
+</html>

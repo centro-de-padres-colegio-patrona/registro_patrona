@@ -30,7 +30,7 @@ passport.use(new GoogleStrategy({
   clientSecret: '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',*/
   clientID: '547108669206-gt688r7nm2186tetj2jopln6nhghsmr5.apps.googleusercontent.com',
   clientSecret: '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',
-  callbackURL: callbackURLLocal
+  callbackURL: urlRender + callbackURLLocal
 }, async (accessToken, refreshToken, profile, done) => {
   // Aquí puedes guardar al usuario en tu base de datos
     try {

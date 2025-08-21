@@ -29,7 +29,7 @@ const callbackURLLocal = '/auth/google/callback'
 passport.use(new GoogleStrategy({
   clientID: '547108669206-gt688r7nm2186tetj2jopln6nhghsmr5.apps.googleusercontent.com',
   clientSecret: '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',
-  callbackURL: (PORT === LOCAL_PORT ? urlRender : '') + callbackURLLocal
+  callbackURL: (PORT !== LOCAL_PORT ? urlRender : '') + callbackURLLocal
 }, async (accessToken, refreshToken, profile, done) => {
   // Aquí puedes guardar al usuario en tu base de datos
     try {

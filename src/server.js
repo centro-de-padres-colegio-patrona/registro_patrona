@@ -3,7 +3,8 @@ const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
 
-const PORT = process.env.PORT || 5001;
+const LOCAL_PORT = 5001;
+const PORT = process.env.PORT || LOCAL_PORT;
 
 const db_support = require('../backend/db_support');
 //const listado_cursos = require('./backend/listadoCurso');
@@ -28,8 +29,7 @@ const callbackURLLocal = '/auth/google/callback'
 passport.use(new GoogleStrategy({
   clientID: '547108669206-gt688r7nm2186tetj2jopln6nhghsmr5.apps.googleusercontent.com',
   clientSecret: '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',
-  //callbackURL: urlRender + callbackURLLocal
-  callbackURL: callbackURLLocal
+  callbackURL: (PORT === LOCAL_PORT ? urlRender : '') + callbackURLLocal
 }, async (accessToken, refreshToken, profile, done) => {
   // Aquí puedes guardar al usuario en tu base de datos
     try {

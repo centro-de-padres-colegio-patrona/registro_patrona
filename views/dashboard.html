@@ -7,6 +7,36 @@
     label { display: block; margin-top: 10px; }
     input, select { width: 300px; padding: 5px; }
   </style>
+
+  <style>
+    .child-form,
+    .parent-form,
+    .guest-form {
+      border: 2px solid #4A90E2;     /* Borde azul */
+      border-radius: 10px;           /* Esquinas redondeadas */
+      padding: 15px;
+      margin-bottom: 20px;
+      background-color: #f9f9f9;
+      box-sizing: border-box;        /* Evita que el padding afecte el ancho */
+      display: inline-block;         /* Mantiene el ancho natural */
+      width: auto;                   /* No fuerza ancho completo */
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select {
+      padding: 6px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      max-width: 100%;               /* Se adapta sin exceder el contenedor */
+    }
+  </style>
+
 </head>
 <body>
   <h2>Registro Familiar Fiesta a la Chilena Colegio Patrona</h2>
@@ -20,7 +50,6 @@
         return response.json();
       })
       .then(user => {
-        //document.getElementById('user-name').textContent = user.name || user.username;
         currentUser = user.user;
         fillUserInfo(currentUser);
         console.log('Datos del usuario:', user); // Útil para debugging
@@ -327,16 +356,6 @@
         telefono: guest.querySelector("input[name='guestPhone[]']").value,
         parentesco: guest.querySelector("select[name='relationship[]']").value
       }));
-
-      /*const formData = new FormData(this);
-      const data = {};
-
-      formData.forEach((value, key) => {
-        if (!data[key]) {
-          data[key] = [];
-        }
-        data[key].push(value);
-      });*/
 
       fetch('/api/registro', {
         method: 'POST',

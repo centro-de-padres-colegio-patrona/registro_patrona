@@ -50,7 +50,9 @@ const cursoSchema = new mongoose.Schema({
   id: String,
   estudiantesCurso: Object,      // e.g., "Básico", "Medio"
   listaCurso: Array,       // e.g., 1, 2, 3...
-  prof_jefe: Array
+  prof_jefe: Array,
+  numeroInvitados: Number,
+  bloque: Object,
 });
 
 

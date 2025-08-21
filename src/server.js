@@ -189,6 +189,84 @@ app.post('/api/registro', express.json(), (req, res) => {
 
 });
 
+app.get('/api/bloque', async (req, res) => {
+  const { curso, seccion } = req.query;
+
+  const curso_map = {
+    "Prekínder": 'PK',
+    "Kínder": 'K',
+    "1° Básico": '1',
+    "2° Básico": '2',
+    "3° Básico": '3',
+    "4° Básico": '4',
+    "5° Básico": '5',
+    "6° Básico": '6',
+    "7° Básico": '7',
+    "8° Básico": '8',
+    "I° Medio": '1M',
+    "II° Medio": '2M',
+    "III° Medio": '3M',
+    "IV° Medio": '4M'
+  }
+
+  let query_curso = {id: curso_map[curso] + seccion}
+  
+  // Base query
+  const query = {
+    'hijos.curso': curso,
+    'hijos.seccion': seccion
+  };
+
+  console.log(`query_curso: ${JSON.stringify(query_curso)}`)
+
+  try {
+    let cursoDB = await db_support.listadoCursosDB.find(query_curso);
+    console.log(`cursoDB: ${JSON.stringify(cursoDB)}`);
+    let curso = cursoDB[0];
+    let bloque = curso.bloque 
+    console.log(`Bloque: ${JSON.stringify(bloque)}`);
+    res.json(bloque);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al consultar bloque' });
+  }
+});
+
+app.get('/api/bloque', async (req, res) => {
+  const { curso, seccion } = req.query;
+
+  const curso_map = {
+    "Prekínder": 'PK',
+    "Kínder": 'K',
+    "1° Básico": '1',
+    "2° Básico": '2',
+    "3° Básico": '3',
+    "4° Básico": '4',
+    "5° Básico": '5',
+    "6° Básico": '6',
+    "7° Básico": '7',
+    "8° Básico": '8',
+    "I° Medio": '1M',
+    "II° Medio": '2M',
+    "III° Medio": '3M',
+    "IV° Medio": '4M'
+  }
+
+  let query_curso = {id: curso_map[curso] + seccion}
+  
+  console.log(`query_curso: ${JSON.stringify(query_curso)}`)
+
+  try {
+    let cursoDB = await db_support.listadoCursosDB.find(query_curso);
+    console.log(`cursoDB: ${JSON.stringify(cursoDB)}`);
+    let curso = cursoDB[0];
+    let num_invitados = curso.numeroInvitados;
+    console.log(`num_invitados: ${JSON.stringify(num_invitados)}`);
+    res.json(num_invitados);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al consultar num_invitados' });
+  }
+});
+
 app.get('/api/alumnos', async (req, res) => {
   const { curso, seccion, apellido, nombre } = req.query;
 

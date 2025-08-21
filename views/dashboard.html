@@ -91,6 +91,8 @@
         <select name="childName[]">
         </select>
         <label>RUN:</label><input type="text" name="childRun[]">
+        <label>Bloque:</label>
+        <input type="text" name="childBloque[]" id="childBloque" readonly>
       </div>
     </div>
     <button type="button" onclick="addChild()">+ Agregar otro hijo/a</button>
@@ -150,6 +152,7 @@
           const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
           const nombreSelect = childForm.querySelector("select[name='childName[]']");
           const runInput = childForm.querySelector("input[name='childRun[]']");
+          const bloque = childForm.querySelector("input[name='childBloque[]']");
 
           if (curso && seccion) {
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
@@ -163,6 +166,7 @@
                   nombreSelect.appendChild(option);
                 });
                 runInput.value = '';
+                bloque.value = getBloque(curso, seccion);
               })
               .catch(err => console.error('Error al obtener nombres:', err));
           }
@@ -271,6 +275,7 @@
           .catch(err => console.error('Error al cargar nombres:', err));
 
         form.querySelector("input[name='childRun[]']").value = hijo.run;
+        form.querySelector("input[name='childBloque[]']").value = getBloque(hijo.curso, hijo.seccion);
       });
     }
 
@@ -324,6 +329,16 @@
       fillChildrenSection(user);
       fillParentSection(user);
       fillGuestSection(user);
+    }
+
+    function getBloque(curso, seccion) {
+      fetch(`/api/bloque?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
+        .then(res => res.json())
+        .then(bloque_json => {
+          return bloque_json.value;
+        })
+        .catch(err => console.error('Error al obtener nombres:', err));
+      return '';
     }
 
     document.getElementById('registro-form').addEventListener('submit', function(e) {

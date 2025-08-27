@@ -88,10 +88,12 @@ const allowedOrigins = [
 // Configuración de CORS
 app.use(cors({
   origin: function (origin, callback) {
+    console.log('origin: ', origin)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('No permitido por CORS'));
+      //callback(new Error('No permitido por CORS'));
+      callback(null, true);
     }
   },
   credentials: true

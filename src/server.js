@@ -2,6 +2,10 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const cors = require('cors');
+
+const Jimp = require('jimp');
+const QRCode = require('qrcode');
 
 const LOCAL_PORT = 5001;
 const PORT = process.env.PORT || LOCAL_PORT;
@@ -74,6 +78,27 @@ passport.deserializeUser((obj, done) => done(null, obj));
 // the express static middleware, to serve all files
 // inside the public directory
 const app = express()
+
+// Orígenes permitidos (ajusta según tu frontend)
+const allowedOrigins = [
+  'http://localhost:3000', // desarrollo local
+  'https://https://registro-patrona.onrender.com/' // producción si aplica
+];
+
+// Configuración de CORS
+app.use(cors({
+  origin: function (origin, callback) {
+    console.log('origin: ', origin)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      //callback(new Error('No permitido por CORS'));
+      callback(null, true);
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.static(__dirname + '/public'))
 app.use(express.static(__dirname + '/src'))
 app.use(express.static(__dirname + '/views'))
@@ -385,6 +410,50 @@ app.get('/authenticated', (req, res) => {
   // Send the dashboard.html file as a response
   const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
   res.sendFile(dashboardPath);
+});
+
+
+// Ruta para generar ticket
+app.get('/api/ticket', async (req, res) => {
+  const { familia } = req.body;
+  if (!familia) return res.status(400).json({ error: 'Falta el nombre de la familia' });
+
+  try {
+    const backgroundPath = path.join('img', 'fondo_entrada.png');
+    const outputPath = path.join('output', `ticket_${familia.replace(/\s+/g, '_')}.png`);
+    const qrData = 'https://fiestachilenapatrona.cl/registro';
+
+    console.log(`writing ${outputPath}`)
+
+    const fondo = await Jimp.read(backgroundPath);
+    const qrBuffer = await QRCode.toBuffer(qrData, { width: 215, margin: 1 });
+    const qrImage = await Jimp.read(qrBuffer);
+    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+
+    const textos = [
+      { texto: familia, x: 190, y: 390 },
+      { texto: '1 de 6', x: 375, y: 621 },
+      { texto: 'Cursos: 1roA-1, 2doA-1', x: 58, y: 423 },
+      { texto: 'Bloques: Azul, Rosa', x: 58, y: 464 },
+    ];
+
+    textos.forEach(({ texto, x, y }) => {
+      fondo.print(font, x, y, texto);
+    });
+
+    fondo.composite(qrImage, 45, 528);
+    console.log(`writing ${outputPath}`)
+    await fondo.writeAsync(outputPath);
+
+    //res.sendFile(outputPath); // Devuelve la imagen generada
+    // Convertir imagen a buffer PNG y enviarla directamente
+    const buffer = await fondo.getBufferAsync(Jimp.MIME_PNG);
+    res.set('Content-Type', 'image/png');
+    res.send(buffer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al generar el ticket' });
+  }
 });
 
 

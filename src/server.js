@@ -428,23 +428,6 @@ app.post('/api/registro', express.json(), (req, res) => {
 app.get('/api/bloque', async (req, res) => {
   const { curso, seccion } = req.query;
 
-  const curso_map = {
-    "Prekínder": 'PK',
-    "Kínder": 'K',
-    "1° Básico": '1',
-    "2° Básico": '2',
-    "3° Básico": '3',
-    "4° Básico": '4',
-    "5° Básico": '5',
-    "6° Básico": '6',
-    "7° Básico": '7',
-    "8° Básico": '8',
-    "I° Medio": '1M',
-    "II° Medio": '2M',
-    "III° Medio": '3M',
-    "IV° Medio": '4M'
-  }
-
   let query_curso = {id: curso_map[curso] + seccion}
   
   // Base query
@@ -470,23 +453,6 @@ app.get('/api/bloque', async (req, res) => {
 
 app.get('/api/max_invitados', async (req, res) => {
   const { curso, seccion } = req.query;
-
-  const curso_map = {
-    "Prekínder": 'PK',
-    "Kínder": 'K',
-    "1° Básico": '1',
-    "2° Básico": '2',
-    "3° Básico": '3',
-    "4° Básico": '4',
-    "5° Básico": '5',
-    "6° Básico": '6',
-    "7° Básico": '7',
-    "8° Básico": '8',
-    "I° Medio": '1M',
-    "II° Medio": '2M',
-    "III° Medio": '3M',
-    "IV° Medio": '4M'
-  }
 
   let query_curso = {id: curso_map[curso] + seccion}
   
@@ -532,23 +498,6 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
 
 app.get('/api/alumnos', async (req, res) => {
   const { curso, seccion, apellido, nombre } = req.query;
-
-  const curso_map = {
-    "Prekínder": 'PK',
-    "Kínder": 'K',
-    "1° Básico": '1',
-    "2° Básico": '2',
-    "3° Básico": '3',
-    "4° Básico": '4',
-    "5° Básico": '5',
-    "6° Básico": '6',
-    "7° Básico": '7',
-    "8° Básico": '8',
-    "I° Medio": '1M',
-    "II° Medio": '2M',
-    "III° Medio": '3M',
-    "IV° Medio": '4M'
-  }
 
   let query_curso = {id: curso_map[curso] + seccion}
   

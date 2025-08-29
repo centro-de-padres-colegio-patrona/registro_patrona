@@ -2,10 +2,11 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const cors = require('cors');
 
-const Jimp = require('jimp');
-const QRCode = require('qrcode');
+
+
+const nodemailer = require('nodemailer');
+const cors = require('cors');
 
 const LOCAL_PORT = 5001;
 const PORT = process.env.PORT || LOCAL_PORT;
@@ -95,27 +96,6 @@ passport.deserializeUser((obj, done) => done(null, obj));
 // the express static middleware, to serve all files
 // inside the public directory
 const app = express()
-
-// Orígenes permitidos (ajusta según tu frontend)
-const allowedOrigins = [
-  'http://localhost:3000', // desarrollo local
-  'https://https://registro-patrona.onrender.com/' // producción si aplica
-];
-
-// Configuración de CORS
-app.use(cors({
-  origin: function (origin, callback) {
-    console.log('origin: ', origin)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      //callback(new Error('No permitido por CORS'));
-      callback(null, true);
-    }
-  },
-  credentials: true
-}));
-
 app.use(express.static(__dirname + '/public'))
 app.use(express.static(__dirname + '/src'))
 app.use(express.static(__dirname + '/views'))
@@ -127,6 +107,8 @@ app.use(passport.session());
 
 app.set('view engine', 'ejs');
 
+app.use(cors());
+app.use(express.json());
 
 // Ruta para la página "hello world" (index.html)
 app.get('/', (req, res) => {
@@ -156,8 +138,23 @@ app.get('/login-error', (req, res) => {
 
 // Ruta para la página "welcome" (welcome.html)
 app.get('/signup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'login', 'signup.html'));
+  res.sendFile(path.join(__dirname, 'login', 'signup.html'));
+  //const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
+  //res.sendFile(dashboardPath);
 });
+
+app.get('/register_success', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views', 'register_success.html'));
+});
+app.get('/pagoCCPP', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login', 'pagoCCPP.html'));
+});
+
+app.get('/pagoEntrada', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login', 'pagoEntradas.html'));
+});
+
+
 
 
 app.get('/api/user', async (req, res) => {
@@ -201,33 +198,77 @@ app.post('/api/registro', express.json(), (req, res) => {
   const registro = req.body;
   console.log('Datos recibidos:', registro);
 
-  // Ruta donde guardar el archivo
-  const filePath = path.join(__dirname, 'registros.json');
+  //VALIDAR JSON PAGO CP
+  let validaPagoCP = false;
 
-  db_support.usersDB.findOneAndUpdate(registro)
-  .then(userActualizado => {
-    console.log('Usuario actualizado:', userActualizado);
-  })
-  .catch(err => {
-    console.error('Error al actualizar usuario:', err);
+  const filePathCP = path.join(__dirname, 'pagos.json');
+  const nombreHijo = registro.hijos[0].nombre;
+  console.log ('NOMBRE HIJO: ' + nombreHijo);
+
+  fs.readFile(filePathCP, 'utf8', (err, data) => {
+
+        const registrosPrevios = !err && data ? JSON.parse(data) : [];
+
+        // Accede a los datos dentro de la estructura del JSON
+        const filas = registrosPrevios["pago cuota cgpa"]["ws_rowsData"];
+        const columnas = registrosPrevios["pago cuota cgpa"]["ws_colTags"];
+
+        const idxNombre = columnas.indexOf("nombre completo");
+        const idxSiNo = columnas.indexOf("si/no");
+
+        if (idxNombre !== -1 && idxSiNo !== -1) {
+            for (const fila of filas) {
+                const nombre = fila[idxNombre];
+                const siNo = fila[idxSiNo];
+
+                    console.log ('NOMBRE HIJO JSON: ' + nombre);
+                    console.log ('PAGADO JSON: [' + siNo + ']');
+                    console.log ('PAGADO JSON: [' + siNo.trim() + ']');
+                if (nombre === nombreHijo  && (siNo === "si")) {
+                    
+
+                    console.log ('NOMBRE HIJO VALIDADO: ' + nombreHijo);
+
+                    validaPagoCP = true;
+                    break;
+                }
+            }
+          }   
+
   });
-  // Leer archivo existente y agregar nueva entrada
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    const registrosPrevios = !err && data ? JSON.parse(data) : [];
 
-    registrosPrevios.push(registro);
+  console.log('VERDADERO o FALSO:  '+ validaPagoCP);
 
-    fs.writeFile(filePath, JSON.stringify(registrosPrevios, null, 2), (err) => {
-      if (err) {
-        console.error('Error al guardar en archivo:', err);
-        return res.status(500).json({ error: 'No se pudo guardar en archivo' });
-      }
+      const filePath = path.join(__dirname, 'registros.json');
 
-      // Continúa con MongoDB...
-    });
-  });
+      db_support.usersDB.findOneAndUpdate(
+        { _id: registro._id },       // Filtro para encontrar el usuario
+        { $set: registro },          // Actualización: sobrescribe los campos con los de `registro`
+        { returnDocument: 'after' }  // Opcional: retorna el documento actualizado
+      )
+      .then(userActualizado => {
+        console.log('Usuario actualizado:', userActualizado);
+      })
+      .catch(err => {
+        console.error('Error al actualizar usuario:', err);
+      });
+      // Leer archivo existente y agregar nueva entrada
+      fs.readFile(filePath, 'utf8', (err, data) => {
+        const registrosPrevios = !err && data ? JSON.parse(data) : [];
 
-  res.json({ status: 'ok', mensaje: 'Registro recibido' });
+        registrosPrevios.push(registro);
+
+        fs.writeFile(filePath, JSON.stringify(registrosPrevios, null, 2), (err) => {
+          if (err) {
+            console.error('Error al guardar en archivo:', err);
+            return res.status(500).json({ error: 'No se pudo guardar en archivo' });
+          }
+
+          // Continúa con MongoDB...
+        });
+      });
+
+      res.json({ status: 'ok', mensaje: 'Registro recibido', pagadoCCPP: validaPagoCP });
 
 });
 
@@ -272,6 +313,32 @@ app.get('/api/max_invitados', async (req, res) => {
     res.json(num_invitados);
   } catch (error) {
     res.status(500).json({ error: 'Error al consultar num_invitados' });
+  }
+});
+
+app.get('/api/estado_pago_cpa', async (req, res) => {
+  //console.log('req.user:', req.user);
+  console.log('/api/estado_pago_cpa');
+  let user = await db_support.usersDB.findOne({ googleId: req.user.id });
+
+  if (user === undefined) {
+    console.log('User undefined');
+    res.status(500).json({ error: 'Error User not defined' });
+  } /*else {
+    console.log('User:', user);
+  }*/
+  // Si no existe, podés crearlo o manejarlo como desees
+  if (!user || user === undefined) {
+    console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
+    res.status(500).json({ error: 'Error user not found' });
+  } else {
+    console.log(JSON.stringify(user.hijos));
+    estudiante = user.hijos[0]['nombre'];
+    console.log(estudiante);
+    const pago = await db_support.pagosDB.findOne({id: estudiante});
+    console.log(JSON.stringify(pago));
+    const pagado = pago.cuota_cpa === true;
+    res.json({pagado});
   }
 });
 
@@ -378,50 +445,49 @@ app.get('/authenticated', (req, res) => {
   res.sendFile(dashboardPath);
 });
 
+app.post('/enviarCorreo', async (req, res) => {
+  const {correo} = req.body;
 
-// Ruta para generar ticket
-app.get('/api/ticket', async (req, res) => {
-  const { familia } = req.body;
-  if (!familia) return res.status(400).json({ error: 'Falta el nombre de la familia' });
+  const asuntoCorreo = 'PATRONA: Registro exitoso';
+  const mensajeCorreo = 'El registro se ha enviado correctamente.';
 
-  try {
-    const backgroundPath = path.join('img', 'fondo_entrada.png');
-    const outputPath = path.join('output', `ticket_${familia.replace(/\s+/g, '_')}.png`);
-    const qrData = 'https://fiestachilenapatrona.cl/registro';
+    if (!correo || !asuntoCorreo || !mensajeCorreo) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+      console.info ('Faltan campos requeridos..');
+    }
 
-    console.log(`writing ${outputPath}`)
-
-    const fondo = await Jimp.read(backgroundPath);
-    const qrBuffer = await QRCode.toBuffer(qrData, { width: 215, margin: 1 });
-    const qrImage = await Jimp.read(qrBuffer);
-    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-
-    const textos = [
-      { texto: familia, x: 190, y: 390 },
-      { texto: '1 de 6', x: 375, y: 621 },
-      { texto: 'Cursos: 1roA-1, 2doA-1', x: 58, y: 423 },
-      { texto: 'Bloques: Azul, Rosa', x: 58, y: 464 },
-    ];
-
-    textos.forEach(({ texto, x, y }) => {
-      fondo.print(font, x, y, texto);
+    const transporter = nodemailer.createTransport({
+     service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: 'centrodepadres@colegiopatrona.cl',
+        pass: 'Peroconrespeto',
+        clientId: '110435636758-vvkr480b6l0lu7ninig8ddvrkbssuhk7.apps.googleusercontent.com',
+        clientSecret: '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',
+        refreshToken: '1//04wg4HDhyOi4YCgYIARAAGAQSNgF-L9IrEtcIbrnUQ_loGfqrIiEN8NNMACKBBvuNyCW1uKkegggwVsaQmsS9-2ikc2qMQldxpA'
+      },
+      tls: {
+        rejectUnauthorized: false  // evita problemas con certificados autofirmados
+      }
     });
 
-    fondo.composite(qrImage, 45, 528);
-    console.log(`writing ${outputPath}`)
-    await fondo.writeAsync(outputPath);
+  const mailOptions = {
+    from: 'centrodepadres@colegiopatrona.cl',
+    to: correo,
+    subject: asuntoCorreo,
+    text: mensajeCorreo
+  };
 
-    //res.sendFile(outputPath); // Devuelve la imagen generada
-    // Convertir imagen a buffer PNG y enviarla directamente
-    const buffer = await fondo.getBufferAsync(Jimp.MIME_PNG);
-    res.set('Content-Type', 'image/png');
-    res.send(buffer);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al generar el ticket' });
+  transporter.sendMail(mailOptions, (error, info) => {
+  if (error) {
+    console.error("Error al enviar:", error);
+    return res.status(400).json({ error: 'Error al enviar correo: ' + error });
+  } else {
+    console.log("Correo enviado:", info.response);
+    return res.status(200).json({ data: 'Faltan campos requeridos' });
   }
 });
-
+});
 
 // Start the server on port 8080
 app.listen(PORT, () => {

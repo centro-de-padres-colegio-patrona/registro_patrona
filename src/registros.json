@@ -1,62 +1,3866 @@
 [
   {
-    "_id": "68a55154a30a5921b73535a3",
-    "googleId": "107273735325515123375",
-    "displayName": "Carolina Messina",
-    "email": "messina.carolina@gmail.com",
-    "photo": "https://lh3.googleusercontent.com/a/ACg8ocL75vjGRa9ec5Bb0AR_aDO3M0HUTnxb_g_IwhQi6c7igKReRg=s96-c",
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
     "pagos": null,
     "hijos": [
       {
-        "nombre": "herrera messina florencia isidora",
-        "run": "238543959",
-        "curso": "8° Básico",
-        "seccion": "A"
-      },
-      {
-        "nombre": "herrera messina cristobal nicolas",
-        "run": "23460412-0",
-        "curso": "I° Medio",
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
         "seccion": "A"
       }
     ],
     "padres": [
       {
-        "nombre": "Leonardo Cristian",
-        "apellido": "Herrera Mena",
-        "run": "124852854",
-        "correo": "leo.herrera.mena@gmail.com",
-        "telefono": "978512617",
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "tatiana",
+        "apellido": "perez",
+        "run": "1-9",
+        "correo": "tatianapg.vet@gmail.com",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "morales perez joaquin alfredo",
+        "run": "",
+        "curso": "6° Básico",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ]
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "morales perez julieta belen",
+        "run": "1-9",
+        "curso": "Kínder",
+        "seccion": "B"
+      },
+      {
+        "nombre": "morales perez antonia margarita",
+        "run": "1-9",
+        "curso": "3° Básico",
+        "seccion": "B"
+      },
+      {
+        "nombre": "morales perez joaquin alfredo",
+        "run": "1-9",
+        "curso": "6° Básico",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "Italo",
+        "apellido": "Morales",
+        "run": "1-9",
+        "correo": "morales.italo@gmail.com",
+        "telefono": "91616945",
         "parentesco": "Padre"
       },
       {
-        "nombre": "Carolina Andrea",
-        "apellido": "Messina Avila",
-        "run": "124883490",
-        "correo": "messina.carolina@gmail.com",
-        "telefono": "985590590",
+        "nombre": "Tatiana",
+        "apellido": "Perez",
+        "run": "1-9",
+        "correo": "morales.italo@gmail.com",
+        "telefono": "",
         "parentesco": "Madre"
       }
     ],
     "invitados": [
       {
-        "nombre": "Alonso ignacio",
-        "apellido": "Herrera Messina",
-        "run": "238090482",
-        "correo": "alonsoh2004@gmail.com",
-        "telefono": "",
-        "parentesco": "Hermana/o"
-      },
-      {
-        "nombre": "Vicente Antonio",
-        "apellido": "Herrera Messina",
-        "run": "223831249",
-        "correo": "vicent.herrer.messin@gmail.com",
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
         "telefono": "",
         "parentesco": "Hermana/o"
       }
     ],
-    "fechaRegistro": "2025-08-20T04:38:44.046Z",
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "azorin varas antonia belen",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "azorin varas antonia belen",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "azorin varas antonia belen",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "azorin varas antonia belen",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "azorin varas antonia belen",
+        "run": "",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "run": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "azorin varas antonia belen",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "azorin varas antonia belen",
+        "curso": "Prekínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "Italo",
+        "apellido": "Morales",
+        "correo": "morales.italo@gmail.com",
+        "telefono": "991616945",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "Italo",
+        "apellido": "Morales",
+        "correo": "morales.italo@gmail.com",
+        "telefono": "991616945",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "morales perez julieta belen",
+        "curso": "Kínder",
+        "seccion": "B"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "Italo",
+        "apellido": "Morales",
+        "correo": "morales.italo@gmail.com",
+        "telefono": "991616945",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "Italo",
+        "apellido": "Morales",
+        "correo": "morales.italo@gmail.com",
+        "telefono": "991616945",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "morales perez julieta belen",
+        "curso": "Kínder",
+        "seccion": "B"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "morales perez julieta belen",
+        "curso": "Kínder",
+        "seccion": "B"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "aguilar ormazabal maira",
+        "curso": "Kínder",
+        "seccion": "A"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "morales perez julieta belen",
+        "curso": "Kínder",
+        "seccion": "B"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a7f1517978c81cc6010439",
+    "googleId": "117777222725395117609",
+    "displayName": "Italo Morales",
+    "email": "morales.italo@gmail.com",
+    "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ5LDEsHXPlRXQokRMfNH4ujU7nYFzldaF_0Vp7yE3FtjPFOQ=s96-c",
+    "pagos": null,
+    "hijos": [
+      {
+        "nombre": "morales perez julieta belen",
+        "curso": "Kínder",
+        "seccion": "B"
+      }
+    ],
+    "padres": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Padre"
+      }
+    ],
+    "invitados": [
+      {
+        "nombre": "",
+        "apellido": "",
+        "correo": "",
+        "telefono": "",
+        "parentesco": "Hermana/o"
+      }
+    ],
+    "fechaRegistro": "2025-08-22T04:25:53.304Z",
     "__v": 0
   }
 ]

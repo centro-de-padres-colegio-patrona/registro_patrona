@@ -39,9 +39,12 @@
 
 </head>
 <body>
+
   <h2>Registro Familiar Fiesta a la Chilena Colegio Patrona</h2>
 
   <script>
+    
+
     let currentUser = null;
     fetch('/api/user')
       .then(response => {
@@ -53,6 +56,13 @@
         currentUser = user.user;
         fillUserInfo(currentUser);
         console.log('Datos del usuario:', user); // Útil para debugging
+        
+        //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
+        const correo = currentUser.email && currentUser.email.trim() !== "" 
+            ? currentUser.email 
+            : "ejemplo@correo.com";
+
+        document.getElementById("correoUsuario").value = correo;
       })
       .catch(error => {
         console.log('Error servidor:', error);
@@ -90,7 +100,6 @@
         <label>Nombres:</label>
         <select name="childName[]">
         </select>
-        <label>RUN:</label><input type="text" name="childRun[]">
         <label>Bloque:</label>
         <input type="text" name="childBloque[]" id="childBloque" readonly>
       </div>
@@ -103,7 +112,6 @@
       <div class="parent-form">
         <label>Apellidos:</label><input type="text" name="parentSurname[]">
         <label>Nombres:</label><input type="text" name="parentName[]">
-        <label>RUN:</label><input type="text" name="parentRun[]">
         <label>Correo:</label><input type="email" name="parentEmail[]">
         <label>Teléfono (opcional):</label><input type="tel" name="parentPhone[]">
         <label>Parentesco:</label>
@@ -122,7 +130,6 @@
       <div class="guest-form">
         <label>Apellidos:</label><input type="text" name="guestSurname[]">
         <label>Nombres:</label><input type="text" name="guestName[]">
-        <label>RUN:</label><input type="text" name="guestRun[]">
         <label>Correo:</label><input type="email" name="guestEmail[]">
         <label>Teléfono (opcional):</label><input type="tel" name="guestPhone[]">
         <label>Parentesco:</label>
@@ -136,7 +143,16 @@
     <button type="button" onclick="addGuest()">+ Agregar otro invitado/a</button>
 
     <br><br>
-    <button type="submit">Enviar</button>
+    <!--button type="submit">Enviar</button-->
+
+    <div style="text-align: center; margin-top: 20px;">
+  <label>Se enviara las entradas y valor a pagar a:</label><br>
+  <!--input type="email" id="correoUsuario" name="correoPrincipal" placeholder="ejemplo@correo.com" style="width: 300px; padding: 10px; margin-bottom: 15px;"><br-->
+  <input type="email" id="correoUsuario"  style="width: 300px; padding: 10px; margin-bottom: 15px;" ><br>
+
+  <button type="submit" style="font-size: 18px; padding: 12px 24px;">Enviar</button>
+</div>
+
   </form>
 
   <script>  
@@ -151,7 +167,6 @@
           const curso = childForm.querySelector("select[name='childCourse[]']").value;
           const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
           const nombreSelect = childForm.querySelector("select[name='childName[]']");
-          const runInput = childForm.querySelector("input[name='childRun[]']");
           const bloque = childForm.querySelector("input[name='childBloque[]']");
 
           if (curso && seccion) {
@@ -165,7 +180,6 @@
                   option.textContent = nombre;
                   nombreSelect.appendChild(option);
                 });
-                runInput.value = '';
                 bloque.value = getBloque(curso, seccion);
               })
               .catch(err => console.error('Error al obtener nombres:', err));
@@ -214,7 +228,21 @@
       const section = document.getElementById('guest-section');
       const forms = section.querySelectorAll('.guest-form');
       const button = document.querySelector("button[onclick='addGuest()']");
-      const maxGuests = 2;
+      let maxGuests = 2;
+
+      
+
+      // Recopila hijos
+      const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
+        curso: child.querySelector("select[name='childCourse[]']").value
+      }));
+      
+      for (let i = 0; i < hijos.length; i++) {
+        if (hijos[i].curso === "IV° Medio") {
+          maxGuests = 4;
+          break;
+        }
+      }
 
       if (forms.length >= maxGuests) {
         button.disabled = true;
@@ -273,8 +301,6 @@
             nombreSelect.value = hijo.nombre;
           })
           .catch(err => console.error('Error al cargar nombres:', err));
-
-        form.querySelector("input[name='childRun[]']").value = hijo.run;
         form.querySelector("input[name='childBloque[]']").value = getBloque(hijo.curso, hijo.seccion);
       });
     }
@@ -295,7 +321,6 @@
 
         form.querySelector("input[name='parentSurname[]']").value = padre.apellido || '';
         form.querySelector("input[name='parentName[]']").value = padre.nombre || '';
-        form.querySelector("input[name='parentRun[]']").value = padre.run || '';
         form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
         form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
         form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
@@ -318,7 +343,6 @@
 
         form.querySelector("input[name='guestSurname[]']").value = invitado.apellido || '';
         form.querySelector("input[name='guestName[]']").value = invitado.nombre || '';
-        form.querySelector("input[name='guestRun[]']").value = invitado.run || '';
         form.querySelector("input[name='guestEmail[]']").value = invitado.correo || '';
         form.querySelector("input[name='guestPhone[]']").value = invitado.telefono || '';
         form.querySelector("select[name='relationship[]']").value = invitado.parentesco || 'Otro';
@@ -347,7 +371,6 @@
       // Recopila hijos
       const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
         nombre: child.querySelector("select[name='childName[]']").value,
-        run: child.querySelector("input[name='childRun[]']").value,
         curso: child.querySelector("select[name='childCourse[]']").value,
         seccion: child.querySelector("select[name='childSeccion[]']").value
       }));
@@ -356,7 +379,6 @@
       const padres = Array.from(document.querySelectorAll(".parent-form")).map(parent => ({
         nombre: parent.querySelector("input[name='parentName[]']").value,
         apellido: parent.querySelector("input[name='parentSurname[]']").value,
-        run: parent.querySelector("input[name='parentRun[]']").value,
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value
@@ -366,28 +388,71 @@
       const invitados = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
         nombre: guest.querySelector("input[name='guestName[]']").value,
         apellido: guest.querySelector("input[name='guestSurname[]']").value,
-        run: guest.querySelector("input[name='guestRun[]']").value,
         correo: guest.querySelector("input[name='guestEmail[]']").value,
         telefono: guest.querySelector("input[name='guestPhone[]']").value,
         parentesco: guest.querySelector("select[name='relationship[]']").value
       }));
 
-      fetch('/api/registro', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({...currentUser, hijos, padres, invitados})
-      })
-      .then(res => res.json())
-      .then(response => {
-        alert('Registro enviado con éxito');
-        console.log(response);
-      })
-      .catch(error => {
-        console.error('Error al enviar:', error);
-      });
-    });
+      //Recopila correo gmail
+      const correoGmail = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
+       correo: guest.querySelector("input[name='guestName[]']").value
+      }));
+
+
+        //OBTENER SI EL ALUMNO PAGO LA CUOTA
+        const validaPago = false;
+
+
+
+            fetch('/api/registro', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({...currentUser, hijos, padres, invitados})
+            })
+            .then(res => res.json())
+            .then(response => {
+              //alert('Enviar correo a: ' + correo);
+              alert('Registro enviado con éxito');
+              
+            // })
+              alert('RESPONSE: ' + response.pagadoCCPP);
+
+      if (response.pagadoCCPP){
+              // Datos del correo
+                const correoEntradas = {
+                  correo: document.getElementById("correoUsuario").value
+                };
+
+                alert('CORREO ENVIADO:'+ document.getElementById("correoUsuario").value);
+                // Llamada a la API para enviar el correo
+                fetch('/enviarCorreo', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(correoEntradas)
+                })
+
+                .then(res => res.json())
+                .then(data => {
+                  alert('Correo enviado con éxito');
+                  console.log('Respuesta del servidor:', data);
+                })
+                .catch(error => {
+                  console.error('Error al enviar el correo:', error);
+                  alert('Hubo un problema al enviar el correo, favor contactar con el centro de padres (centrodepadres@colegiopatrona.cl): ' + error);
+                });
+              }else{
+                window.location.href = "/pagoCCPP";
+              }
+            })
+            .catch(error => {
+              console.error('Error al registrar:', error);
+            });
+          });
+         
   </script>
 </body>
 </html>

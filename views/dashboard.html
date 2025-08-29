@@ -44,7 +44,7 @@
 
   <script>
     
-
+    let max_invitados = 2;
     let currentUser = null;
     fetch('/api/user')
       .then(response => {
@@ -190,6 +190,31 @@
   </script>
 
   <script>
+    /// ----------------------- Verificar Máximo Entradas
+    function verificarCursos() {
+      const selects = document.querySelectorAll('select[name="childCourse[]"]');
+      let contieneIVMedio = false;
+
+      selects.forEach(select => {
+        if (select.value === "IV° Medio") {
+          contieneIVMedio = true;
+        }
+      });
+
+      return contieneIVMedio ? 6 : 2;
+    }
+
+    // Escucha cambios en todos los selects
+    document.querySelectorAll('select[name="childCourse[]"]').forEach(select => {
+      select.addEventListener('change', () => {
+        const resultado = verificarCursos();
+        console.log("Maximo Invitados:", resultado);
+        max_invitados = resultado;
+        // Aquí puedes usar el resultado como necesites
+      });
+    });
+
+
     function addChild() {
       const section = document.getElementById('children-section');
       const clone = section.querySelector('.child-form').cloneNode(true);
@@ -228,7 +253,7 @@
       const section = document.getElementById('guest-section');
       const forms = section.querySelectorAll('.guest-form');
       const button = document.querySelector("button[onclick='addGuest()']");
-      let maxGuests = 2;
+      let maxGuests = max_invitados;
 
       
 
@@ -239,7 +264,7 @@
       
       for (let i = 0; i < hijos.length; i++) {
         if (hijos[i].curso === "IV° Medio") {
-          maxGuests = 4;
+          maxGuests = 6;
           break;
         }
       }

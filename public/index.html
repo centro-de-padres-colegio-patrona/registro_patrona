@@ -424,18 +424,18 @@ form {
     <h2>Registro Patrona</h2>
     <img src="../img/logo.png" alt="Logo CGPA" style="width: 100%; max-width: 200px; margin: 20px auto; display: block;">
     <form action="/login" method="post" id="formularioLogin">
-      <input type="text" name="username" placeholder="Nombre" required>
+      <input type="text" name="username" placeholder="Nombre" disabled>
         <!-- Campo de contraseña con toggle -->
         <div style="position: relative; width: 100%; margin: 0 auto 15px;">
           <input
             name="correoManual"
             id="correoManual"
             placeholder="ejemplo@correo.com"
-            required
+            disabled
             >
         </div>
 
-      <button type="button" onclick="validarYEnviar()">Ingresar</button>
+      <button type="button" onclick="validarYEnviar()" disabled>Ingresar</button>
     </form>
   </div>
 

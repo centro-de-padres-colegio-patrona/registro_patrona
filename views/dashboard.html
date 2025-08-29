@@ -146,7 +146,7 @@
     <!--button type="submit">Enviar</button-->
 
     <div style="text-align: center; margin-top: 20px;">
-  <label>Se enviara las entradas y valor a pagar a:</label><br>
+  <label>Correo para recibir próximamente las entradas:</label><br>
   <!--input type="email" id="correoUsuario" name="correoPrincipal" placeholder="ejemplo@correo.com" style="width: 300px; padding: 10px; margin-bottom: 15px;"><br-->
   <input type="email" id="correoUsuario"  style="width: 300px; padding: 10px; margin-bottom: 15px;" ><br>
 
@@ -439,10 +439,10 @@
             .then(res => res.json())
             .then(response => {
               //alert('Enviar correo a: ' + correo);
-              alert('Registro enviado con éxito');
-              
+              //alert('Registro enviado con éxito');
+              window.location.href = "register_success";
             // })
-              alert('RESPONSE: ' + response.pagadoCCPP);
+              //alert('RESPONSE: ' + response.pagadoCCPP);
 
       if (response.pagadoCCPP){
               // Datos del correo
@@ -469,9 +469,9 @@
                   console.error('Error al enviar el correo:', error);
                   alert('Hubo un problema al enviar el correo, favor contactar con el centro de padres (centrodepadres@colegiopatrona.cl): ' + error);
                 });
-              }else{
+              }/*else{
                 window.location.href = "/pagoCCPP";
-              }
+              }*/
             })
             .catch(error => {
               console.error('Error al registrar:', error);

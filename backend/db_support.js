@@ -55,7 +55,17 @@ const cursoSchema = new mongoose.Schema({
   bloque: Object,
 });
 
-
+const pagosSchema = new mongoose.Schema({
+  id: String,
+  num_folio: Number,
+  tipo: String,
+  cuota_cpa: Boolean,
+  monto: Number,
+  cantidad_agendas: Number,
+  entrega_agendas: Number,
+  fecha: String,
+  comentarios: String,
+});
 
 /// --------------------------------------
 const registrados = new mongoose.Schema({
@@ -81,5 +91,6 @@ mongoose.connect(uri, {
 
 module.exports.usersDB = mongoose.model('users', userSchema);
 module.exports.listadoCursosDB = mongoose.model('listado_cursos', cursoSchema);
+module.exports.pagosDB = mongoose.model('pagos', pagosSchema);
 //module.exports = mongoose.model('Familia', familiaSchema);
 

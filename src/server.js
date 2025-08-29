@@ -143,6 +143,9 @@ app.get('/signup', (req, res) => {
   //res.sendFile(dashboardPath);
 });
 
+app.get('/register_success', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views', 'register_success.html'));
+});
 app.get('/pagoCCPP', (req, res) => {
   res.sendFile(path.join(__dirname, 'login', 'pagoCCPP.html'));
 });
@@ -238,7 +241,11 @@ app.post('/api/registro', express.json(), (req, res) => {
 
       const filePath = path.join(__dirname, 'registros.json');
 
-      db_support.usersDB.findOneAndUpdate(registro)
+      db_support.usersDB.findOneAndUpdate(
+        { _id: registro._id },       // Filtro para encontrar el usuario
+        { $set: registro },          // Actualización: sobrescribe los campos con los de `registro`
+        { returnDocument: 'after' }  // Opcional: retorna el documento actualizado
+      )
       .then(userActualizado => {
         console.log('Usuario actualizado:', userActualizado);
       })
@@ -306,6 +313,32 @@ app.get('/api/max_invitados', async (req, res) => {
     res.json(num_invitados);
   } catch (error) {
     res.status(500).json({ error: 'Error al consultar num_invitados' });
+  }
+});
+
+app.get('/api/estado_pago_cpa', async (req, res) => {
+  //console.log('req.user:', req.user);
+  console.log('/api/estado_pago_cpa');
+  let user = await db_support.usersDB.findOne({ googleId: req.user.id });
+
+  if (user === undefined) {
+    console.log('User undefined');
+    res.status(500).json({ error: 'Error User not defined' });
+  } /*else {
+    console.log('User:', user);
+  }*/
+  // Si no existe, podés crearlo o manejarlo como desees
+  if (!user || user === undefined) {
+    console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
+    res.status(500).json({ error: 'Error user not found' });
+  } else {
+    console.log(JSON.stringify(user.hijos));
+    estudiante = user.hijos[0]['nombre'];
+    console.log(estudiante);
+    const pago = await db_support.pagosDB.findOne({id: estudiante});
+    console.log(JSON.stringify(pago));
+    const pagado = pago.cuota_cpa === true;
+    res.json({pagado});
   }
 });
 

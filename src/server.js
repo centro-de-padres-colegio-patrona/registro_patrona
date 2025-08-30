@@ -2,6 +2,7 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const { genEntrada, genEntradaCanvas } = require('./generateTicket');
 
 
 
@@ -488,6 +489,18 @@ app.post('/enviarCorreo', async (req, res) => {
   }
 });
 });
+
+app.post('/api/generar_entrada_canvas', async (req, res) => {
+    try {
+      console.log(JSON.stringify(req.body));
+      const buffer = await genEntradaCanvas(req.body);
+      res.set('Content-Type', 'image/png');
+      res.send(buffer);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Error generando entrada' });
+    }
+  });
 
 // Start the server on port 8080
 app.listen(PORT, () => {

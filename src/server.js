@@ -238,9 +238,9 @@ app.post('/api/registro', express.json(), (req, res) => {
 
   });
 
-  console.log('VERDADERO o FALSO:  '+ validaPagoCP);
+  //console.log('VERDADERO o FALSO:  '+ validaPagoCP);
 
-      const filePath = path.join(__dirname, 'registros.json');
+      //const filePath = path.join(__dirname, 'registros.json');
 
       db_support.usersDB.findOneAndUpdate(
         { _id: registro._id },       // Filtro para encontrar el usuario
@@ -254,7 +254,7 @@ app.post('/api/registro', express.json(), (req, res) => {
         console.error('Error al actualizar usuario:', err);
       });
       // Leer archivo existente y agregar nueva entrada
-      fs.readFile(filePath, 'utf8', (err, data) => {
+      /*fs.readFile(filePath, 'utf8', (err, data) => {
         const registrosPrevios = !err && data ? JSON.parse(data) : [];
 
         registrosPrevios.push(registro);
@@ -267,7 +267,7 @@ app.post('/api/registro', express.json(), (req, res) => {
 
           // Continúa con MongoDB...
         });
-      });
+      });*/
 
       res.json({ status: 'ok', mensaje: 'Registro recibido', pagadoCCPP: validaPagoCP });
 
@@ -284,14 +284,14 @@ app.get('/api/bloque', async (req, res) => {
     'hijos.seccion': seccion
   };
 
-  console.log(`query_curso: ${JSON.stringify(query_curso)}`)
+  console.log(`[/api/bloque] query_curso: ${JSON.stringify(query_curso)}`)
 
   try {
     let cursoDB = await db_support.listadoCursosDB.find(query_curso);
-    console.log(`cursoDB: ${JSON.stringify(cursoDB)}`);
+    console.log(`[/api/bloque] cursoDB: ${JSON.stringify(cursoDB)}`);
     let curso = cursoDB[0];
     let bloque = curso.bloque 
-    console.log(`Bloque: ${JSON.stringify(bloque)}`);
+    console.log(`[/api/bloque] Bloque: ${JSON.stringify(bloque)}`);
     res.json(bloque);
   } catch (error) {
     res.status(500).json({ error: 'Error al consultar bloque' });

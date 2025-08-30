@@ -50,7 +50,7 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
   const serial = `${correlativo}/${total}`;
   const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${familia}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}`;
 
-  const fondo = await loadImage(path.join(__dirname, '../assets/fondo_entrada.png'));
+  const fondo = await loadImage(path.join(__dirname, '../img/fondo_entrada.png'));
   const canvas = createCanvas(fondo.width, fondo.height);
   const ctx = canvas.getContext('2d');
 

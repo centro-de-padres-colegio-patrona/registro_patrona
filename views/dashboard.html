@@ -87,7 +87,7 @@
     
     let max_invitados = 2;
     let currentUser = null;
-
+    // update_entradas
     let jornadasFiesta = {
       manana: {
         id: 1,
@@ -96,7 +96,7 @@
         entradas: {
           estudiantes: { qty: 0, nombres: []},
           apoderados: { qty: 0, nombres: []},
-          invitados: { gty: 0, nombres: []}
+          invitados: { qty: 0, nombres: []}
         }
       },
       tarde: {
@@ -106,7 +106,7 @@
         entradas: {
           estudiantes: { qty: 0, nombres: []},
           apoderados: { qty: 0, nombres: []},
-          invitados: { gty: 0, nombres: []}
+          invitados: { qty: 0, nombres: []}
         }
       }
     };
@@ -301,6 +301,11 @@
               .catch(err => console.error('Error al obtener nombres:', err));
           }
         }
+        if (target.name === 'childName[]') {
+          const nombreSelect = childForm.querySelector("select[name='childName[]']");
+          const name_value = nombreSelect.value;
+          update_entradas(jornadasFiesta, "estudiantes", name_value);
+        }
       });
     });
   </script>
@@ -440,6 +445,7 @@
 
             // Selecciona el nombre si está en la lista
             nombreSelect.value = hijo.nombre;
+            update_entradas(jornadasFiesta, "estudiantes", hijo.nombre);
           })
           .catch(err => console.error('Error al cargar nombres:', err));
         getBloque(hijo.curso, hijo.seccion, bloque_json => {
@@ -470,6 +476,7 @@
         form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
         form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
         form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
+        update_entradas(jornadasFiesta, "apoderados", padre.apellido + " " + padre.name);
       });
     }
 
@@ -492,6 +499,7 @@
         form.querySelector("input[name='guestEmail[]']").value = invitado.correo || '';
         form.querySelector("input[name='guestPhone[]']").value = invitado.telefono || '';
         form.querySelector("select[name='relationship[]']").value = invitado.parentesco || 'Otro';
+        update_entradas(jornadasFiesta, "invitados", invitado.apellido + " " + invitado.name);
       });
     }
 
@@ -499,6 +507,19 @@
       fillChildrenSection(user);
       fillParentSection(user);
       fillGuestSection(user);
+    }
+
+    //jornadasFiesta
+    function update_entradas(jornadas, tipo, name) {
+      console.log(`[update_entradas] jornadas`)
+      Object.entries(jornadas).forEach(([key, jornada]) => {
+        if (!jornada.entradas[tipo].nombres.includes(name)) {
+          console.log(`[update_entradas] before: ${jornada.entradas}`)
+          jornada.entradas[tipo].qty++;
+          console.log(`[update_entradas] after: ${jornada.entradas}`)
+          renderJornadas(jornadas);
+        }
+      });
     }
 
     function renderJornadas(jornadas) {
@@ -536,13 +557,13 @@
 
     function update_bloque(bloque_json, jornadas) {
       if (bloque_json.jornada in jornadas) {
-        //console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
+        console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
         if (!jornadas[bloque_json.jornada].bloques.includes(bloque_json.bloque)) {
-          //console.log(`[update_bloque][${bloque_json.bloque}] jornadas: ${JSON.stringify(jornadas)}`);
+          console.log(`[update_bloque][${bloque_json.bloque}] jornadas: ${JSON.stringify(jornadas)}`);
           jornadas[bloque_json.jornada].bloques.push(bloque_json.bloque);
         }
       }
-      //console.log(`jornadas: ${JSON.stringify(jornadas)}`);
+      console.log(`jornadas: ${JSON.stringify(jornadas)}`);
       renderJornadas(jornadas);
     }
 

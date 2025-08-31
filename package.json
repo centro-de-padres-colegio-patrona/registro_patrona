@@ -18,6 +18,9 @@
     "mongoose": "^7.6.0",
     "nodemailer": "^7.0.5",
     "passport": "^0.6.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "canvas": "^3.2.0",
+    "jimp": "^0.16.1",
+    "qrcode": "^1.5.1"
   }
 }

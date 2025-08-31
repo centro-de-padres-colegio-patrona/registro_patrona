@@ -35,6 +35,47 @@
       border: 1px solid #ccc;
       max-width: 100%;               /* Se adapta sin exceder el contenedor */
     }
+    .form-row {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .form-row label {
+      min-width: 160px; /* Ajusta según el largo del texto */
+      font-weight: bold;
+    }
+
+    .form-row input {
+      flex: 1;
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .login-box {
+      margin: 60px 0 10px 0; /* elimina el centrado horizontal */
+      background-color: rgb(246, 241, 241);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 350px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    #jornadas-container {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start; /* o 'flex-end' si quieres alinearlos a la derecha del contenedor */
+      gap: 16px; /* espacio entre cajas */
+      flex-wrap: wrap; /* permite que se ajusten si hay muchas */
+    }
+    #jornadas-container::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
   </style>
 
 </head>
@@ -46,6 +87,31 @@
     
     let max_invitados = 2;
     let currentUser = null;
+    // update_entradas
+    let jornadasFiesta = {
+      manana: {
+        id: 1,
+        nombre: 'Jornada Mañana',
+        bloques: [],
+        entradas: {
+          estudiantes: { qty: 0, nombres: []},
+          apoderados: { qty: 0, nombres: []},
+          invitados: { qty: 0, nombres: []}
+        }
+      },
+      tarde: {
+        id: 2,
+        nombre: 'Jornada Tarde',
+        bloques: [],
+        entradas: {
+          estudiantes: { qty: 0, nombres: []},
+          apoderados: { qty: 0, nombres: []},
+          invitados: { qty: 0, nombres: []}
+        }
+      }
+    };
+
+
     fetch('/api/user')
       .then(response => {
         console.log('Respuesta del servidor:', response);
@@ -71,6 +137,51 @@
   </script>
 
   <form id="registro-form">
+  <!-- Sección Reporte -->
+  <div class="login-box">
+    <label>Estado Pago del Centro de Padres: </label>
+    <button id="estadoPagoBtn" style="padding: 10px 20px; border: none; border-radius: 5px; color: white;">
+      Consultando estado...
+    </button>
+    <!--label>Jornada</label>
+    <label>Bloques: </label>
+        <input type="text" name="bloque_manana" id="bloque_manana" readonly>
+    <label>Entradas Estudiantes: </label>
+        <input type="text" name="estudiantes_entradas_manana" id="estudiantes_entradas_manana" readonly>
+    <label>Entradas Apoderados: </label>
+        <input type="text" name="apoderdos_entradas_manana" id="apoderdos_entradas_manana" readonly>
+    <label>Entradas Invitados: </label>
+        <input type="text" name="invitados_entradas_manana" id="invitados_entradas_manana" readonly-->
+  </div>
+
+  <div id="jornadas-container"></div>
+
+  <script>
+    document.getElementById('estadoPagoBtn').disabled = true;
+
+  </script>
+
+  <!--div id="jornadas-container"></div>
+
+  <div class="login-box">
+    <label id="jornadaLabel">Jornada</label>
+    <div class="form-row">
+      <label>Bloques:</label>
+      <input type="text" id="bloque_manana" readonly>
+    </div>
+    <div class="form-row">
+      <label>Entradas Estudiantes:</label>
+      <input type="text" id="estudiantes_entradas_manana" readonly>
+    </div>
+    <div class="form-row">
+      <label>Entradas Apoderados:</label>
+      <input type="text" id="apoderados_entradas_manana" readonly>
+    </div>
+    <div class="form-row">
+      <label>Entradas Invitados:</label>
+      <input type="text" id="invitados_entradas_manana" readonly>
+    </div>
+  </div-->
     <!-- Sección hijos -->
     <div id="children-section">
       <h3>Hijos/as en el colegio</h3>
@@ -172,7 +283,7 @@
           if (curso && seccion) {
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
               .then(res => res.json())
-              .then(alumnos => {
+              .then(async alumnos => {
                 nombreSelect.innerHTML = '<option value="">Seleccione</option>';
                 alumnos.forEach(nombre => {
                   const option = document.createElement('option');
@@ -180,10 +291,20 @@
                   option.textContent = nombre;
                   nombreSelect.appendChild(option);
                 });
-                bloque.value = getBloque(curso, seccion);
+                getBloque(curso, seccion, bloque_json => {
+                  //console.log(`Valor Bloque: ${valor_bloque}`)
+                  bloque.value = bloque_json.bloque;
+                  update_bloque(bloque_json, jornadasFiesta);
+                  //console.log(`Valor Bloque: ${bloque.value}`)
+                });
               })
               .catch(err => console.error('Error al obtener nombres:', err));
           }
+        }
+        if (target.name === 'childName[]') {
+          const nombreSelect = childForm.querySelector("select[name='childName[]']");
+          const name_value = nombreSelect.value;
+          update_entradas(jornadasFiesta, "estudiantes", name_value);
         }
       });
     });
@@ -300,7 +421,7 @@
         if (index > 0) form.remove();
       });
 
-      hijos.forEach((hijo, index) => {
+      hijos.forEach(async (hijo, index) => {
         // Clona si no es el primero
         const form = index === 0 ? baseForm : baseForm.cloneNode(true);
         if (index > 0) section.appendChild(form);
@@ -324,9 +445,15 @@
 
             // Selecciona el nombre si está en la lista
             nombreSelect.value = hijo.nombre;
+            update_entradas(jornadasFiesta, "estudiantes", hijo.nombre);
           })
           .catch(err => console.error('Error al cargar nombres:', err));
-        form.querySelector("input[name='childBloque[]']").value = getBloque(hijo.curso, hijo.seccion);
+        getBloque(hijo.curso, hijo.seccion, bloque_json => {
+          form.querySelector("input[name='childBloque[]']").value = bloque_json.bloque;
+          update_bloque(bloque_json, jornadasFiesta);
+          //console.log(`Valor Bloque: ${valor_bloque}`)
+        });
+        actualiza_seccion_resumen(hijo.nombre, hijo.curso, hijo.seccion);
       });
     }
 
@@ -349,6 +476,7 @@
         form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
         form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
         form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
+        update_entradas(jornadasFiesta, "apoderados", padre.apellido + " " + padre.name);
       });
     }
 
@@ -371,6 +499,7 @@
         form.querySelector("input[name='guestEmail[]']").value = invitado.correo || '';
         form.querySelector("input[name='guestPhone[]']").value = invitado.telefono || '';
         form.querySelector("select[name='relationship[]']").value = invitado.parentesco || 'Otro';
+        update_entradas(jornadasFiesta, "invitados", invitado.apellido + " " + invitado.name);
       });
     }
 
@@ -380,14 +509,139 @@
       fillGuestSection(user);
     }
 
-    function getBloque(curso, seccion) {
+    //jornadasFiesta
+    function update_entradas(jornadas, tipo, name) {
+      console.log(`[update_entradas] jornadas`)
+      Object.entries(jornadas).forEach(([key, jornada]) => {
+        if (!jornada.entradas[tipo].nombres.includes(name)) {
+          console.log(`[update_entradas] before: ${jornada.entradas}`)
+          jornada.entradas[tipo].qty++;
+          console.log(`[update_entradas] after: ${jornada.entradas}`)
+          renderJornadas(jornadas);
+        }
+      });
+    }
+
+    function renderJornadas(jornadas) {
+      const container = document.getElementById('jornadas-container');
+      container.innerHTML = ''; // Evita duplicación
+
+      Object.entries(jornadas).forEach(([key, jornada]) => {
+        //console.log(`key: ${key}`);
+        const div = document.createElement('div');
+        div.className = 'login-box';
+
+        div.innerHTML = `
+          <label id="jornadaLabel">${jornada.nombre}</label>
+          <div class="form-row">
+            <label>Bloques:</label>
+            <input type="text" id="bloque_${key}" value="${jornada.bloques.join(', ')}" readonly>
+          </div>
+          <div class="form-row">
+            <label>Entradas Estudiantes:</label>
+            <input type="text" id="estudiantes_entradas_${key}" value="${jornada.entradas.estudiantes.qty}" readonly>
+          </div>
+          <div class="form-row">
+            <label>Entradas Apoderados:</label>
+            <input type="text" id="apoderados_entradas_${key}" value="${jornada.entradas.apoderados.qty}" readonly>
+          </div>
+          <div class="form-row">
+            <label>Entradas Invitados:</label>
+            <input type="text" id="invitados_entradas_${key}" value="${jornada.entradas.invitados.qty}" readonly>
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function update_bloque(bloque_json, jornadas) {
+      if (bloque_json.jornada in jornadas) {
+        console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
+        if (!jornadas[bloque_json.jornada].bloques.includes(bloque_json.bloque)) {
+          console.log(`[update_bloque][${bloque_json.bloque}] jornadas: ${JSON.stringify(jornadas)}`);
+          jornadas[bloque_json.jornada].bloques.push(bloque_json.bloque);
+        }
+      }
+      console.log(`jornadas: ${JSON.stringify(jornadas)}`);
+      renderJornadas(jornadas);
+    }
+
+    function getBloque(curso, seccion, fn) {
       fetch(`/api/bloque?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
         .then(res => res.json())
         .then(bloque_json => {
-          return bloque_json.value;
+          //console.log(`[getBloque] bloque_json: ${JSON.stringify(bloque_json)}`);
+          fn(bloque_json);
+          return bloque_json.bloque;
         })
         .catch(err => console.error('Error al obtener nombres:', err));
       return '';
+    }
+
+    function crearLoginBox(jornadaNombre, valores = {}) {
+      const original = document.querySelector('.login-box');
+      const clon = original.cloneNode(true);
+      const index = document.querySelectorAll('.login-box').length + 1;
+      const nuevoId = `login-box-${index}`;
+      clon.id = nuevoId;
+
+      // Actualiza el label
+      const jornadaLabel = clon.querySelector('#jornadaLabel');
+      if (jornadaLabel) {
+        jornadaLabel.textContent = `Jornada ${jornadaNombre}`;
+      }
+
+      // Actualiza los inputs con IDs únicos y valores personalizados
+      clon.querySelectorAll('input').forEach((input, i) => {
+        const baseName = input.name || input.id || `input-${i}`;
+        const uniqueName = `${baseName}-${index}`;
+        input.name = uniqueName;
+        input.id = uniqueName;
+        input.value = valores[baseName] || '';
+      });
+
+      // Inserta el clon
+      original.parentNode.appendChild(clon);
+    }
+
+    function actualizarInput(clonId, inputBaseName, nuevoValor) {
+      const input = document.querySelector(`#${clonId} input[name="${inputBaseName}-${clonId.split('-').pop()}"]`);
+      if (input) {
+        input.value = nuevoValor;
+      }
+    }
+
+    function actualiza_seccion_resumen(nombre_hijo, curso_hijo, seccion_curso) {
+      fetch('/api/estado_pago_cpa')
+        .then(res => res.json())
+        .then(data => {
+          console.log(JSON.stringify(data));
+          const btn = document.getElementById('estadoPagoBtn');
+          if (data.pagado) {
+            btn.textContent = 'Pago Confirmado';
+            btn.style.backgroundColor = '#28a745'; // Verde
+          } else {
+            btn.textContent = 'Pago Pendiente';
+            btn.style.backgroundColor = '#dc3545'; // Rojo
+          }
+          // Actualizar textos del box de invitados
+          //const boxInvitados = document.querySelector('.login-box:nth-of-type(3)');
+          /*const boxInvitados = document.getElementById('boxInvitados');
+          const h3 = boxInvitados.querySelector('h3');
+          const h5 = boxInvitados.querySelector('h5');
+
+          if (data.pagado) {
+            h3.textContent = 'Sus entradas serán enviadas a la brevedad a su correo.';
+            h5.textContent = 'Gracias por colaborar con el CPA';
+          }*/
+        })
+        .catch(err => {
+          console.error('Error al consultar estado de pago:', err);
+          const btn = document.getElementById('estadoPagoBtn');
+          btn.textContent = 'Error al consultar';
+          btn.style.backgroundColor = '#6c757d'; // Gris
+        });
     }
 
     document.getElementById('registro-form').addEventListener('submit', function(e) {

@@ -433,6 +433,7 @@ form {
 </div>
 
 <script>
+  document.getElementById('estadoPagoBtn').disabled = true;
   // Consulta el estado de pago al cargar la página
   window.addEventListener('DOMContentLoaded', () => {
     fetch('/api/estado_pago_cpa')

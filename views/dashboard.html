@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Registro Familiar - Fiesta a la Chilena 2025</title>
+
   <style>
     label { display: block; margin-top: 10px; }
     input, select { width: 300px; padding: 5px; }
@@ -84,7 +85,6 @@
   <h2>Registro Familiar Fiesta a la Chilena Colegio Patrona</h2>
 
   <script>
-    
     let max_invitados = 2;
     let currentUser = null;
     // update_entradas
@@ -131,8 +131,15 @@
         document.getElementById("correoUsuario").value = correo;
       })
       .catch(error => {
-        console.log('Error servidor:', error);
-        window.location.href = '/'; // Redirige si no está autenticado
+        console.log('Fue ingresado manual:', error);
+        
+          const params = new URLSearchParams(window.location.search);
+          const username = params.get('username');
+          const correoManual = params.get('correoManual');
+
+          document.getElementById("correoUsuario").value =correoManual;
+
+
       });
   </script>
 

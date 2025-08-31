@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<!--script src="./dist/vivagraph.js"></script-->
-	<script type='text/javascript'></script>
+  <!--script src="./dist/vivagraph.js"></script-->
+  <script type='text/javascript'></script>
 	<!--script src="graph.js"></script-->
 	<!--script src="api_rest_client.js"></script-->
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
@@ -13,6 +13,9 @@
 	</style>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
+
+
+
   .DivControl {
     border: 2px solid white;
     background-color: white;    
@@ -368,7 +371,7 @@ form {
 
 <div class="topnav">
 	<a class="active" href="https://registro-patrona.onrender.com">Home</a>
-	<a href="https://registro-patrona.onrender.com">Acerca de</a>
+	<!--a href="https://registro-patrona.onrender.com">Acerca de</a-->
 	<!--<a href="https://forms.gle/2DKiNXbSaJYhiZRx8" target="_blank">Encuesta</a> -->
 	<div class="search-container">
 		<!--input type="text" placeholder="Escribir aqui..." name="search" id="search_text"-->
@@ -417,26 +420,27 @@ form {
 <div class="grid-container">
 </div>
 
-
 </div>
 
   <div class="login-box">
     <h2>Registro Patrona</h2>
-    <img src="../img/logo.png" alt="Logo CGPA" style="width: 100%; max-width: 200px; margin: 20px auto; display: block;">
-    <!--form action="/login" method="post" id="formularioLogin">
-      <--input type="text" name="username" placeholder="Nombre" disabled>
-        <-- Campo de contraseña con toggle ->
+    
+    <img src="img/logo.png" alt="Logo CGPA" style="width: 100%; max-width: 200px; margin: 20px auto; display: block;">
+    <form action="/login" method="post" id="formularioLogin">
+      <input type="text" name="username" placeholder="Nombre">
+        <!-- Campo de contraseña con toggle -->
         <div style="position: relative; width: 100%; margin: 0 auto 15px;">
           <input
             name="correoManual"
             id="correoManual"
             placeholder="ejemplo@correo.com"
-            disabled
             >
         </div>
 
-      <button type="button" onclick="validarYEnviar()" disabled>Ingresar</button>
-    </form-->
+      <button type="button" onclick="validarYEnviar()">Ingresar</button>
+    </form>
+
+    
   </div>
 
 <script>
@@ -477,6 +481,8 @@ function validarYEnviar() {
   ">
     Ingresar con Google
   </button>
+
+  
 </div>
 
 </body>

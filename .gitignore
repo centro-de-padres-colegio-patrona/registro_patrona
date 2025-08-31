@@ -35,3 +35,6 @@ node_modules/@types/node/index.d.ts
 node_modules/@types/node/inspector.d.ts
 node_modules/@types/node/stream/consumers.d.ts
 node_modules/@types/node/assert.d.ts
+registros.json
+yarn.lock
+yarn.lock

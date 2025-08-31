@@ -43,6 +43,158 @@ const curso_map = {
   "IV° Medio": '4M'
 }
 
+let cursoToBloque = {
+    "PKA": {
+        "bloque": "bloque_01",
+        "jornada": "manana",
+        "color": "ama_m"
+    },
+    "PKB": {
+        "bloque": "bloque_01",
+        "jornada": "manana",
+        "color": "ama_m"
+    },
+    "KA": {
+        "bloque": "bloque_01",
+        "jornada": "manana",
+        "color": "ama_m"
+    },
+    "KB": {
+        "bloque": "bloque_01",
+        "jornada": "manana",
+        "color": "ama_m"
+    },
+    "3A": {
+        "bloque": "bloque_02",
+        "jornada": "manana",
+        "color": "ros_m"
+    },
+    "3B": {
+        "bloque": "bloque_02",
+        "jornada": "manana",
+        "color": "ros_m"
+    },
+    "4A": {
+        "bloque": "bloque_02",
+        "jornada": "manana",
+        "color": "ros_m"
+    },
+    "4B": {
+        "bloque": "bloque_02",
+        "jornada": "manana",
+        "color": "ros_m"
+    },
+    "1MA": {
+        "bloque": "bloque_03",
+        "jornada": "manana",
+        "color": "ver"
+    },
+    "2MA": {
+        "bloque": "bloque_03",
+        "jornada": "manana",
+        "color": "ver"
+    },
+    "3MA": {
+        "bloque": "bloque_03",
+        "jornada": "manana",
+        "color": "ver"
+    },
+    "HI": {
+        "bloque": "bloque_03",
+        "jornada": "manana",
+        "color": "ver"
+    },
+    "HJ": {
+        "bloque": "bloque_03",
+        "jornada": "manana",
+        "color": "ver"
+    },
+    "1A": {
+        "bloque": "bloque_04",
+        "jornada": "manana",
+        "color": "roj"
+    },
+    "1B": {
+        "bloque": "bloque_04",
+        "jornada": "manana",
+        "color": "roj"
+    },
+    "2A": {
+        "bloque": "bloque_04",
+        "jornada": "manana",
+        "color": "roj"
+    },
+    "2B": {
+        "bloque": "bloque_04",
+        "jornada": "manana",
+        "color": "roj"
+    },
+    "1MB": {
+        "bloque": "bloque_05",
+        "jornada": "tarde",
+        "color": "azul"
+    },
+    "2MB": {
+        "bloque": "bloque_05",
+        "jornada": "tarde",
+        "color": "azul"
+    },
+    "3MB": {
+        "bloque": "bloque_05",
+        "jornada": "tarde",
+        "color": "azul"
+    },
+    "7A": {
+        "bloque": "bloque_06",
+        "jornada": "tarde",
+        "color": "nar"
+    },
+    "7B": {
+        "bloque": "bloque_06",
+        "jornada": "tarde",
+        "color": "nar"
+    },
+    "8A": {
+        "bloque": "bloque_06",
+        "jornada": "tarde",
+        "color": "nar"
+    },
+    "8B": {
+        "bloque": "bloque_06",
+        "jornada": "tarde",
+        "color": "nar"
+    },
+    "5A": {
+        "bloque": "bloque_07",
+        "jornada": "tarde",
+        "color": "ama_t"
+    },
+    "5B": {
+        "bloque": "bloque_07",
+        "jornada": "tarde",
+        "color": "ama_t"
+    },
+    "6A": {
+        "bloque": "bloque_07",
+        "jornada": "tarde",
+        "color": "ama_t"
+    },
+    "6B": {
+        "bloque": "bloque_07",
+        "jornada": "tarde",
+        "color": "ama_t"
+    },
+    "4MA": {
+        "bloque": "bloque_08",
+        "jornada": "tarde",
+        "color": "ros_t"
+    },
+    "4MB": {
+        "bloque": "bloque_08",
+        "jornada": "tarde",
+        "color": "ros_t"
+    }
+};
 
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -287,12 +439,13 @@ app.get('/api/bloque', async (req, res) => {
   console.log(`[/api/bloque] query_curso: ${JSON.stringify(query_curso)}`)
 
   try {
-    let cursoDB = await db_support.listadoCursosDB.find(query_curso);
-    console.log(`[/api/bloque] cursoDB: ${JSON.stringify(cursoDB)}`);
-    let curso = cursoDB[0];
-    let bloque = curso.bloque 
-    console.log(`[/api/bloque] Bloque: ${JSON.stringify(bloque)}`);
-    res.json(bloque);
+    let bloqueDB = await db_support.cursoBloqueMap.find(query_curso);
+    //console.log(`[/api/bloque] cursoDB: ${JSON.stringify(cursoDB)}`);
+    //let curso = cursoDB[0];
+    //let bloque = curso.bloque
+    bloqueDB = cursoToBloque[query_curso.id]
+    console.log(`[/api/bloque] Bloque: ${JSON.stringify(bloqueDB)}`);
+    res.json(bloqueDB);
   } catch (error) {
     res.status(500).json({ error: 'Error al consultar bloque' });
   }
@@ -307,7 +460,7 @@ app.get('/api/max_invitados', async (req, res) => {
 
   try {
     let cursoDB = await db_support.listadoCursosDB.find(query_curso);
-    console.log(`cursoDB: ${JSON.stringify(cursoDB)}`);
+    //console.log(`cursoDB: ${JSON.stringify(cursoDB)}`);
     let curso = cursoDB[0];
     let num_invitados = curso.numeroInvitados;
     console.log(`num_invitados: ${JSON.stringify(num_invitados)}`);
@@ -362,7 +515,7 @@ app.get('/api/alumnos', async (req, res) => {
 
   try {
     let cursoDB = await db_support.listadoCursosDB.find(query_curso);
-    console.log(`cursoDB: ${JSON.stringify(cursoDB)}`);
+    //console.log(`cursoDB: ${JSON.stringify(cursoDB)}`);
     /*const alumnos = familias.flatMap(f => f.hijos.filter(h => 
       h.curso === curso &&
       h.seccion === seccion &&
@@ -373,7 +526,7 @@ app.get('/api/alumnos', async (req, res) => {
     let listaCurso = curso.listaCurso 
     //console.log(`curso: ${JSON.stringify(curso)}`);
     //console.log(`keys: ${JSON.stringify(Object.keys(curso))}`);
-    console.log(`listaCurso: ${JSON.stringify(listaCurso)}`);
+    //console.log(`listaCurso: ${JSON.stringify(listaCurso)}`);
     res.json(listaCurso);
   } catch (error) {
     res.status(500).json({ error: 'Error al consultar alumnos' });

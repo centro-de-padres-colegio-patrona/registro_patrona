@@ -68,15 +68,21 @@ const pagosSchema = new mongoose.Schema({
 });
 
 /// --------------------------------------
-const registrados = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  run: { type: String, required: true },
-  curso: { type: String, required: true },
-  seccion: { type: String, required: true },
-  tipo: { type: String, required: true },
-  parents: [{ type: String, required: true}]
+const registradosSchema = new mongoose.Schema({
+  nombre: String,
+  run: String,
+  curso: String,
+  seccion: String,
+  tipo: String,
+  parents: [String]
 });
 
+const cursoBloqueMapSchema = new mongoose.Schema({
+  id: String,
+  bloque: String,
+  jornada: String,
+  color: String
+});
 
 const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
 
@@ -92,5 +98,6 @@ mongoose.connect(uri, {
 module.exports.usersDB = mongoose.model('users', userSchema);
 module.exports.listadoCursosDB = mongoose.model('listado_cursos', cursoSchema);
 module.exports.pagosDB = mongoose.model('pagos', pagosSchema);
+module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapSchema);
 //module.exports = mongoose.model('Familia', familiaSchema);
 

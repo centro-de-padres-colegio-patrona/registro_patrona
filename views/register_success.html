@@ -440,7 +440,8 @@ form {
       .then(data => {
         console.log(JSON.stringify(data));
         const btn = document.getElementById('estadoPagoBtn');
-        if (data.pagado) {
+        const pago_al_dia = data.cuota_cpa_pagada || data.entradas_pagadas > 1;
+        if (pago_al_dia) {
           btn.textContent = 'Pago Confirmado';
           btn.style.backgroundColor = '#28a745'; // Verde
         } else {
@@ -453,7 +454,7 @@ form {
         const h3 = boxInvitados.querySelector('h3');
         const h5 = boxInvitados.querySelector('h5');
 
-        if (data.pagado) {
+        if (pago_al_dia) {
           h3.textContent = 'Sus entradas serán enviadas a la brevedad a su correo.';
           h5.textContent = 'Gracias por colaborar con el CPA';
         }

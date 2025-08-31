@@ -167,7 +167,8 @@
     document.getElementById('estadoPagoBtn').disabled = true;
 
   </script>
-
+  <button type="button" onclick="actualizar_entradas()" disabled>Actualizar Entradas</button>
+  
   <!--div id="jornadas-container"></div>
 
   <div class="login-box">
@@ -535,14 +536,19 @@
       console.log(`Tipo: ${tipo}, Nombres: ${JSON.stringify(personas)}`)
       const nombres = personas.map(persona => persona.nombre);
       Object.entries(jornadas).forEach(([key, jornada]) => {
-        //if (!jornada.entradas[tipo].nombres.includes(name)) {
+        if (jornada.bloques.length) {
           //console.log(`[update_entradas] before: ${jornada.entradas}`)
           jornada.entradas[tipo].nombres = nombres;
           jornada.entradas[tipo].qty = nombres.length;
           console.log(`[update_entradas] after: ${jornada.entradas}`)
           renderJornadas(jornadas);
-        //}
+        }
       });
+    }
+
+    function actualizar_entradas() {
+      update_entradas(jornadasFiesta, 'apoderados', retrieve_parents());
+      update_entradas(jornadasFiesta, 'invitados', retrieve_guests());
     }
 
     function renderJornadas(jornadas) {
@@ -678,6 +684,8 @@
         curso: child.querySelector("select[name='childCourse[]']").value,
         seccion: child.querySelector("select[name='childSeccion[]']").value
       }));
+      //if (hijos.length)
+      //  document.getElementById("btnActualizar").disabled = false;
       return hijos;
     }
 
@@ -690,6 +698,8 @@
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value
       }));
+      //if (padres.length)
+      //  document.getElementById("btnActualizar").disabled = false;
       return padres;
     }
 
@@ -702,6 +712,9 @@
         telefono: guest.querySelector("input[name='guestPhone[]']").value,
         parentesco: guest.querySelector("select[name='relationship[]']").value
       }));
+      //if (invitados.length)
+      //  document.getElementById("btnActualizar").disabled = false;
+
       return invitados;
     }
 

@@ -187,7 +187,8 @@
       <h3>Hijos/as en el colegio</h3>
       <div class="child-form">
         <label>Curso:</label>
-        <select name="childCourse[]">
+        <select name="childCourse[]" required>
+          <option value="" disabled selected>Seleccione curso</option>
           <option value="Prekínder">Prekínder</option>
           <option value="Kínder">Kínder</option>
           <option value="1° Básico">1° Básico</option>
@@ -300,11 +301,23 @@
               })
               .catch(err => console.error('Error al obtener nombres:', err));
           }
-        }
-        if (target.name === 'childName[]') {
-          const nombreSelect = childForm.querySelector("select[name='childName[]']");
-          const name_value = nombreSelect.value;
-          update_entradas(jornadasFiesta, "estudiantes", name_value);
+        } else if (target.name === 'childName[]') {
+          try {
+            //const nombreSelect = childForm.querySelector("select[name='childName[]']");
+            //const name_value = nombreSelect.value;
+            const name_value = target.value;
+            update_entradas(jornadasFiesta, "estudiantes", name_value);
+            const childForm = target.closest('.child-form');
+            const curso = childForm.querySelector("select[name='childCourse[]']").value;
+            const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
+            actualiza_seccion_resumen(name_value, curso, seccion);
+          } catch (error) {
+            console.error(`[childName[] handler] Error al actualizar entradas: ${error.message}`, {
+              targetName: target.name,
+              //targetValue: target.value,
+              stack: error.stack
+            });
+          }
         }
       });
     });
@@ -613,6 +626,7 @@
     }
 
     function actualiza_seccion_resumen(nombre_hijo, curso_hijo, seccion_curso) {
+      console.log(`Consultando estado de Entradas Invitados: ${JSON.stringify({nombre_hijo, curso_hijo, seccion_curso})}`);
       fetch('/api/estado_pago_cpa')
         .then(res => res.json())
         .then(data => {

@@ -111,6 +111,8 @@
       }
     };
 
+    let estado_pago = null;
+
 
     fetch('/api/user')
       .then(response => {
@@ -432,6 +434,11 @@
       }
     }
 
+    function deshabilitarControles(form) {
+      const elementos = form.querySelectorAll('input, select, textarea, button');
+      elementos.forEach(el => el.disabled = true);
+    }
+
     function fillChildrenSection(user) {
       const hijos = user.hijos || [];
       const section = document.getElementById('children-section');
@@ -441,6 +448,10 @@
       section.querySelectorAll('.child-form').forEach((form, index) => {
         if (index > 0) form.remove();
       });
+
+      if (hijos.length === 0) {
+        return;
+      }
 
       hijos.forEach(async (hijo, index) => {
         // Clona si no es el primero
@@ -475,6 +486,7 @@
           //console.log(`Valor Bloque: ${valor_bloque}`)
         });
         actualiza_seccion_resumen(hijo.nombre, hijo.curso, hijo.seccion);
+        //deshabilitarControles(form);
       });
     }
 
@@ -535,6 +547,7 @@
       console.log(`[update_entradas] jornadas`)
       console.log(`Tipo: ${tipo}, Nombres: ${JSON.stringify(personas)}`)
       const nombres = personas.map(persona => persona.nombre);
+      console.log(`[update_entradas] nombres: ${JSON.stringify(nombres)}`);
       Object.entries(jornadas).forEach(([key, jornada]) => {
         if (jornada.bloques.length) {
           //console.log(`[update_entradas] before: ${jornada.entradas}`)
@@ -547,6 +560,7 @@
     }
 
     function actualizar_entradas() {
+      update_entradas(jornadasFiesta, 'estudiantes', retrieve_hijos());
       update_entradas(jornadasFiesta, 'apoderados', retrieve_parents());
       update_entradas(jornadasFiesta, 'invitados', retrieve_guests());
     }
@@ -594,6 +608,7 @@
       }
       console.log(`jornadas: ${JSON.stringify(jornadas)}`);
       renderJornadas(jornadas);
+      actualizar_entradas();
     }
 
     function getBloque(curso, seccion, fn) {
@@ -647,6 +662,7 @@
         .then(res => res.json())
         .then(data => {
           console.log(JSON.stringify(data));
+          estado_pago = data;
           const btn = document.getElementById('estadoPagoBtn');
           if (data.cuota_cpa_pagada || data.entradas_pagadas > 1) {
             btn.textContent = 'Pago Confirmado';
@@ -762,7 +778,7 @@
               headers: {
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({...currentUser, hijos, padres, invitados})
+              body: JSON.stringify({...currentUser, hijos, padres, invitados, correoGmail, estado_pago, jornadasFiesta})
             })
             .then(res => res.json())
             .then(response => {

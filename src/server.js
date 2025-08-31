@@ -3,7 +3,7 @@ const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const { genEntrada, genEntradaCanvas } = require('./generateTicket');
-
+const { send_fiesta_chilena_email, send_email_registro_success } = require('../api-correo/send_fiesta_chilena_email.js');
 
 
 const nodemailer = require('nodemailer');
@@ -362,7 +362,7 @@ app.post('/api/registro', express.json(), (req, res) => {
   console.log('Datos recibidos:', registro);
 
   //VALIDAR JSON PAGO CP
-  let validaPagoCP = false;
+  /*let validaPagoCP = false;
 
   const filePathCP = path.join(__dirname, 'pagos.json');
   const nombreHijo = registro.hijos[0].nombre;
@@ -394,7 +394,7 @@ app.post('/api/registro', express.json(), (req, res) => {
             }
           }   
 
-  });
+  });*/
 
   //console.log('VERDADERO o FALSO:  '+ validaPagoCP);
 
@@ -407,6 +407,16 @@ app.post('/api/registro', express.json(), (req, res) => {
       )
       .then(userActualizado => {
         console.log('Usuario actualizado:', userActualizado);
+        let findone = db_support.registroEntradasDB.findOne({id:'estudiantes'});
+        console.log(`registros: ${JSON.stringify(findone.registros)}`);
+        /*fetch('/api/send_notify_mail', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({userActualizado})
+        })
+        .then(res => res.json());*/
       })
       .catch(err => {
         console.error('Error al actualizar usuario:', err);
@@ -427,8 +437,13 @@ app.post('/api/registro', express.json(), (req, res) => {
         });
       });*/
 
-      res.json({ status: 'ok', mensaje: 'Registro recibido', pagadoCCPP: validaPagoCP });
+      res.json({ status: 'ok', mensaje: 'Registro recibido'});
 
+});
+
+app.post('/api/send_notify_mail', async (req, res) => {
+  send_email_registro_success(req.body);
+  res.json({status: 'ok', mensaje: 'Enviando email'})
 });
 
 app.get('/api/bloque', async (req, res) => {
@@ -492,19 +507,23 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
     console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
     res.status(500).json({ error: 'Error user not found' });
   } else {
+    console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
+    console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
     let pago;
-    if (user.hijos === undefined && user.hijos.length == 0) {
+    if (user.hijos !== undefined && user.hijos.length > 0) {
       //console.log(JSON.stringify(req));
       estudiante = user.hijos[0]['nombre'];
       console.log(estudiante);
       pago = await db_support.pagosDB.findOne({id: estudiante});
+      console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
     } else {
-      console.log(JSON.stringify(req.query));
+      console.log(`[/api/estado_pago_cpa] req.query: ${JSON.stringify(req.query)}`);
       //console.log(JSON.stringify(user.hijos));
       //estudiante = user.hijos[0]['nombre'];
       const { estudiante } = req.query;
       console.log(estudiante);
       pago = await db_support.pagosDB.findOne({id: estudiante});
+      console.log(`[/api/estado_pago_cpa] pago estudiante: ${JSON.stringify(pago)}`);
     }
     console.log(JSON.stringify(pago));
     const cuota_cpa_pagada = pago.cuota_cpa === true;

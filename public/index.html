@@ -359,6 +359,15 @@ form {
     font-size: 18px;
     cursor: pointer;
   }
+.credit-label {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #555; /* opcional: tono más suave */
+  z-index: 1000; /* asegura que esté por encima si hay otros elementos */
+}
 
 </style>
 </head>
@@ -427,9 +436,9 @@ form {
     
     <img src="img/logo.png" alt="Logo CGPA" style="width: 100%; max-width: 200px; margin: 20px auto; display: block;">
     <form action="/login" method="post" id="formularioLogin">
-      <input type="text" name="username" placeholder="Nombre">
+      <!--input type="text" name="username" placeholder="Nombre"-->
         <!-- Campo de contraseña con toggle -->
-        <div style="position: relative; width: 100%; margin: 0 auto 15px;">
+        <!--div style="position: relative; width: 100%; margin: 0 auto 15px;">
           <input
             name="correoManual"
             id="correoManual"
@@ -437,7 +446,7 @@ form {
             >
         </div>
 
-      <button type="button" onclick="validarYEnviar()">Ingresar</button>
+      <button type="button" onclick="validarYEnviar()">Ingresar</button-->
     </form>
 
     
@@ -482,7 +491,7 @@ function validarYEnviar() {
     Ingresar con Google
   </button>
 
-  
+<label class="credit-label">by Patricio Alarcon, Italo Morales, Johnathan Díez, Leo Herrera</label>
 </div>
 
 </body>

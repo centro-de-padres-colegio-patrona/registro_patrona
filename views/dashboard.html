@@ -167,7 +167,8 @@
     document.getElementById('estadoPagoBtn').disabled = true;
 
   </script>
-
+  <button type="button" onclick="actualizar_entradas()" disabled>Actualizar Entradas</button>
+  
   <!--div id="jornadas-container"></div>
 
   <div class="login-box">
@@ -313,7 +314,7 @@
             //const nombreSelect = childForm.querySelector("select[name='childName[]']");
             //const name_value = nombreSelect.value;
             const name_value = target.value;
-            update_entradas(jornadasFiesta, "estudiantes", name_value);
+            update_entradas(jornadasFiesta, "estudiantes", retrieve_hijos());
             const childForm = target.closest('.child-form');
             const curso = childForm.querySelector("select[name='childCourse[]']").value;
             const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
@@ -465,7 +466,7 @@
 
             // Selecciona el nombre si está en la lista
             nombreSelect.value = hijo.nombre;
-            update_entradas(jornadasFiesta, "estudiantes", hijo.nombre);
+            update_entradas(jornadasFiesta, "estudiantes", retrieve_hijos());
           })
           .catch(err => console.error('Error al cargar nombres:', err));
         getBloque(hijo.curso, hijo.seccion, bloque_json => {
@@ -496,7 +497,7 @@
         form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
         form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
         form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
-        update_entradas(jornadasFiesta, "apoderados", padre.apellido + " " + padre.name);
+        update_entradas(jornadasFiesta, "apoderados", retrieve_parents());
       });
     }
 
@@ -519,7 +520,7 @@
         form.querySelector("input[name='guestEmail[]']").value = invitado.correo || '';
         form.querySelector("input[name='guestPhone[]']").value = invitado.telefono || '';
         form.querySelector("select[name='relationship[]']").value = invitado.parentesco || 'Otro';
-        update_entradas(jornadasFiesta, "invitados", invitado.apellido + " " + invitado.name);
+        update_entradas(jornadasFiesta, "invitados", retrieve_guests());
       });
     }
 
@@ -530,16 +531,24 @@
     }
 
     //jornadasFiesta
-    function update_entradas(jornadas, tipo, name) {
+    function update_entradas(jornadas, tipo, personas) {
       console.log(`[update_entradas] jornadas`)
+      console.log(`Tipo: ${tipo}, Nombres: ${JSON.stringify(personas)}`)
+      const nombres = personas.map(persona => persona.nombre);
       Object.entries(jornadas).forEach(([key, jornada]) => {
-        if (!jornada.entradas[tipo].nombres.includes(name)) {
-          console.log(`[update_entradas] before: ${jornada.entradas}`)
-          jornada.entradas[tipo].qty++;
+        if (jornada.bloques.length) {
+          //console.log(`[update_entradas] before: ${jornada.entradas}`)
+          jornada.entradas[tipo].nombres = nombres;
+          jornada.entradas[tipo].qty = nombres.length;
           console.log(`[update_entradas] after: ${jornada.entradas}`)
           renderJornadas(jornadas);
         }
       });
+    }
+
+    function actualizar_entradas() {
+      update_entradas(jornadasFiesta, 'apoderados', retrieve_parents());
+      update_entradas(jornadasFiesta, 'invitados', retrieve_guests());
     }
 
     function renderJornadas(jornadas) {
@@ -634,16 +643,19 @@
 
     function actualiza_seccion_resumen(nombre_hijo, curso_hijo, seccion_curso) {
       console.log(`Consultando estado de Entradas Invitados: ${JSON.stringify({nombre_hijo, curso_hijo, seccion_curso})}`);
-      fetch('/api/estado_pago_cpa')
+      fetch(`/api/estado_pago_cpa?estudiante=${nombre_hijo}`)
         .then(res => res.json())
         .then(data => {
           console.log(JSON.stringify(data));
           const btn = document.getElementById('estadoPagoBtn');
-          if (data.pagado) {
+          if (data.cuota_cpa_pagada || data.entradas_pagadas > 1) {
             btn.textContent = 'Pago Confirmado';
             btn.style.backgroundColor = '#28a745'; // Verde
+          } else if (data.entradas_pagadas === 1) {
+            btn.textContent = 'Una Entrada de Invitados Pagada';
+            btn.style.backgroundColor = '#4CAF50'; // Verde suave
           } else {
-            btn.textContent = 'Pago Pendiente';
+            btn.textContent = 'Pago Entradas Invitados Pendiente';
             btn.style.backgroundColor = '#dc3545'; // Rojo
           }
           // Actualizar textos del box de invitados
@@ -663,6 +675,47 @@
           btn.textContent = 'Error al consultar';
           btn.style.backgroundColor = '#6c757d'; // Gris
         });
+    }
+
+    function retrieve_hijos() {
+      // Recopila hijos
+      const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
+        nombre: child.querySelector("select[name='childName[]']").value,
+        curso: child.querySelector("select[name='childCourse[]']").value,
+        seccion: child.querySelector("select[name='childSeccion[]']").value
+      }));
+      //if (hijos.length)
+      //  document.getElementById("btnActualizar").disabled = false;
+      return hijos;
+    }
+
+    function retrieve_parents() {
+      // Recopila padres
+      const padres = Array.from(document.querySelectorAll(".parent-form")).map(parent => ({
+        nombre: parent.querySelector("input[name='parentName[]']").value,
+        apellido: parent.querySelector("input[name='parentSurname[]']").value,
+        correo: parent.querySelector("input[name='parentEmail[]']").value,
+        telefono: parent.querySelector("input[name='parentPhone[]']").value,
+        parentesco: parent.querySelector("select[name='relationship[]']").value
+      }));
+      //if (padres.length)
+      //  document.getElementById("btnActualizar").disabled = false;
+      return padres;
+    }
+
+    function retrieve_guests() {
+      // Recopila invitados
+      const invitados = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
+        nombre: guest.querySelector("input[name='guestName[]']").value,
+        apellido: guest.querySelector("input[name='guestSurname[]']").value,
+        correo: guest.querySelector("input[name='guestEmail[]']").value,
+        telefono: guest.querySelector("input[name='guestPhone[]']").value,
+        parentesco: guest.querySelector("select[name='relationship[]']").value
+      }));
+      //if (invitados.length)
+      //  document.getElementById("btnActualizar").disabled = false;
+
+      return invitados;
     }
 
     document.getElementById('registro-form').addEventListener('submit', function(e) {

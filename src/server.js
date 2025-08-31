@@ -249,6 +249,9 @@ passport.deserializeUser((obj, done) => done(null, obj));
 // the express static middleware, to serve all files
 // inside the public directory
 const app = express()
+
+app.use(express.static('public'));
+
 app.use(express.static(__dirname + '/public'))
 app.use(express.static(__dirname + '/src'))
 app.use(express.static(__dirname + '/views'))
@@ -269,31 +272,38 @@ app.get('/', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  // Validar credenciales aquí...
-    // Aquí podrías validar contra una base de datos
-  if (username === 'admin' && password === '1234') {
+  const { username, correoManual } = req.body;
+  if (username === 'admin' && correoManual === '1234') {
     //res.send('Acceso concedido');
     res.redirect('/login');
   } else {
     //res.status(401).send('Credenciales incorrectas');
-    res.redirect('/signup');
+   res.redirect(`/signup?username=${encodeURIComponent(username)}&correoManual=${encodeURIComponent(correoManual)}`);
   }
 });
 
-app.get('/login', (req, res) => {
+/*app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'login', 'login.html'));
-});
+});*/
 
 app.get('/login-error', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'login', 'login-error.html'));
 });
 
 // Ruta para la página "welcome" (welcome.html)
+
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '../views'));
+
+
 app.get('/signup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login', 'signup.html'));
-  //const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
-  //res.sendFile(dashboardPath);
+  const { username, correoManual } = req.query;
+  const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
+  res.sendFile(dashboardPath);
+
+//  res.render('dashboard', { username, correoManual });
+  
 });
 
 app.get('/register_success', (req, res) => {
@@ -356,8 +366,7 @@ app.post('/api/registro', express.json(), (req, res) => {
 
   const filePathCP = path.join(__dirname, 'pagos.json');
   const nombreHijo = registro.hijos[0].nombre;
-  console.log ('NOMBRE HIJO: ' + nombreHijo);
-
+ 
   fs.readFile(filePathCP, 'utf8', (err, data) => {
 
         const registrosPrevios = !err && data ? JSON.parse(data) : [];
@@ -378,11 +387,8 @@ app.post('/api/registro', express.json(), (req, res) => {
                     console.log ('PAGADO JSON: [' + siNo + ']');
                     console.log ('PAGADO JSON: [' + siNo.trim() + ']');
                 if (nombre === nombreHijo  && (siNo === "si")) {
-                    
-
                     console.log ('NOMBRE HIJO VALIDADO: ' + nombreHijo);
-
-                    validaPagoCP = true;
+                   validaPagoCP = true;
                     break;
                 }
             }

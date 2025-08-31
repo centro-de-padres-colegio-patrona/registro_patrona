@@ -87,16 +87,16 @@
     
     let max_invitados = 2;
     let currentUser = null;
-    //let jornadas = {};
-    let jornadas = {
+
+    let jornadasFiesta = {
       manana: {
         id: 1,
         nombre: 'Jornada Mañana',
         bloques: [],
         entradas: {
-          estudiantes: 0,
-          apoderados: 0,
-          invitados: 0
+          estudiantes: { qty: 0, nombres: []},
+          apoderados: { qty: 0, nombres: []},
+          invitados: { gty: 0, nombres: []}
         }
       },
       tarde: {
@@ -104,9 +104,9 @@
         nombre: 'Jornada Tarde',
         bloques: [],
         entradas: {
-          estudiantes: 0,
-          apoderados: 0,
-          invitados: 0
+          estudiantes: { qty: 0, nombres: []},
+          apoderados: { qty: 0, nombres: []},
+          invitados: { gty: 0, nombres: []}
         }
       }
     };
@@ -294,7 +294,7 @@
                 getBloque(curso, seccion, bloque_json => {
                   //console.log(`Valor Bloque: ${valor_bloque}`)
                   bloque.value = bloque_json.bloque;
-                  update_bloque(bloque_json);
+                  update_bloque(bloque_json, jornadasFiesta);
                   //console.log(`Valor Bloque: ${bloque.value}`)
                 });
               })
@@ -444,7 +444,7 @@
           .catch(err => console.error('Error al cargar nombres:', err));
         getBloque(hijo.curso, hijo.seccion, bloque_json => {
           form.querySelector("input[name='childBloque[]']").value = bloque_json.bloque;
-          update_bloque(bloque_json);
+          update_bloque(bloque_json, jornadasFiesta);
           //console.log(`Valor Bloque: ${valor_bloque}`)
         });
         actualiza_seccion_resumen(hijo.nombre, hijo.curso, hijo.seccion);
@@ -518,15 +518,15 @@
           </div>
           <div class="form-row">
             <label>Entradas Estudiantes:</label>
-            <input type="text" id="estudiantes_entradas_${key}" value="${jornada.entradas.estudiantes}" readonly>
+            <input type="text" id="estudiantes_entradas_${key}" value="${jornada.entradas.estudiantes.qty}" readonly>
           </div>
           <div class="form-row">
             <label>Entradas Apoderados:</label>
-            <input type="text" id="apoderados_entradas_${key}" value="${jornada.entradas.apoderados}" readonly>
+            <input type="text" id="apoderados_entradas_${key}" value="${jornada.entradas.apoderados.qty}" readonly>
           </div>
           <div class="form-row">
             <label>Entradas Invitados:</label>
-            <input type="text" id="invitados_entradas_${key}" value="${jornada.entradas.invitados}" readonly>
+            <input type="text" id="invitados_entradas_${key}" value="${jornada.entradas.invitados.qty}" readonly>
           </div>
         `;
 
@@ -534,7 +534,7 @@
       });
     }
 
-    function update_bloque(bloque_json) {
+    function update_bloque(bloque_json, jornadas) {
       if (bloque_json.jornada in jornadas) {
         //console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
         if (!jornadas[bloque_json.jornada].bloques.includes(bloque_json.bloque)) {

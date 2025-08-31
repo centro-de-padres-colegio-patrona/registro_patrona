@@ -65,6 +65,7 @@ const pagosSchema = new mongoose.Schema({
   entrega_agendas: Number,
   fecha: String,
   comentarios: String,
+  entradas_pagadas: Number,
 });
 
 /// --------------------------------------

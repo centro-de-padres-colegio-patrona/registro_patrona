@@ -492,13 +492,24 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
     console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
     res.status(500).json({ error: 'Error user not found' });
   } else {
-    console.log(JSON.stringify(user.hijos));
-    estudiante = user.hijos[0]['nombre'];
-    console.log(estudiante);
-    const pago = await db_support.pagosDB.findOne({id: estudiante});
+    let pago;
+    if (user.hijos === undefined && user.hijos.length == 0) {
+      //console.log(JSON.stringify(req));
+      estudiante = user.hijos[0]['nombre'];
+      console.log(estudiante);
+      pago = await db_support.pagosDB.findOne({id: estudiante});
+    } else {
+      console.log(JSON.stringify(req.query));
+      //console.log(JSON.stringify(user.hijos));
+      //estudiante = user.hijos[0]['nombre'];
+      const { estudiante } = req.query;
+      console.log(estudiante);
+      pago = await db_support.pagosDB.findOne({id: estudiante});
+    }
     console.log(JSON.stringify(pago));
-    const pagado = pago.cuota_cpa === true;
-    res.json({pagado});
+    const cuota_cpa_pagada = pago.cuota_cpa === true;
+    const entradas_pagadas = pago.entradas_pagadas
+    res.json({cuota_cpa_pagada, entradas_pagadas});
   }
 });
 

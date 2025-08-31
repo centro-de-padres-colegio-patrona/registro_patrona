@@ -187,7 +187,8 @@
       <h3>Hijos/as en el colegio</h3>
       <div class="child-form">
         <label>Curso:</label>
-        <select name="childCourse[]">
+        <select name="childCourse[]" required>
+          <option value="" disabled selected>Seleccione curso</option>
           <option value="Prekínder">Prekínder</option>
           <option value="Kínder">Kínder</option>
           <option value="1° Básico">1° Básico</option>
@@ -302,9 +303,18 @@
           }
         }
         if (target.name === 'childName[]') {
-          const nombreSelect = childForm.querySelector("select[name='childName[]']");
-          const name_value = nombreSelect.value;
-          update_entradas(jornadasFiesta, "estudiantes", name_value);
+          try {
+            //const nombreSelect = childForm.querySelector("select[name='childName[]']");
+            //const name_value = nombreSelect.value;
+            const name_value = target.value;
+            update_entradas(jornadasFiesta, "estudiantes", name_value);
+          } catch (error) {
+            console.error(`[childName[] handler] Error al actualizar entradas: ${error.message}`, {
+              targetName: target.name,
+              //targetValue: target.value,
+              stack: error.stack
+            });
+          }
         }
       });
     });

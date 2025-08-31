@@ -3,8 +3,11 @@ const QRCode = require('qrcode');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const path = require('path');
 
+const fontPath = path.join(__dirname, '../assets/fonts/PottiSreeramulu.ttf');
+// Use fontPath in your renderer or image generator
 
-registerFont('/usr/share/fonts/truetype/teluguvijayam/PottiSreeramulu.ttf', {
+//registerFont('/usr/share/fonts/truetype/teluguvijayam/PottiSreeramulu.ttf', {
+registerFont(fontPath, {
   family: 'PottiSreeramulu'
 });
 

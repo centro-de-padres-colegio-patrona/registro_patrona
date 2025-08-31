@@ -506,7 +506,7 @@
       container.innerHTML = ''; // Evita duplicación
 
       Object.entries(jornadas).forEach(([key, jornada]) => {
-        console.log(`key: ${key}`);
+        //console.log(`key: ${key}`);
         const div = document.createElement('div');
         div.className = 'login-box';
 
@@ -536,13 +536,13 @@
 
     function update_bloque(bloque_json) {
       if (bloque_json.jornada in jornadas) {
-        console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
+        //console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
         if (!jornadas[bloque_json.jornada].bloques.includes(bloque_json.bloque)) {
-          console.log(`[update_bloque][${bloque_json.bloque}] jornadas: ${JSON.stringify(jornadas)}`);
+          //console.log(`[update_bloque][${bloque_json.bloque}] jornadas: ${JSON.stringify(jornadas)}`);
           jornadas[bloque_json.jornada].bloques.push(bloque_json.bloque);
         }
       }
-      console.log(`jornadas: ${JSON.stringify(jornadas)}`);
+      //console.log(`jornadas: ${JSON.stringify(jornadas)}`);
       renderJornadas(jornadas);
     }
 
@@ -550,7 +550,7 @@
       fetch(`/api/bloque?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
         .then(res => res.json())
         .then(bloque_json => {
-          console.log(`[getBloque] bloque_json: ${JSON.stringify(bloque_json)}`);
+          //console.log(`[getBloque] bloque_json: ${JSON.stringify(bloque_json)}`);
           fn(bloque_json);
           return bloque_json.bloque;
         })

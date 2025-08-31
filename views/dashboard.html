@@ -111,6 +111,8 @@
       }
     };
 
+    let estado_pago = null;
+
 
     fetch('/api/user')
       .then(response => {
@@ -647,6 +649,7 @@
         .then(res => res.json())
         .then(data => {
           console.log(JSON.stringify(data));
+          estado_pago = data;
           const btn = document.getElementById('estadoPagoBtn');
           if (data.cuota_cpa_pagada || data.entradas_pagadas > 1) {
             btn.textContent = 'Pago Confirmado';
@@ -762,7 +765,7 @@
               headers: {
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({...currentUser, hijos, padres, invitados})
+              body: JSON.stringify({...currentUser, hijos, padres, invitados, correoGmail, estado_pago, jornadasFiesta})
             })
             .then(res => res.json())
             .then(response => {

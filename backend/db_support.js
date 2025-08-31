@@ -85,6 +85,11 @@ const cursoBloqueMapSchema = new mongoose.Schema({
   color: String
 });
 
+const registroEntradasSchema = new mongoose.Schema({
+  id: String,
+  registros: Object,
+});
+
 const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
 
 mongoose.connect(uri, {
@@ -100,5 +105,6 @@ module.exports.usersDB = mongoose.model('users', userSchema);
 module.exports.listadoCursosDB = mongoose.model('listado_cursos', cursoSchema);
 module.exports.pagosDB = mongoose.model('pagos', pagosSchema);
 module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapSchema);
+module.exports.registroEntradasDB = mongoose.model('registro_entradas', registroEntradasSchema);
 //module.exports = mongoose.model('Familia', familiaSchema);
 

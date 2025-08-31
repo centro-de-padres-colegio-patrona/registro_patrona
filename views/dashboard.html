@@ -63,6 +63,19 @@
       margin-bottom: 10px;
       text-align: center;
     }
+    #jornadas-container {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start; /* o 'flex-end' si quieres alinearlos a la derecha del contenedor */
+      gap: 16px; /* espacio entre cajas */
+      flex-wrap: wrap; /* permite que se ajusten si hay muchas */
+    }
+    #jornadas-container::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
   </style>
 
 </head>
@@ -79,7 +92,7 @@
       manana: {
         id: 1,
         nombre: 'Jornada Mañana',
-        bloques: [''],
+        bloques: [],
         entradas: {
           estudiantes: 0,
           apoderados: 0,
@@ -146,36 +159,6 @@
   <script>
     document.getElementById('estadoPagoBtn').disabled = true;
 
-    function renderJornadas(jornadas) {
-      const container = document.getElementById('jornadas-container');
-
-      Object.entries(jornadas).forEach(([key, jornada]) => {
-        const div = document.createElement('div');
-        div.className = 'login-box';
-
-        div.innerHTML = `
-          <label id="jornadaLabel">${jornada.nombre}</label>
-          <div class="form-row">
-            <label>Bloques:</label>
-            <input type="text" id="bloque_${key}" value="${jornada.bloques.join(', ')}" readonly>
-          </div>
-          <div class="form-row">
-            <label>Entradas Estudiantes:</label>
-            <input type="text" id="estudiantes_entradas_${key}" value="${jornada.entradas.estudiantes}" readonly>
-          </div>
-          <div class="form-row">
-            <label>Entradas Apoderados:</label>
-            <input type="text" id="apoderados_entradas_${key}" value="${jornada.entradas.apoderados}" readonly>
-          </div>
-          <div class="form-row">
-            <label>Entradas Invitados:</label>
-            <input type="text" id="invitados_entradas_${key}" value="${jornada.entradas.invitados}" readonly>
-          </div>
-        `;
-
-        container.appendChild(div);
-      });
-    }
   </script>
 
   <!--div id="jornadas-container"></div>
@@ -518,14 +501,49 @@
       fillGuestSection(user);
     }
 
+    function renderJornadas(jornadas) {
+      const container = document.getElementById('jornadas-container');
+      container.innerHTML = ''; // Evita duplicación
+
+      Object.entries(jornadas).forEach(([key, jornada]) => {
+        console.log(`key: ${key}`);
+        const div = document.createElement('div');
+        div.className = 'login-box';
+
+        div.innerHTML = `
+          <label id="jornadaLabel">${jornada.nombre}</label>
+          <div class="form-row">
+            <label>Bloques:</label>
+            <input type="text" id="bloque_${key}" value="${jornada.bloques.join(', ')}" readonly>
+          </div>
+          <div class="form-row">
+            <label>Entradas Estudiantes:</label>
+            <input type="text" id="estudiantes_entradas_${key}" value="${jornada.entradas.estudiantes}" readonly>
+          </div>
+          <div class="form-row">
+            <label>Entradas Apoderados:</label>
+            <input type="text" id="apoderados_entradas_${key}" value="${jornada.entradas.apoderados}" readonly>
+          </div>
+          <div class="form-row">
+            <label>Entradas Invitados:</label>
+            <input type="text" id="invitados_entradas_${key}" value="${jornada.entradas.invitados}" readonly>
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
     function update_bloque(bloque_json) {
       if (bloque_json.jornada in jornadas) {
-        if (!bloque_json.bloque in jornadas[bloque_json.jornada].bloques) {
+        console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
+        if (!jornadas[bloque_json.jornada].bloques.includes(bloque_json.bloque)) {
+          console.log(`[update_bloque][${bloque_json.bloque}] jornadas: ${JSON.stringify(jornadas)}`);
           jornadas[bloque_json.jornada].bloques.push(bloque_json.bloque);
         }
       }
       console.log(`jornadas: ${JSON.stringify(jornadas)}`);
-      //renderJornadas();
+      renderJornadas(jornadas);
     }
 
     function getBloque(curso, seccion, fn) {

@@ -42,6 +42,13 @@ const userSchema = new mongoose.Schema({
   invitados: [invitadoSchema],
   fechaRegistro: { type: Date, default: Date.now },
   pagos: Object,
+  correoEntradas: Object,
+  estado_pago: Object,
+  jornadasFiesta: Object,
+  entradas_enviadas: Boolean,
+  notificacion_enviada: Boolean,
+  fecha_notificacion: Date,
+  fecha_envio_entradas: Date
 });
 
 

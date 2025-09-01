@@ -76,6 +76,47 @@
       display: table;
       clear: both;
     }
+  .form-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 10px;
+  }
+form input,
+form select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  font-size: 16px;
+  padding: 10px;
+}
+@media screen and (max-width: 600px) {
+  .login-box {
+    width: 100%;
+    padding: 20px;
+    margin: 10px auto;
+  }
+
+  .login-box input,
+  .login-box select,
+  .login-box button {
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  .grid-container {
+    grid-template-columns: 1fr; /* una sola columna en móviles */
+    grid-template-areas:
+      'header'
+      'menu'
+      'main'
+      'footerA'
+      'footerB';
+  }
+}
+form button {
+  margin-top: 10px;
+}
 
   </style>
 
@@ -718,11 +759,12 @@
     function retrieve_parents() {
       // Recopila padres
       const padres = Array.from(document.querySelectorAll(".parent-form")).map(parent => ({
-        nombre: parent.querySelector("input[name='parentName[]']").value,
+        //nombre: parent.querySelector("input[name='parentName[]']").value,
         apellido: parent.querySelector("input[name='parentSurname[]']").value,
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
-        parentesco: parent.querySelector("select[name='relationship[]']").value
+        parentesco: parent.querySelector("select[name='relationship[]']").value,
+        nombre: guest.querySelector("input[name='parentSurname[]']").value + ' ' + guest.querySelector("input[name='parentName[]']").value
       }));
       //if (padres.length)
       //  document.getElementById("btnActualizar").disabled = false;
@@ -732,11 +774,12 @@
     function retrieve_guests() {
       // Recopila invitados
       const invitados = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
-        nombre: guest.querySelector("input[name='guestName[]']").value,
+        //nombre: guest.querySelector("input[name='guestName[]']").value,
         apellido: guest.querySelector("input[name='guestSurname[]']").value,
         correo: guest.querySelector("input[name='guestEmail[]']").value,
         telefono: guest.querySelector("input[name='guestPhone[]']").value,
-        parentesco: guest.querySelector("select[name='relationship[]']").value
+        parentesco: guest.querySelector("select[name='relationship[]']").value,
+        nombre: guest.querySelector("input[name='guestSurname[]']").value + ' ' + guest.querySelector("input[name='guestName[]']").value
       }));
       //if (invitados.length)
       //  document.getElementById("btnActualizar").disabled = false;
@@ -781,14 +824,16 @@
         //OBTENER SI EL ALUMNO PAGO LA CUOTA
         const validaPago = false;
 
-
+            const correoEntradas = {
+              correo: document.getElementById("correoUsuario").value
+            };
 
             fetch('/api/registro', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({...currentUser, hijos, padres, invitados, correoGmail, estado_pago, jornadasFiesta})
+              body: JSON.stringify({...currentUser, hijos, padres, invitados, correoEntradas, estado_pago, jornadasFiesta})
             })
             .then(res => res.json())
             .then(response => {

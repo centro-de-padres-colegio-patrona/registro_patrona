@@ -386,6 +386,47 @@ form {
     overflow-y: auto;
     max-height: 100vh;
   }
+.form-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 10px;
+}
+form input,
+form select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  font-size: 16px;
+  padding: 10px;
+}
+@media screen and (max-width: 600px) {
+  .login-box {
+    width: 100%;
+    padding: 20px;
+    margin: 10px auto;
+  }
+
+  .login-box input,
+  .login-box select,
+  .login-box button {
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  .grid-container {
+    grid-template-columns: 1fr; /* una sola columna en móviles */
+    grid-template-areas:
+      'header'
+      'menu'
+      'main'
+      'footerA'
+      'footerB';
+  }
+}
+form button {
+  margin-top: 10px;
+}
 
 </style>
 </head>

@@ -117,11 +117,69 @@ form select {
 form button {
   margin-top: 10px;
 }
+@media screen and (max-width: 600px) {
+  .form-container {
+    padding: 20px;
+    font-size: 16px;
+    flex-direction: column;
+  }
+
+  .form-container input,
+  .form-container button {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+}
+body.mobile .form-container,
+body.mobile .child-form,
+body.mobile .parent-form,
+body.mobile .guest-form {
+  width: 100%;
+  display: block;
+  padding: 16px;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+body.mobile input,
+body.mobile select,
+body.mobile button {
+  width: 100%;
+  font-size: 18px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+body.mobile h3 {
+  font-size: 20px;
+  margin-top: 24px;
+}
+
+body.mobile #jornadas-container {
+  flex-direction: column;
+  gap: 12px;
+}
+.enviar-btn {
+  font-size: 18px;
+  padding: 12px 24px;
+  background-color: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.enviar-btn:hover {
+  background-color: #357ABD;
+}
 
   </style>
 
 </head>
 <body>
+<script>
+  const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+  document.body.classList.add(isMobile ? 'mobile' : 'desktop');
+</script>
 
   <h2>Registro Familiar Fiesta a la Chilena Colegio Patrona</h2>
 
@@ -171,6 +229,7 @@ form button {
             ? currentUser.email 
             : "ejemplo@correo.com";
 
+        console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
         document.getElementById("correoUsuario").value = correo;
       })
       .catch(error => {
@@ -210,7 +269,7 @@ form button {
     document.getElementById('estadoPagoBtn').disabled = true;
 
   </script>
-  <button type="button" onclick="actualizar_entradas()" disabled>Actualizar Entradas</button>
+  <!--button type="button" onclick="actualizar_entradas()" disabled>Actualizar Entradas</button-->
   
   <!--div id="jornadas-container"></div>
 
@@ -313,7 +372,9 @@ form button {
   <!--input type="email" id="correoUsuario" name="correoPrincipal" placeholder="ejemplo@correo.com" style="width: 300px; padding: 10px; margin-bottom: 15px;"><br-->
   <input type="email" id="correoUsuario"  style="width: 300px; padding: 10px; margin-bottom: 15px;" ><br>
 
-  <button type="submit" style="font-size: 18px; padding: 12px 24px;">Enviar</button>
+  <!--button type="submit" style="font-size: 18px; padding: 12px 24px;">Enviar</button-->
+  <button type="submit" class="enviar-btn">Enviar</button>
+
 </div>
 
   </form>
@@ -343,6 +404,7 @@ form button {
                   option.textContent = nombre;
                   nombreSelect.appendChild(option);
                 });
+                clear_bloques(jornadasFiesta);
                 getBloque(curso, seccion, bloque_json => {
                   //console.log(`Valor Bloque: ${valor_bloque}`)
                   bloque.value = bloque_json.bloque;
@@ -531,6 +593,7 @@ form button {
         nombreSelect.appendChild(option);
         nombreSelect.value = hijo.nombre;
         update_entradas(jornadasFiesta, "estudiantes", retrieve_hijos());
+        clear_bloques(jornadasFiesta);
         getBloque(hijo.curso, hijo.seccion, bloque_json => {
           form.querySelector("input[name='childBloque[]']").value = bloque_json.bloque;
           update_bloque(bloque_json, jornadasFiesta);
@@ -649,6 +712,12 @@ form button {
       });
     }
 
+    function clear_bloques(jornadas) {
+      Object.values(jornadas).forEach( jornada => {
+        jornada.bloques = [];
+      })
+    }
+
     function update_bloque(bloque_json, jornadas) {
       if (bloque_json.jornada in jornadas) {
         console.log(`[update_bloque][${bloque_json.jornada}] jornadas: ${JSON.stringify(jornadas)}`);
@@ -663,14 +732,17 @@ form button {
     }
 
     function getBloque(curso, seccion, fn) {
-      fetch(`/api/bloque?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
-        .then(res => res.json())
-        .then(bloque_json => {
-          //console.log(`[getBloque] bloque_json: ${JSON.stringify(bloque_json)}`);
-          fn(bloque_json);
-          return bloque_json.bloque;
-        })
-        .catch(err => console.error('Error al obtener nombres:', err));
+      const cursos = retrieve_cursos();
+      cursos.forEach(({curso, seccion}) => {
+        fetch(`/api/bloque?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
+          .then(res => res.json())
+          .then(bloque_json => {
+            //console.log(`[getBloque] bloque_json: ${JSON.stringify(bloque_json)}`);
+            fn(bloque_json);
+            return bloque_json.bloque;
+          })
+          .catch(err => console.error('Error al obtener nombres:', err));
+      });
       return '';
     }
 
@@ -744,6 +816,9 @@ form button {
         });
     }
 
+    function retrieve_cursos() {
+      return retrieve_hijos()
+    }
     function retrieve_hijos() {
       // Recopila hijos
       const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
@@ -758,20 +833,25 @@ form button {
 
     function retrieve_parents() {
       // Recopila padres
+      try {
       const padres = Array.from(document.querySelectorAll(".parent-form")).map(parent => ({
         //nombre: parent.querySelector("input[name='parentName[]']").value,
         apellido: parent.querySelector("input[name='parentSurname[]']").value,
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value,
-        nombre: guest.querySelector("input[name='parentSurname[]']").value + ' ' + guest.querySelector("input[name='parentName[]']").value
+        nombre: parent.querySelector("input[name='parentSurname[]']").value + ' ' + parent.querySelector("input[name='parentName[]']").value
       }));
       //if (padres.length)
       //  document.getElementById("btnActualizar").disabled = false;
       return padres;
+    } catch (error) {
+      return [];
+    }
     }
 
     function retrieve_guests() {
+      try {
       // Recopila invitados
       const invitados = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
         //nombre: guest.querySelector("input[name='guestName[]']").value,
@@ -785,6 +865,9 @@ form button {
       //  document.getElementById("btnActualizar").disabled = false;
 
       return invitados;
+      } catch(error) {
+        return [];
+      }
     }
 
     document.getElementById('registro-form').addEventListener('submit', function(e) {

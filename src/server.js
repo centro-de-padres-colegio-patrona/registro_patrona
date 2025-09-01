@@ -494,41 +494,49 @@ app.get('/api/max_invitados', async (req, res) => {
 app.get('/api/estado_pago_cpa', async (req, res) => {
   //console.log('req.user:', req.user);
   console.log('/api/estado_pago_cpa');
-  let user = await db_support.usersDB.findOne({ googleId: req.user.id });
+  try {
+    let user = await db_support.usersDB.findOne({ googleId: req.user.id });
 
-  if (user === undefined) {
-    console.log('User undefined');
-    res.status(500).json({ error: 'Error User not defined' });
-  } /*else {
-    console.log('User:', user);
-  }*/
-  // Si no existe, podés crearlo o manejarlo como desees
-  if (!user || user === undefined) {
-    console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
-    res.status(500).json({ error: 'Error user not found' });
-  } else {
-    console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
-    console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
-    let pago;
-    if (user.hijos !== undefined && user.hijos.length > 0) {
-      //console.log(JSON.stringify(req));
-      estudiante = user.hijos[0]['nombre'];
-      console.log(estudiante);
-      pago = await db_support.pagosDB.findOne({id: estudiante});
-      console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
+    if (user === undefined) {
+      console.log('User undefined');
+      res.status(500).json({ error: 'Error User not defined' });
+    } /*else {
+      console.log('User:', user);
+    }*/
+    // Si no existe, podés crearlo o manejarlo como desees
+    if (!user || user === undefined) {
+      console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
+      res.status(500).json({ error: 'Error user not found' });
     } else {
-      console.log(`[/api/estado_pago_cpa] req.query: ${JSON.stringify(req.query)}`);
-      //console.log(JSON.stringify(user.hijos));
-      //estudiante = user.hijos[0]['nombre'];
-      const { estudiante } = req.query;
-      console.log(estudiante);
-      pago = await db_support.pagosDB.findOne({id: estudiante});
-      console.log(`[/api/estado_pago_cpa] pago estudiante: ${JSON.stringify(pago)}`);
+      console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
+      console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
+      let pago;
+      if (user.hijos !== undefined && user.hijos.length > 0) {
+        //console.log(JSON.stringify(req));
+        estudiante = user.hijos[0]['nombre'];
+        console.log(estudiante);
+        pago = await db_support.pagosDB.findOne({id: estudiante});
+        console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
+      } else {
+        console.log(`[/api/estado_pago_cpa] req.query: ${JSON.stringify(req.query)}`);
+        //console.log(JSON.stringify(user.hijos));
+        //estudiante = user.hijos[0]['nombre'];
+        const { estudiante } = req.query;
+        console.log(estudiante);
+        pago = await db_support.pagosDB.findOne({id: estudiante});
+        console.log(`[/api/estado_pago_cpa] pago estudiante: ${JSON.stringify(pago)}`);
+      }
+      console.log(JSON.stringify(pago));
+      const cuota_cpa_pagada = pago.cuota_cpa === true;
+      const entradas_pagadas = pago.entradas_pagadas
+      res.json({cuota_cpa_pagada, entradas_pagadas});
     }
-    console.log(JSON.stringify(pago));
-    const cuota_cpa_pagada = pago.cuota_cpa === true;
-    const entradas_pagadas = pago.entradas_pagadas
-    res.json({cuota_cpa_pagada, entradas_pagadas});
+  } catch (error) {
+    console.error(`[/api/estado_pago_cpa] Error al procesar la solicitud:`, error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      detalle: error.message,
+    });
   }
 });
 

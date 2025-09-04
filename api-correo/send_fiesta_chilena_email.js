@@ -59,7 +59,7 @@ async function send_fiesta_chilena_email(body) {
 
   const mailOptions = {
     from: 'centrodepadres@colegiopatrona.cl',
-    to: 'leo.herrera.mena.fotos.2020@gmail.com',
+    to: email_destinatario,
     subject: asuntoCorreo,
     text: mensajeCorreo,
     attachments

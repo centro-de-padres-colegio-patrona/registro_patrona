@@ -1,9 +1,12 @@
+const nodemailer = require('nodemailer');
+
 const { genEntrada, genEntradaCanvas } = require('../src/generateTicket');
+const db_support = require('../backend/db_support');
 
 
 async function send_fiesta_chilena_email(body) {
   //console.log(`body: ${JSON.stringify(body)}`)
-
+  try {
   const {email_destinatario, vectores_entradas} = body;
 
   const asuntoCorreo = 'PATRONA: Registro exitoso';
@@ -27,7 +30,8 @@ async function send_fiesta_chilena_email(body) {
         //const {vector} = entrada
         console.log(`vector: ${JSON.stringify(vector)}`);
         const buffer = await genEntradaCanvas(vector);
-        const nombreArchivo = `entrada_${entrada.familia.replace(/\s+/g, '_')}_${String(entrada.correlativo).padStart(4, '0')}.png`;
+        const {nombre_completo, jornada, correlativo} = vector;
+        const nombreArchivo = `entrada_${nombre_completo.replace(/ /g, "_")}_${jornada}_${String(correlativo).padStart(4, '0')}.png`;
         return {
           filename: nombreArchivo,
           content: buffer,
@@ -55,7 +59,7 @@ async function send_fiesta_chilena_email(body) {
 
   const mailOptions = {
     from: 'centrodepadres@colegiopatrona.cl',
-    to: 'leo.herrera.mena.fotos.2010@gmail.com',
+    to: 'leo.herrera.mena.fotos.2020@gmail.com',
     subject: asuntoCorreo,
     text: mensajeCorreo,
     attachments
@@ -69,10 +73,39 @@ async function send_fiesta_chilena_email(body) {
     } else {
         console.log("Correo enviado:", info.response);
         console.log("email destinatario: ", email_destinatario);
-        //return res.status(200).json({ data: `correo enviado a ${email_destinatario}` });
-        return;
+          console.log('Correo enviado exitosamente:', info.response);
+          entradas.map(async (entrada) => {
+            const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = entrada
+            const nombreArchivo = `entrada_${familia}_${correlativo}.png`.replace(/\s+/g, '_');
+            // Buscar registro por numero serial
+            let registro = await db_support.deliveryDB.findOne({ serial: correlativo });
+
+            if (registro === undefined) {
+              console.log('Registro undefined');
+            }
+            // Si no existe, podés crearlo o manejarlo como desees
+            if (!registro || registro === undefined) {
+              console.log(`Registro ${correlativo} no encontrado`)
+              registro = await db_support.deliveryDB.create({
+                familia: familia,
+                nombre_completo: nombre_completo,
+                bloques: colores,
+                serial: correlativo,
+                total: total,
+                num_listado: num_listado,
+                curso: curso,
+                jornada: jornada,
+                tipo: tipo,
+                nombreArchivo: nombreArchivo
+              });
+            } 
+            return
+          })
     }
     });
+  } catch (error) {
+    console.error(`[send_fiesta_chilena_email] ${error}`);
+  }
 }
 
 async function send_email_registro_success(body) {
@@ -110,11 +143,47 @@ async function send_email_registro_success(body) {
 
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-        console.error('Error al enviar:', error);
-        return res.status(500).json({ error: 'Error al enviar correo: ' + error });
+          console.error('Error al enviar:', error);
+          return  //res.status(500).json({ error: 'Error al enviar correo: ' + error });
         } else {
-        console.log('Correo enviado:', info.response);
-        return res.status(200).json({ message: 'Correo enviado con entradas adjuntas' });
+          console.log('Correo enviado exitosamente:', info.response);
+          entradas.map(async (entrada) => {
+            const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = entrada
+            const nombreArchivo = `entrada_${familia}_${correlativo}.png`.replace(/\s+/g, '_');
+            // Buscar registro por numero serial
+            let registro = await db_support.deliveryDB.findOne({ serial: correlativo });
+
+            if (registro === undefined) {
+              console.log('Registro undefined');
+            }
+            // Si no existe, podés crearlo o manejarlo como desees
+            if (!registro || registro === undefined) {
+              console.log(`Registro ${correlativo} no encontrado`)
+              registro = await db_support.deliveryDB.create({
+                familia: familia,
+                nombre_completo: nombre_completo,
+                bloques: colores,
+                serial: correlativo,
+                total: total,
+                num_listado: num_listado,
+                curso: curso,
+                jornada: jornada,
+                tipo: tipo,
+                nombreArchivo: nombreArchivo
+              });
+              //console.log('User:', user);
+            } /*else {
+              console.log('Found user:', user.username);
+            }*/
+
+            //return done(null, profile);
+            return  /*{
+                filename: nombreArchivo,
+                content: buffer,
+                contentType: 'image/png'
+            };*/
+          })
+          return res.status(200).json({ message: 'Correo enviado con entradas adjuntas' });
         }
     });
     });

@@ -690,7 +690,7 @@ app.post('/api/send_email_entradas', async (req, res) => {
 
   const mailOptions = {
     from: 'centrodepadres@colegiopatrona.cl',
-    to: 'leo.herrera.mena.fotos.2010@gmail.com',
+    to: 'leo.herrera.mena.fotos.2020@gmail.com',
     subject: asuntoCorreo,
     text: mensajeCorreo,
     attachments

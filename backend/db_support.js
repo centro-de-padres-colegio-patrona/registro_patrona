@@ -55,7 +55,7 @@ const deliverySchema = new mongoose.Schema({
   familia: String,
   nombre_completo: String, 
   bloques: Array, 
-  correlativo: Number, 
+  serial: Number, 
   total: Number, 
   num_listado: Number, 
   curso: String, 

@@ -85,7 +85,6 @@ async function send_fiesta_chilena_email(body) {
             }
             // Si no existe, podés crearlo o manejarlo como desees
             if (!registro || registro === undefined) {
-              console.log(`Registro ${correlativo} no encontrado`)
               registro = await db_support.deliveryDB.create({
                 familia: familia,
                 nombre_completo: nombre_completo,
@@ -98,6 +97,7 @@ async function send_fiesta_chilena_email(body) {
                 tipo: tipo,
                 nombreArchivo: nombreArchivo
               });
+              console.log(`Registro entrega entrada serial ${correlativo} creado`)
             } 
             return
           })

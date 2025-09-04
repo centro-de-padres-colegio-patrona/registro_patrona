@@ -643,16 +643,35 @@ app.get('/authenticated', (req, res) => {
   res.sendFile(dashboardPath);
 });
 
-app.post('/enviarCorreo', async (req, res) => {
-  const {correo} = req.body;
+app.post('/api/send_email_entradas', async (req, res) => {
+  const {email_destinatario} = req.body;
+  send_fiesta_chilena_email(req.body);
+  return res.status(200).json({ data: `enviando correa a ${email_destinatario}` });
+
+  console.log(`body: ${JSON.stringify(req.body)}`)
 
   const asuntoCorreo = 'PATRONA: Registro exitoso';
   const mensajeCorreo = 'El registro se ha enviado correctamente.';
 
-    if (!correo || !asuntoCorreo || !mensajeCorreo) {
+    if (!email_destinatario || !asuntoCorreo || !mensajeCorreo) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
       console.info ('Faltan campos requeridos..');
     }
+
+    const entradas = req.body.vectores_entradas.manana + req.body.vectores_entradas.tarde 
+    const attachments = await Promise.all(
+      entradas.map(async (entrada) => {
+        const buffer = await genEntradaCanvas(entrada);
+        const nombreArchivo = `entrada_${entrada.familia.replace(/\s+/g, '_')}_${String(entrada.correlativo).padStart(4, '0')}.png`;
+        return {
+          filename: nombreArchivo,
+          content: buffer,
+          contentType: 'image/png'
+        };
+      })
+    );
+
+    console.log(`entradas: ${JSON.stringify(entradas)}`);
 
     const transporter = nodemailer.createTransport({
      service: 'gmail',
@@ -671,9 +690,10 @@ app.post('/enviarCorreo', async (req, res) => {
 
   const mailOptions = {
     from: 'centrodepadres@colegiopatrona.cl',
-    to: correo,
+    to: 'leo.herrera.mena.fotos.2010@gmail.com',
     subject: asuntoCorreo,
-    text: mensajeCorreo
+    text: mensajeCorreo,
+    attachments
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
@@ -682,7 +702,7 @@ app.post('/enviarCorreo', async (req, res) => {
     return res.status(400).json({ error: 'Error al enviar correo: ' + error });
   } else {
     console.log("Correo enviado:", info.response);
-    return res.status(200).json({ data: 'Faltan campos requeridos' });
+    return res.status(200).json({ data: `enviando correa a ${email_destinatario}` });
   }
 });
 });

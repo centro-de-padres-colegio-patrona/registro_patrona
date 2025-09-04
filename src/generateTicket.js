@@ -22,15 +22,14 @@ registerFont(fontPath, {
   family: 'PottiSreeramulu'
 });
 
-function coleres_to_bloques(colores) {
-  return colores
-    .map(color => bloqueMap[color])
-    .filter(bloque => bloque !== undefined); // Filtra colores no reconocidos
+function colores_to_bloques(colores) {
+  const array = Array.isArray(colores) ? colores : [colores];
+  return array.map(color => bloqueMap[color] ?? color);
 }
 
 
 async function genEntrada({ familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
-  const bloques = coleres_to_bloques(colores);
+  const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
   const serial = `${correlativo}/${total}`;
   const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${familia}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}`;
@@ -68,7 +67,9 @@ async function genEntrada({ familia, nombre_completo, colores, correlativo, tota
 
 
 async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
-  const bloques = coleres_to_bloques(colores);
+  //console.log(`${JSON.stringify(colores)}`);
+  //console.log(`typeof(colores): ${typeof(colores)}`);
+  const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
   const serial = String(correlativo).padStart(4, '0');
   const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${familia}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}`;

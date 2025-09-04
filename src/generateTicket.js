@@ -6,13 +6,32 @@ const path = require('path');
 const fontPath = path.join(__dirname, '../assets/fonts/PottiSreeramulu.ttf');
 // Use fontPath in your renderer or image generator
 
+const bloqueMap = {
+        'ama_m': 1,
+        'ros_m': 2,
+        'ver': 3,
+        'roj': 4,
+        'azul': 5,
+        'nar': 6,
+        'ama_t': 7,
+        'ros_t': 8,
+    }
+
 //registerFont('/usr/share/fonts/truetype/teluguvijayam/PottiSreeramulu.ttf', {
 registerFont(fontPath, {
   family: 'PottiSreeramulu'
 });
 
+function coleres_to_bloques(colores) {
+  return colores
+    .map(color => bloqueMap[color])
+    .filter(bloque => bloque !== undefined); // Filtra colores no reconocidos
+}
+
+
 async function genEntrada({ familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
-  const colorText = colores.join('/');
+  const bloques = coleres_to_bloques(colores);
+  const colorText = bloques.join('/');
   const serial = `${correlativo}/${total}`;
   const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${familia}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}`;
 
@@ -49,8 +68,9 @@ async function genEntrada({ familia, nombre_completo, colores, correlativo, tota
 
 
 async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
-  const colorText = colores.join('/');
-  const serial = `${correlativo}/${total}`;
+  const bloques = coleres_to_bloques(colores);
+  const colorText = bloques.join('/');
+  const serial = String(correlativo).padStart(4, '0');
   const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${familia}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}`;
 
   const fondo = await loadImage(path.join(__dirname, '../img/fondo_entrada.png'));
@@ -80,6 +100,7 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
     { text: `Nro List: ${num_listado}`, x: 350, y: 710 }
   ];
 
+  //console.log(`${JSON.stringify(textos)}`);
   textos.forEach(({ text, x, y }) => {
     ctx.fillText(text, x, y);
   });

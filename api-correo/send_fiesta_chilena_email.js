@@ -95,7 +95,8 @@ async function send_fiesta_chilena_email(body) {
                 curso: curso,
                 jornada: jornada,
                 tipo: tipo,
-                nombreArchivo: nombreArchivo
+                nombreArchivo: nombreArchivo,
+                email_destinatario: email_destinatario
               });
               console.log(`Registro entrega entrada serial ${correlativo} creado`)
             } 

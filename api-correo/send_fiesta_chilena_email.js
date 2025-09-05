@@ -99,7 +99,6 @@ async function send_fiesta_chilena_email(body) {
                 tipo: tipo,
                 nombreArchivo: nombreArchivo,
                 email_destinatario: email_destinatario,
-                seriales: seriales
               });
               console.log(`Registro entrega entrada serial ${correlativo} creado`)
             } 

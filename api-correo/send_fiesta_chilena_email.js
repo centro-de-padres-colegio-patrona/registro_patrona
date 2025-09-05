@@ -32,7 +32,7 @@ async function send_fiesta_chilena_email(body) {
         console.log(`vector: ${JSON.stringify(vector)}`);
         const buffer = await genEntradaCanvas(vector);
         const {nombre_completo, jornada, correlativo} = vector;
-        seriales.push(serial)
+        seriales.push(correlativo)
         const nombreArchivo = `entrada_${nombre_completo.replace(/ /g, "_")}_${jornada}_${String(correlativo).padStart(4, '0')}.png`;
         return {
           filename: nombreArchivo,

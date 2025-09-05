@@ -25,12 +25,14 @@ async function send_fiesta_chilena_email(body) {
     //const entradas = body.vectores_entradas.manana + body.vectores_entradas.tarde;
     const entradas = vectores_entradas;
     //console.log(`entradas: ${JSON.stringify(entradas)}`);
+    seriales = []
     const attachments = await Promise.all(
       entradas.map(async (vector) => {
         //const {vector} = entrada
         console.log(`vector: ${JSON.stringify(vector)}`);
         const buffer = await genEntradaCanvas(vector);
         const {nombre_completo, jornada, correlativo} = vector;
+        seriales.push(serial)
         const nombreArchivo = `entrada_${nombre_completo.replace(/ /g, "_")}_${jornada}_${String(correlativo).padStart(4, '0')}.png`;
         return {
           filename: nombreArchivo,
@@ -96,7 +98,8 @@ async function send_fiesta_chilena_email(body) {
                 jornada: jornada,
                 tipo: tipo,
                 nombreArchivo: nombreArchivo,
-                email_destinatario: email_destinatario
+                email_destinatario: email_destinatario,
+                seriales: seriales
               });
               console.log(`Registro entrega entrada serial ${correlativo} creado`)
             } 

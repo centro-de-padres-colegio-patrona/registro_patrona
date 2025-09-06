@@ -564,27 +564,27 @@ body.mobile #jornadas-container {
         // Asigna valores
         form.querySelector("select[name='childCourse[]']").value = hijo.curso;
         form.querySelector("select[name='childSeccion[]']").value = hijo.seccion;
-        form.querySelector("select[name='childCourse[]']").disabled = true;
-        form.querySelector("select[name='childSeccion[]']").disabled = true;
 
         // Simula llamada a API para cargar nombres válidos
-        /*fetch(`/api/alumnos?curso=${encodeURIComponent(hijo.curso)}&seccion=${encodeURIComponent(hijo.seccion)}`)
-          .then(res => res.json())
-          .then(alumnos => {
-            const nombreSelect = form.querySelector("select[name='childName[]']");
-            nombreSelect.innerHTML = '<option value="">Seleccione</option>';
-            alumnos.forEach(nombre => {
-              const option = document.createElement('option');
-              option.value = nombre;
-              option.textContent = nombre;
-              nombreSelect.appendChild(option);
-            });
+        if (hijo.curso && hijo.seccion) {
+          fetch(`/api/alumnos?curso=${encodeURIComponent(hijo.curso)}&seccion=${encodeURIComponent(hijo.seccion)}`)
+            .then(res => res.json())
+            .then(alumnos => {
+              const nombreSelect = form.querySelector("select[name='childName[]']");
+              nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+              alumnos.forEach(nombre => {
+                const option = document.createElement('option');
+                option.value = nombre;
+                option.textContent = nombre;
+                nombreSelect.appendChild(option);
+              });
 
-            // Selecciona el nombre si está en la lista
-            nombreSelect.value = hijo.nombre;
-            update_entradas(jornadasFiesta, "estudiantes", retrieve_hijos());
-          })
-          .catch(err => console.error('Error al cargar nombres:', err));*/
+              // Selecciona el nombre si está en la lista
+              nombreSelect.value = hijo.nombre;
+              update_entradas(jornadasFiesta, "estudiantes", retrieve_hijos());
+            })
+            .catch(err => console.error('Error al cargar nombres:', err));
+        }
         const nombreSelect = form.querySelector("select[name='childName[]']");
         nombreSelect.innerHTML = '<option value="">Seleccione</option>';
         const option = document.createElement('option');
@@ -592,6 +592,12 @@ body.mobile #jornadas-container {
         option.textContent = hijo.nombre;
         nombreSelect.appendChild(option);
         nombreSelect.value = hijo.nombre;
+
+        if (hijo.nombre && hijo.curso && hijo.seccion) {
+          form.querySelector("select[name='childCourse[]']").disabled = true;
+          form.querySelector("select[name='childSeccion[]']").disabled = true;
+        }
+
         update_entradas(jornadasFiesta, "estudiantes", retrieve_hijos());
         clear_bloques(jornadasFiesta);
         getBloque(hijo.curso, hijo.seccion, bloque_json => {

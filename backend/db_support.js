@@ -51,6 +51,27 @@ const userSchema = new mongoose.Schema({
   fecha_envio_entradas: Date
 });
 
+const deliverySchema = new mongoose.Schema({
+  familia: String,
+  nombre_completo: String, 
+  bloques: Array, 
+  serial: Number, 
+  total: Number, 
+  num_listado: Number, 
+  curso: String, 
+  jornada: String, 
+  tipo: String,
+  nombreArchivo: String,
+  fecha_delivery: { type: Date, default: Date.now },
+  hora_delivery: {
+    type: String,
+    default: () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+  }});
 
 /// --------------------------------
 const cursoSchema = new mongoose.Schema({
@@ -113,5 +134,5 @@ module.exports.listadoCursosDB = mongoose.model('listado_cursos', cursoSchema);
 module.exports.pagosDB = mongoose.model('pagos', pagosSchema);
 module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapSchema);
 module.exports.registroEntradasDB = mongoose.model('registro_entradas', registroEntradasSchema);
-//module.exports = mongoose.model('Familia', familiaSchema);
+module.exports.deliveryDB = mongoose.model('delivery_entradas', deliverySchema);
 

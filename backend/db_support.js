@@ -48,10 +48,15 @@ const userSchema = new mongoose.Schema({
   entradas_enviadas: Boolean,
   notificacion_enviada: Boolean,
   fecha_notificacion: Date,
-  fecha_envio_entradas: Date
+  fecha_envio_entradas: Date,
+  correo_validado: Boolean,
 });
 
-const deliverySchema = new mongoose.Schema({
+const bingo_solidario = new mongoose.Schema({ 
+  email: String,
+  });
+
+  const deliverySchema = new mongoose.Schema({
   familia: String,
   nombre_completo: String, 
   bloques: Array, 

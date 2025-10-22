@@ -210,6 +210,7 @@ passport.use(new GoogleStrategy({
     try {
       // Buscar usuario por ID de Google
       let user = await db_support.usersDB.findOne({ googleId: profile.id });
+      console.log(`email: ${user.email}, correo_validado: ${user.correo_validado}`);
 
       if (user === undefined) {
         console.log('User undefined');
@@ -227,7 +228,9 @@ passport.use(new GoogleStrategy({
           listaPadres: null,
           listaOtros: null,
           listaAsistentes: null,
-          pagos: null
+          pagos: null,
+          fecha_registro: Date.now,
+          correo_validado: false,
         });
         //console.log('User:', user);
       } /*else {
@@ -255,6 +258,9 @@ app.use(express.static('public'));
 app.use(express.static(__dirname + '/public'))
 app.use(express.static(__dirname + '/src'))
 app.use(express.static(__dirname + '/views'))
+
+// Servir archivos estáticos desde la carpeta views
+app.use(express.static(path.join(__dirname, '../views')));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(session({ secret: 'Peroconrespeto', resave: false, saveUninitialized: false }));
@@ -348,9 +354,11 @@ app.get('/api/user', async (req, res) => {
       padres: null,
       invitados: null,
       pagos: null,
-      fecha_registro: Date.now
+      fecha_registro: Date.now,
+      correo_validado: false
     });
   }
+  console.log(`email: ${user.email}, correo validado: ${user.correo_validado}`)
   res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
 });
 
@@ -635,12 +643,22 @@ app.get('/auth/google/callback',
 
 app.get('/authenticated', (req, res) => {
   if (!req.isAuthenticated()) return res.redirect('/');
-  //console.log('req.user: ', JSON.stringify(req.user))
+  console.log(`--> req.user.email: ${req.user.email}, correo validado: ${req.user.correo_validado}`)
+  //console.log('--> req.user: ', JSON.stringify(req.user))
   //console.log(JSON.stringify(req))
   //res.render('dashboard', { user: req.user });
   // Send the dashboard.html file as a response
-  const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
-  res.sendFile(dashboardPath);
+  if (typeof req.user.correo_validado === 'undefined' || !req.user.correo_validado) {
+    console.log('Validando correo');
+    const validarCorreoPath = path.join(__dirname, '../views', 'validar_correo.html');
+    res.sendFile(validarCorreoPath);
+  } else {
+    console.log('Correo validado');
+    const entradasBingoPath = path.join(__dirname, '../views', 'entradas_bingo.html');
+    res.sendFile(entradasBingoPath);
+  }
+  //const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
+  //res.sendFile(dashboardPath);
 });
 
 app.post('/api/send_email_entradas', async (req, res) => {

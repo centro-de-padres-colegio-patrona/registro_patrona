@@ -3,7 +3,7 @@ const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const { genEntrada, genEntradaCanvas } = require('./generateTicket');
-const { send_fiesta_chilena_email, send_email_registro_success } = require('../api-correo/send_fiesta_chilena_email.js');
+const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 
 
 const nodemailer = require('nodemailer');
@@ -362,6 +362,29 @@ app.get('/api/user', async (req, res) => {
   res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
 });
 
+app.get('/api/correo_validado', async (req, res) => {
+  if (!req.isAuthenticated()) {
+    console.log('/api/correo_validado: No autenticado');
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  // Aquí puedes enviar los datos del usuario autenticado
+  console.log('/api/correo_validado: Autenticado e Email validado');
+  console.log('/api/correo_validado: req.user:', req.user);
+
+  try {
+    const result = await db_support.usersDB.findOneAndUpdate(
+      { email: req.user.email },
+      { $set: { correo_validado: true } },
+      { returnDocument: 'after' }
+    );
+    console.log('/api/correo_validado: Usuario actualizado:', result);
+    res.json({ status: 'ok', mensaje: 'Correo validado correctamente' });
+
+  } catch (err) {
+    console.error('/api/correo_validado: Error al actualizar usuario:', err);
+    res.status(500).json({ error: 'Error al validar el correo' });
+  }
+});
 
 app.post('/api/registro', express.json(), (req, res) => {
   // Aquí puedes guardar los datos, enviarlos por correo, etc.
@@ -736,6 +759,38 @@ app.post('/api/generar_entrada_canvas', async (req, res) => {
       res.status(500).json({ error: 'Error generando entrada' });
     }
   });
+
+
+app.post('/api/enviarCodigo', express.json(), async (req, res) => {
+
+  function mensaje_codigo_validacion(codigo) {
+    return `
+      <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
+        <p>Estimado/a apoderado/a,</p>
+        <p>Gracias por registrarse en el <strong>Bingo Solidario 2025</strong> del Colegio Patrona.</p>
+        <p>Para validar su correo electrónico, por favor ingrese el siguiente código en el formulario:</p>
+        <p style="font-size: 24px; font-weight: bold; color: #4A90E2; text-align: center;">${codigo}</p>
+        <p>Este código es válido por unos minutos. Si no solicitó esta validación, puede ignorar este mensaje.</p>
+        <br>
+        <p>Saludos cordiales,<br>
+        Centro de Padres Colegio Patrona</p>
+      </div>
+    `;
+  }
+
+  const { email_destinatario, codigo } = req.body;
+  console.log(`Código enviado al correo: ${codigo}`);
+  const asuntoCorreo = "Bingo Solidario 2026: Validación Correo";
+  const mensajeCorreo = mensaje_codigo_validacion(codigo);
+  body = {email_destinatario, asuntoCorreo, mensajeCorreo};
+  result = await send_email_from_cpa_account(body);
+  if (result.status === 'ok') {
+    res.json({ status: 'ok' });
+  } else {
+    res.status(500).json({ error: result.message });
+  }
+});
+
 
 // Start the server on port 8080
 app.listen(PORT, () => {

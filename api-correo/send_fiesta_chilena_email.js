@@ -192,7 +192,67 @@ async function send_email_registro_success(body) {
     });
 }
 
+async function send_email_from_cpa_account(body) {
+  try {
+    const {email_destinatario, asuntoCorreo, mensajeCorreo, attachments = []} = body;
+
+    if (!email_destinatario || !asuntoCorreo || !mensajeCorreo) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+      console.info ('Faltan campos requeridos..');
+    }
+
+    const transporter = nodemailer.createTransport({
+     service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: 'centrodepadres@colegiopatrona.cl',
+        pass: 'Peroconrespeto',
+        clientId: '110435636758-vvkr480b6l0lu7ninig8ddvrkbssuhk7.apps.googleusercontent.com',
+        clientSecret: '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',
+        refreshToken: '1//04wg4HDhyOi4YCgYIARAAGAQSNgF-L9IrEtcIbrnUQ_loGfqrIiEN8NNMACKBBvuNyCW1uKkegggwVsaQmsS9-2ikc2qMQldxpA'
+      },
+      tls: {
+        rejectUnauthorized: false  // evita problemas con certificados autofirmados
+      }
+    });
+
+    const mailOptions = {
+      from: 'centrodepadres@colegiopatrona.cl',
+      to: email_destinatario,
+      subject: asuntoCorreo,
+      html: mensajeCorreo,
+      attachments
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Correo enviado exitosamente:', info.response);
+    return { status: 'ok', message: 'Correo enviado', response: info.response };
+
+  } catch (error) {
+    console.error('[send_email_from_cpa_account] Error:', error);
+    return { status: 'error', message: 'Error al enviar correo', error };
+  }
+}
+
+async function send_validacion_email(body) {
+  try {
+  const {email_destinatario, vectores_entradas} = body;
+
+  const asuntoCorreo = 'PATRONA: Registro exitoso';
+  const mensajeCorreo = 'El registro se ha enviado correctamente.';
+
+    if (!email_destinatario || !asuntoCorreo || !mensajeCorreo) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+      console.info ('Faltan campos requeridos..');
+    }
+
+
+  } catch (error) {
+    console.error(`[send_fiesta_chilena_email] ${error}`);
+  }
+}
 
 
 module.exports.send_fiesta_chilena_email = send_fiesta_chilena_email;
 module.exports.send_email_registro_success = send_email_registro_success
+module.exports.send_email_from_cpa_account = send_email_from_cpa_account

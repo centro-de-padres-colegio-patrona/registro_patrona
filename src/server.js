@@ -2,6 +2,8 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const bcrypt = require('bcrypt');
+
 const { genEntrada, genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 
@@ -370,15 +372,66 @@ app.get('/api/manualUser', async (req, res) => {
     console.log('User undefined');
   }
   if (!user || user === undefined) {
-    console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
-    user = await db_support.usersDB.create({
-      email: email,
-      fecha_registro: Date.now,
-      correo_validado: false,
-    });
+    console.log(`Usuario ${email} no encontrado`)
+    return res.status(404).json({ error: 'No encontrado' });
   }
   console.log(`email: ${user.email}, user info: ${JSON.stringify(user)}`)
   res.json({ user }); // Aquí envías los datos del usuario al frontend
+});
+
+app.post('/api/verificarPassword', express.json(), async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Faltan datos' });
+
+  const user = await db_support.usersDB.findOne({ email });
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  const ahora = Date.now();
+  const bloqueado = user.bloqueadoHasta && ahora < user.bloqueadoHasta;
+
+  if (bloqueado) {
+    return res.status(403).json({ error: 'Cuenta bloqueada. Intenta en unos minutos.' });
+  }
+
+  const coincide = await bcrypt.compare(password, user.passwordHash);
+  if (coincide) {
+    await db_support.usersDB.updateOne(
+      { email },
+      { $set: { intentosFallidos: 0, bloqueadoHasta: null } }
+    );
+    return res.json({ status: 'ok' });
+  } else {
+    let nuevosIntentos = (user.intentosFallidos || 0) + 1;
+    let bloqueo = null;
+
+    if (nuevosIntentos >= 3) {
+      const minutos = Math.min(15 * nuevosIntentos, 60); // bloqueo progresivo
+      bloqueo = ahora + minutos * 60 * 1000;
+    }
+
+    await db_support.usersDB.updateOne(
+      { email },
+      { $set: { intentosFallidos: nuevosIntentos, bloqueadoHasta: bloqueo } }
+    );
+
+    return res.status(401).json({ error: 'Contraseña incorrecta' });});
+
+app.post('/api/resetPassword', express.json(), async (req, res) => {
+  const { token, nuevaPassword } = req.body;
+  const user = await db_support.usersDB.findOne({ tokenRecuperacion: token });
+
+  if (!user || Date.now() > user.tokenExpira) {
+    return res.status(400).json({ error: 'Token inválido o expirado' });
+  }
+
+  const passwordHash = await bcrypt.hash(nuevaPassword, 10);
+
+  await db_support.usersDB.updateOne(
+    { email: user.email },
+    { $set: { passwordHash }, $unset: { tokenRecuperacion: "", tokenExpira: "" } }
+  );
+
+  res.json({ status: 'ok', mensaje: 'Contraseña actualizada' });
 });
 
 app.get('/api/correo_validado', async (req, res) => {
@@ -702,6 +755,11 @@ app.get('/authenticated', (req, res) => {
   //const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
   //res.sendFile(dashboardPath);
 });
+
+app.get('/ingreso_manual.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'ingreso_manual.html'));
+});
+
 
 app.post('/api/send_email_entradas', async (req, res) => {
   const {email_destinatario} = req.body;

@@ -492,6 +492,9 @@ form button {
             placeholder="ejemplo@correo.com"
             >
         </div>
+        <p id="googleAuthAdvertencia" style="color: red; display: none; margin-top: 5px;">
+          Este correo debe ingresar con Google.
+        </p>
         <div style="position: relative; width: 100%; margin: 0 auto 15px;">
           <input
             type="password"
@@ -502,7 +505,7 @@ form button {
           >
         </div>
 
-      <button type="button" onclick="validarYEnviar()">Ingresar</button>
+      <button type="button" id="botonIngresar" onclick="validarYEnviar()" disabled>Ingresar</button>
     </form>
 
     
@@ -515,7 +518,48 @@ function validarYEnviar() {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     // Asegura que el correo no tenga texto adicional después
     if (regex.test(correo) && correo === correo.match(regex)[0]) {
-        document.getElementById("formularioLogin").submit();
+        document.getElementById("femailormularioLogin").submit();
+  fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)
+    .then(res => {
+      if (!res.ok) throw new Error("Usuario no encontrado");
+      return res.json();
+    })
+    .then(data => {
+      console.log("Usuario encontrado:", data);
+      const esGmail = correo.toLowerCase().endsWith("@gmail.com");
+      const usaGoogleAuth = data.googleId || esGmail;
+
+      if (usaGoogleAuth) {
+        advertencia.style.display = "block";
+        passwordInput.disabled = true;
+        botonIngresar.disabled = true;
+      } else {
+        //passwordInput.disabled = false;
+        //botonIngresar.disabled = false;
+        //passwordInput.focus();
+        // Verificar contraseña
+        const password = passwordInput.value.trim();
+        fetch('/api/verificarPassword', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: correo, password })
+        })
+        .then(res => res.json())
+        .then(result => {
+          if (result.status === 'ok') {
+            formulario.submit(); // solo si la contraseña es válida
+          } else {
+            alert("Contraseña incorrecta.");
+          }
+        });
+      }
+    })
+    .catch(err => {
+      console.warn("No se encontró el usuario:", err);
+      passwordInput.disabled = true;
+      window.location.href = "/ingreso_manual.html";
+    });
+        
     } else {
         alert("Correo inválido. Por favor ingresa un correo válido.");
     }
@@ -524,8 +568,20 @@ function validarYEnviar() {
 document.getElementById("correoManual").addEventListener("blur", () => {
   const correo = document.getElementById("correoManual").value.trim();
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const passwordInput = document.getElementById("passwordManual");
+  const advertencia = document.getElementById("googleAuthAdvertencia");
+  const botonIngresar = document.getElementById("botonIngresar");
 
-  if (!regex.test(correo)) return;
+
+  // Ocultar advertencia por defecto
+  advertencia.style.display = "none";
+  passwordInput.disabled = true;
+
+  if (!regex.test(correo)) {
+    botonIngresar.disabled = true;
+    passwordInput.disabled = true;
+    return;
+  }
 
   fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)
     .then(res => {
@@ -534,12 +590,28 @@ document.getElementById("correoManual").addEventListener("blur", () => {
     })
     .then(data => {
       console.log("Usuario encontrado:", data);
-      document.getElementById("passwordManual").disabled = false;
-      document.getElementById("passwordManual").focus();
+      const esGmail = correo.toLowerCase().endsWith("@gmail.com");
+      const usaGoogleAuth = data.googleId || esGmail;
+
+      if (usaGoogleAuth) {
+        advertencia.style.display = "block";
+        passwordInput.disabled = true;
+        botonIngresar.disabled = true;
+      } else {
+        passwordInput.disabled = false;
+        botonIngresar.disabled = false;
+        //passwordInput.focus();
+      }
+      /*if (data.googleId === undefined || !data.googleId) {
+        document.getElementById("passwordManual").disabled = false;
+        document.getElementById("passwordManual").focus();
+      } else {
+
+      }*/
     })
     .catch(err => {
       console.warn("No se encontró el usuario:", err);
-      document.getElementById("passwordManual").disabled = true;
+      passwordInput.disabled = true;
     });
 });
 

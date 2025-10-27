@@ -362,6 +362,25 @@ app.get('/api/user', async (req, res) => {
   res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
 });
 
+app.get('/api/manualUser', async (req, res) => {
+  const { email } = req.query
+  console.log(`/api/manualUser: req: ${JSON.stringify(email)}`);
+  let user = await db_support.usersDB.findOne({ email: email });
+  if (user === undefined) {
+    console.log('User undefined');
+  }
+  if (!user || user === undefined) {
+    console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
+    user = await db_support.usersDB.create({
+      email: email,
+      fecha_registro: Date.now,
+      correo_validado: false,
+    });
+  }
+  console.log(`email: ${user.email}, user info: ${JSON.stringify(user)}`)
+  res.json({ user }); // Aquí envías los datos del usuario al frontend
+});
+
 app.get('/api/correo_validado', async (req, res) => {
   if (!req.isAuthenticated()) {
     console.log('/api/correo_validado: No autenticado');

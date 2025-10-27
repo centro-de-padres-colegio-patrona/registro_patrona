@@ -50,6 +50,7 @@ const userSchema = new mongoose.Schema({
   fecha_notificacion: Date,
   fecha_envio_entradas: Date,
   correo_validado: Boolean,
+  password: String,
 });
 
 const bingo_solidario = new mongoose.Schema({ 

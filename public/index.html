@@ -485,15 +485,24 @@ form button {
     <form action="/login" method="post" id="formularioLogin">
       <!--input type="text" name="username" placeholder="Nombre"-->
         <!-- Campo de contraseña con toggle -->
-        <!--div style="position: relative; width: 100%; margin: 0 auto 15px;">
+        <div style="position: relative; width: 100%; margin: 0 auto 15px;">
           <input
             name="correoManual"
             id="correoManual"
             placeholder="ejemplo@correo.com"
             >
         </div>
+        <div style="position: relative; width: 100%; margin: 0 auto 15px;">
+          <input
+            type="password"
+            name="passwordManual"
+            id="passwordManual"
+            placeholder="Contraseña"
+            disabled
+          >
+        </div>
 
-      <button type="button" onclick="validarYEnviar()">Ingresar</button-->
+      <button type="button" onclick="validarYEnviar()">Ingresar</button>
     </form>
 
     
@@ -511,6 +520,29 @@ function validarYEnviar() {
         alert("Correo inválido. Por favor ingresa un correo válido.");
     }
 }
+
+document.getElementById("correoManual").addEventListener("blur", () => {
+  const correo = document.getElementById("correoManual").value.trim();
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!regex.test(correo)) return;
+
+  fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)
+    .then(res => {
+      if (!res.ok) throw new Error("Usuario no encontrado");
+      return res.json();
+    })
+    .then(data => {
+      console.log("Usuario encontrado:", data);
+      document.getElementById("passwordManual").disabled = false;
+      document.getElementById("passwordManual").focus();
+    })
+    .catch(err => {
+      console.warn("No se encontró el usuario:", err);
+      document.getElementById("passwordManual").disabled = true;
+    });
+});
+
 </script>
 
 

@@ -551,7 +551,14 @@ function validarYEnviar() {
           } else {
             alert("Contraseña incorrecta.");
           }
+        }).catch(err => {
+          if (err.bloqueadoHasta) {
+            mostrarTiempoBloqueo(err.bloqueadoHasta);
+          } else {
+            alert("Error al verificar contraseña");
+          }
         });
+
       }
     })
     .catch(err => {
@@ -614,6 +621,17 @@ document.getElementById("correoManual").addEventListener("blur", () => {
       passwordInput.disabled = true;
     });
 });
+
+function mostrarTiempoBloqueo(bloqueadoHasta) {
+  const ahora = Date.now();
+  const restante = bloqueadoHasta - ahora;
+
+  if (restante > 0) {
+    const minutos = Math.floor(restante / 60000);
+    const segundos = Math.floor((restante % 60000) / 1000);
+    alert(`Cuenta bloqueada. Intenta en ${minutos}m ${segundos}s`);
+  }
+}
 
 </script>
 

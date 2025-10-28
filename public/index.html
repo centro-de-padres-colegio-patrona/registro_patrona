@@ -514,6 +514,8 @@ form button {
 <script>
 
 function validarYEnviar() {
+    console.log('Starting validarYEnviar()...');
+    console.log(`Current State: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
     const correo = document.getElementById("correoManual").value.trim();
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     // Asegura que el correo no tenga texto adicional después
@@ -579,7 +581,7 @@ document.getElementById("correoManual").addEventListener("blur", () => {
   const advertencia = document.getElementById("googleAuthAdvertencia");
   const botonIngresar = document.getElementById("botonIngresar");
 
-
+  console.log(`Current State: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
   // Ocultar advertencia por defecto
   advertencia.style.display = "none";
   passwordInput.disabled = true;

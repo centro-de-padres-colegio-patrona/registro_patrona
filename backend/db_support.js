@@ -53,6 +53,7 @@ const userSchema = new mongoose.Schema({
   password: String,
   intentosFallidos: Number,
   bloqueadoHasta: Date,
+  passwordHash: String,
 });
 
 const bingo_solidario = new mongoose.Schema({ 

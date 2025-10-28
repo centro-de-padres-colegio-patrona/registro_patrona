@@ -427,7 +427,9 @@ app.post('/api/verificarPassword', express.json(), async (req, res) => {
       { $set: { intentosFallidos: nuevosIntentos, bloqueadoHasta: bloqueo } }
     );
 
-    return res.status(401).json({ error: 'Contraseña incorrecta' });});
+    return res.status(401).json({ error: 'Contraseña incorrecta' });
+  }
+});
 
 app.post('/api/resetPassword', express.json(), async (req, res) => {
   const { token, nuevaPassword } = req.body;

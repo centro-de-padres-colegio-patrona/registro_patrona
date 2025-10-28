@@ -390,7 +390,11 @@ app.post('/api/verificarPassword', express.json(), async (req, res) => {
   const bloqueado = user.bloqueadoHasta && ahora < user.bloqueadoHasta;
 
   if (bloqueado) {
-    return res.status(403).json({ error: 'Cuenta bloqueada. Intenta en unos minutos.' });
+    //return res.status(403).json({ error: 'Cuenta bloqueada. Intenta en unos minutos.' });
+    return res.status(403).json({
+      error: 'Cuenta bloqueada',
+      bloqueadoHasta: user.bloqueadoHasta
+    });
   }
 
   const coincide = await bcrypt.compare(password, user.passwordHash);
@@ -407,6 +411,15 @@ app.post('/api/verificarPassword', express.json(), async (req, res) => {
     if (nuevosIntentos >= 3) {
       const minutos = Math.min(15 * nuevosIntentos, 60); // bloqueo progresivo
       bloqueo = ahora + minutos * 60 * 1000;
+      const mensaje = `
+        Se han detectado múltiples intentos fallidos de ingreso a tu cuenta.
+        Si no fuiste tú, considera cambiar tu contraseña.
+      `;
+      await send_email_from_cpa_account({
+        email_destinatario: email,
+        asuntoCorreo: "Intentos fallidos de acceso",
+        mensajeCorreo: mensaje
+      });
     }
 
     await db_support.usersDB.updateOne(

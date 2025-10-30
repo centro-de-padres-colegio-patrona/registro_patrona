@@ -414,6 +414,20 @@ form button {
     max-height: 100vh;
   }
 
+  #botonIngresar {
+    background-color: grey;
+    color: white;
+    cursor: not-allowed;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+
+  #botonIngresar.enabled {
+    background-color: #007bff;
+    cursor: pointer;
+  }
+
 </style>
 </head>
 <body onload = "startUp()" >
@@ -487,6 +501,7 @@ form button {
         <!-- Campo de contraseña con toggle -->
         <div style="position: relative; width: 100%; margin: 0 auto 15px;">
           <input
+            type="email"
             name="correoManual"
             id="correoManual"
             placeholder="ejemplo@correo.com"
@@ -552,6 +567,7 @@ form button {
               advertencia.style.display = "block";
               passwordInput.disabled = true;
               botonIngresar.disabled = true;
+              botonIngresar.classList.remove('enabled');
             } else {
               const password = passwordInput.value.trim();
               fetch('/api/verificarPassword', {
@@ -588,22 +604,28 @@ form button {
 
   passwordInput.addEventListener("input", async () => {
     const password = passwordInput.value.trim();
-    botonIngresar.disabled = password.length === 0;
+    if ( password.length === 0 ) {
+      botonIngresar.disabled = true;
+      botonIngresar.classList.remove('enabled');
+    } else {
+      botonIngresar.disabled = false;
+      botonIngresar.classList.add('enabled');
+    }
   });
 
-  correoManual.addEventListener("change", async () => {
+  correoManual.addEventListener("input", async () => {
     const correo = correoManual.value.trim().toLowerCase();
-    //botonIngresar.disabled = true;
-    //requierePassword = false;
     try {
       correo_match = correo.match(regex);
-      if (!regex.test(correo) || typeof correo_match !== Array || correo !== correo_match[0]) {
+      if (!regex.test(correo) || !Array.isArray(correo_match) || correo !== correo_match[0]) {
         advertencia.style.display = 'none';
         passwordContainer.style.display = 'none';
         botonIngresar.disabled = true;
+        botonIngresar.classList.remove('enabled');
         passwordInput.disabled = true;
         return;
       }
+      console.log("Es formato válido de Correo");
 
       if (correo.endsWith('@gmail.com')) {
         advertencia.style.display = 'block';
@@ -614,6 +636,7 @@ form button {
     }
     // Consulta al backend para verificar si el correo existe y tiene password
     try {
+      console.log("Consultando si existe Correo: ", correo);
       const res = await fetch(`/manualUser?email=${encodeURIComponent(correo)}`);
       const data = await res.json();
 
@@ -621,20 +644,24 @@ form button {
         passwordContainer.style.display = 'block';
         passwordInput.disabled = false;
         botonIngresar.disabled = true;
+        botonIngresar.classList.remove('enabled');
         //requierePassword = true;
       } else {
         botonIngresar.disabled = false;
+        botonIngresar.classList.add('enabled');
       }
     } catch (err) {
       advertencia.style.display = 'none';
       passwordContainer.style.display = 'none';
       passwordInput.disabled = true;
       botonIngresar.disabled = false;
+      botonIngresar.classList.remove('enabled');
       console.error('Error al verificar correo:', err);
     }  
   });
 
-document.getElementById("correoManual").addEventListener("blur", () => {
+
+/*document.getElementById("correoManual").addEventListener("blur", () => {
   const correo = correoManual.value.trim();
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const passwordInput = document.getElementById("passwordManual");
@@ -648,6 +675,7 @@ document.getElementById("correoManual").addEventListener("blur", () => {
 
   if (!regex.test(correo)) {
     botonIngresar.disabled = true;
+    botonIngresar.classList.remove('enabled');
     passwordInput.disabled = true;
     return;
   }
@@ -666,23 +694,19 @@ document.getElementById("correoManual").addEventListener("blur", () => {
         advertencia.style.display = "block";
         passwordInput.disabled = true;
         botonIngresar.disabled = true;
+        botonIngresar.classList.remove('enabled');
       } else {
         passwordInput.disabled = false;
         botonIngresar.disabled = false;
+        botonIngresar.classList.add('enabled');
         //passwordInput.focus();
       }
-      /*if (data.googleId === undefined || !data.googleId) {
-        document.getElementById("passwordManual").disabled = false;
-        document.getElementById("passwordManual").focus();
-      } else {
-
-      }*/
     })
     .catch(err => {
       console.warn("No se encontró el usuario:", err);
       passwordInput.disabled = true;
     });
-});
+});*/
 
 function mostrarTiempoBloqueo(bloqueadoHasta) {
   const ahora = Date.now();

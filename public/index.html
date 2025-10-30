@@ -535,6 +535,7 @@ form button {
   const advertencia = document.getElementById('googleAuthAdvertencia');
   const botonIngresar = document.getElementById('botonIngresar');
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  console.log("¿Está habilitado el campo de contraseña?", !passwordInput.disabled);
 
   //let correoValido = false;
   //let requierePassword = false;
@@ -604,12 +605,15 @@ form button {
 
   passwordInput.addEventListener("input", async () => {
     const password = passwordInput.value.trim();
-    if ( password.length === 0 ) {
-      botonIngresar.disabled = true;
-      botonIngresar.classList.remove('enabled');
-    } else {
-      botonIngresar.disabled = false;
-      botonIngresar.classList.add('enabled');
+    if (!passwordInput.disabled) {
+      console.log("Password input changed:", password);
+      if ( password.length === 0 ) {
+        botonIngresar.disabled = true;
+        botonIngresar.classList.remove('enabled');
+      } else {
+        botonIngresar.disabled = false;
+        botonIngresar.classList.add('enabled');
+      }
     }
   });
 
@@ -647,6 +651,8 @@ form button {
         botonIngresar.classList.remove('enabled');
         //requierePassword = true;
       } else {
+        passwordContainer.style.display = 'none';
+        passwordInput.disabled = true;
         botonIngresar.disabled = false;
         botonIngresar.classList.add('enabled');
       }

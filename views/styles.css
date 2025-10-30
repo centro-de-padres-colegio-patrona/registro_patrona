@@ -163,3 +163,13 @@ body.mobile #jornadas-container {
   background-color: #357ABD;
 }
 
+#botonIngresar {
+  background-color: grey;
+  color: white;
+  cursor: not-allowed;
+}
+
+#botonIngresar.enabled {
+  background-color: #007bff; /* o el color que prefieras */
+  cursor: pointer;
+}

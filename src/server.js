@@ -379,6 +379,27 @@ app.get('/api/manualUser', async (req, res) => {
   res.json({ user }); // Aquí envías los datos del usuario al frontend
 });
 
+app.post('/api/add_user', express.json(), async (req, res) => {
+  const { email } = req.body;
+  let user = await db_support.usersDB.findOne({ email });
+
+  if (user === undefined || user === null) {
+    console.log(`Creating user with email: ${email}`)
+    user = await db_support.usersDB.create({
+      email: email,
+      hijos: null,
+      padres: null,
+      invitados: null,
+      pagos: null,
+      fecha_registro: Date.now,
+      correo_validado: false
+    });
+  }
+  console.log(`email: ${user.email}, correo validado: ${user.correo_validado}`)
+  res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
+});
+
+
 app.post('/api/verificarPassword', express.json(), async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Faltan datos' });

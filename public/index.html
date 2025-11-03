@@ -567,8 +567,9 @@ form button {
             if (usaGoogleAuth) {
               advertencia.style.display = "block";
               passwordInput.disabled = true;
-              botonIngresar.disabled = true;
-              botonIngresar.classList.remove('enabled');
+              //botonIngresar.disabled = true;
+              //botonIngresar.classList.remove('enabled');
+              deshabilitarBotonIngresar();
             } else {
               const password = passwordInput.value.trim();
               fetch('/api/verificarPassword', {
@@ -608,11 +609,13 @@ form button {
     if (!passwordInput.disabled) {
       console.log("Password input changed:", password);
       if ( password.length === 0 ) {
-        botonIngresar.disabled = true;
-        botonIngresar.classList.remove('enabled');
+        //botonIngresar.disabled = true;
+        //botonIngresar.classList.remove('enabled');
+        deshabilitarBotonIngresar();
       } else {
-        botonIngresar.disabled = false;
-        botonIngresar.classList.add('enabled');
+        //botonIngresar.disabled = false;
+        //botonIngresar.classList.add('enabled');
+        habilitarBotonIngresar();
       }
     }
   });
@@ -624,8 +627,9 @@ form button {
       if (!regex.test(correo) || !Array.isArray(correo_match) || correo !== correo_match[0]) {
         advertencia.style.display = 'none';
         passwordContainer.style.display = 'none';
-        botonIngresar.disabled = true;
-        botonIngresar.classList.remove('enabled');
+        //botonIngresar.disabled = true;
+        //botonIngresar.classList.remove('enabled');
+        deshabilitarBotonIngresar();
         passwordInput.disabled = true;
         return;
       }
@@ -647,25 +651,39 @@ form button {
       if (data.password !== undefined && data.password) {
         passwordContainer.style.display = 'block';
         passwordInput.disabled = false;
-        botonIngresar.disabled = true;
-        botonIngresar.classList.remove('enabled');
+        //botonIngresar.disabled = true;
+        //botonIngresar.classList.remove('enabled');
+        deshabilitarBotonIngresar();
         //requierePassword = true;
       } else {
         passwordContainer.style.display = 'none';
         passwordInput.disabled = true;
-        botonIngresar.disabled = false;
-        botonIngresar.classList.add('enabled');
+        //botonIngresar.disabled = false;
+        //botonIngresar.classList.add('enabled');
+        habilitarBotonIngresar();
       }
     } catch (err) {
       advertencia.style.display = 'none';
       passwordContainer.style.display = 'none';
       passwordInput.disabled = true;
-      botonIngresar.disabled = false;
-      botonIngresar.classList.remove('enabled');
+      //botonIngresar.disabled = false;
+      //botonIngresar.classList.remove('enabled');
+      habilitarBotonIngresar();
       console.error('Error al verificar correo:', err);
     }  
   });
 
+  habilitarBotonIngresar = () => {
+    botonIngresar.disabled = false;
+    botonIngresar.classList.add('enabled');
+    console.log(`Habilitado Boton Ingresar: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
+
+  deshabilitarBotonIngresar = () => {
+    botonIngresar.disabled = true;
+    botonIngresar.classList.remove('enabled');
+    console.log(`Deshabilitado Boton Ingresar: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
 
 /*document.getElementById("correoManual").addEventListener("blur", () => {
   const correo = correoManual.value.trim();
@@ -730,7 +748,7 @@ function mostrarTiempoBloqueo(bloqueadoHasta) {
 
 <div style="display: flex; align-items: center; margin: 30px 0;">
   <hr style="flex-grow: 1; border: none; border-top: 1px solid #ccc;">
-  <span style="margin: 0 15px; color: #666;">ingresar con</span>
+  <span style="margin: 0 15px; color: #666;">o ingresar con</span>
   <hr style="flex-grow: 1; border: none; border-top: 1px solid #ccc;">
 </div>
 

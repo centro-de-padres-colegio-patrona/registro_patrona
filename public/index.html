@@ -542,12 +542,57 @@ form button {
 
   console.log(`Very Beginning Current State: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
 
+  async function update_controles() {
+    console.log("update_controles() called");
+    const correo = correoManual.value.trim().toLowerCase();
+    try {
+      correo_match = correo.match(regex);
+      if (!regex.test(correo) || !Array.isArray(correo_match) || correo !== correo_match[0]) {
+        advertencia.style.display = 'none';
+        deshabilitarBotonIngresar();
+        deshabilitarPasswordInput();
+        return;
+      }
+      console.log("Es formato válido de Correo");
+
+      if (correo.endsWith('@gmail.com')) {
+        advertencia.style.display = 'block';
+        deshabilitarBotonIngresar();
+        deshabilitarPasswordInput();
+        return;
+      }
+    } catch (err) {
+        console.error('Error al verificar correo:', err);
+        deshabilitarBotonIngresar();
+        deshabilitarPasswordInput();
+        return;
+    }
+    // Consulta al backend para verificar si el correo existe y tiene password
+    try {
+      console.log("Consultando si existe Correo: ", correo);
+      const res = await fetch(`/manualUser?email=${encodeURIComponent(correo)}`);
+      const data = await res.json();
+
+      if (data.password !== undefined && data.password) {
+        habilitarPasswordInput();
+        deshabilitarBotonIngresar();
+      } else {
+        deshabilitarPasswordInput();
+        habilitarBotonIngresar();
+      }
+    } catch (err) {
+      advertencia.style.display = 'none';
+      passwordContainer.style.display = 'none';
+      passwordInput.disabled = true;
+      habilitarBotonIngresar();
+      console.error('Error al verificar correo:', err);
+    }  
+  }
+
+  update_controles();
+
   function validarYEnviar() {
       const correo = correoManual.value.trim();
-      /*const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const passwordInput = document.getElementById("passwordManual");
-      const advertencia = document.getElementById("googleAuthAdvertencia");
-      const botonIngresar = document.getElementById("botonIngresar");*/
 
       console.log('Starting validarYEnviar()...');
       console.log(`Current State: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
@@ -596,8 +641,11 @@ form button {
           })
           .catch(err => {
             console.warn("No se encontró el usuario:", err);
-            passwordInput.disabled = true;
-            window.location.href = "/ingreso_manual.html";
+            //passwordInput.disabled = true;
+            deshabilitarPasswordInput();
+            //window.location.href = "/ingreso_manual.html";
+            sessionStorage.setItem('correoManual', correo);
+            window.location.href = "/validar_correo.html";
           });
       } else {
           alert("Correo inválido. Por favor ingresa un correo válido.");
@@ -683,6 +731,18 @@ form button {
     botonIngresar.disabled = true;
     botonIngresar.classList.remove('enabled');
     console.log(`Deshabilitado Boton Ingresar: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
+
+  habilitarPasswordInput = () => {
+    passwordInput.disabled = false;
+    passwordContainer.style.display = 'block';
+    console.log(`Habilitado Password Input: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
+
+  deshabilitarPasswordInput = () => {
+    passwordInput.disabled = true;
+    passwordContainer.style.display = 'none';
+    console.log(`Deshabilitado Password Input: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
   };
 
 /*document.getElementById("correoManual").addEventListener("blur", () => {

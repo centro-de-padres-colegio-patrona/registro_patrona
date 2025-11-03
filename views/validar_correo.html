@@ -40,9 +40,11 @@
       .catch(error => {
         console.log('Fue ingresado manual:', error);
         
-          const params = new URLSearchParams(window.location.search);
-          const username = params.get('username');
-          const correoManual = params.get('correoManual');
+          //const params = new URLSearchParams(window.location.search);
+          //const username = params.get('username');
+          //const correoManual = params.get('correoManual');
+
+          const correoManual = sessionStorage.getItem('correoManual');
 
           document.getElementById("correoUsuario").value =correoManual;
 
@@ -127,7 +129,7 @@
     });
 
 
-    document.addEventListener('DOMContentLoaded', () => {
+    /*document.addEventListener('DOMContentLoaded', () => {
       const childrenSection = document.getElementById('children-section');
 
       childrenSection.addEventListener('change', (e) => {
@@ -168,7 +170,7 @@
           }
         }
       });
-    });
+    });*/
   </script>
 
   <script>

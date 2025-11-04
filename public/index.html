@@ -644,8 +644,13 @@ form button {
             //passwordInput.disabled = true;
             deshabilitarPasswordInput();
             //window.location.href = "/ingreso_manual.html";
-            sessionStorage.setItem('correoManual', correo);
-            window.location.href = "/validar_correo.html";
+            fetch('/logout', {
+              method: 'GET',
+              credentials: 'include'
+            }).then(() => {
+              sessionStorage.setItem('correoManual', correo);
+              window.location.href = "/validar_correo.html";
+            });
           });
       } else {
           alert("Correo inválido. Por favor ingresa un correo válido.");

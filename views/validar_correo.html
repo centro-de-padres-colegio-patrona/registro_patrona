@@ -43,6 +43,9 @@
   <script>
     let codigoGenerado = null;
 
+    document.getElementById("enviarCodigoBtn").disabled = true;
+    document.getElementById("validarCodigoBtn").disabled = true;
+
     // Mostrar el correo del usuario
     fetch('/api/user')
         //.then(res => res.json())
@@ -54,19 +57,25 @@
         .then(data => {
         const correo = data.user.email || "ejemplo@correo.com";
         document.getElementById("correoMostrado").textContent = correo;
+        document.getElementById("enviarCodigoBtn").disabled = false;
         })
         .catch(error => {
           console.log('Fue ingresado manual:', error);
           const correoManual = sessionStorage.getItem('correoManual');
           console.log(`Correo manual obtenido de sessionStorage: ${correoManual}`);
           document.getElementById("correoMostrado").textContent = correoManual;
+          document.getElementById("enviarCodigoBtn").disabled = false;
           console.log(`correoManual: ${correoManual}`);
           console.log(`document.getElementById("correoMostrado").textContent: ${document.getElementById("correoMostrado").textContent}`);
         });
 
     // Generar y enviar código
     document.getElementById("enviarCodigoBtn").addEventListener("click", () => {
-        codigoGenerado = Math.floor(100000 + Math.random() * 900000).toString();
+      const enviarBtn = document.getElementById("enviarCodigoBtn");
+      const validarBtn = document.getElementById("validarCodigoBtn");
+      enviarBtn.disabled = true;
+      validarBtn.disabled = true;
+      codigoGenerado = Math.floor(100000 + Math.random() * 900000).toString();
         console.log("Código generado:", codigoGenerado);
         email_destinatario = document.getElementById("correoMostrado").textContent;
         // Simular envío al backend
@@ -77,10 +86,14 @@
         })
         .then(res => res.json())
         .then(data => {
-        alert("Código enviado al correo registrado.");
+          alert("Código enviado al correo registrado.");
+          console.log("Respuesta del servidor al enviar código:", data);
+          enviarBtn.disabled = false;
+          validarBtn.disabled = false;
         })
         .catch(err => {
-        console.error("Error al enviar código:", err);
+          console.error("Error al enviar código:", err);
+          enviarBtn.disabled = false;
         });
     });
 
@@ -88,10 +101,15 @@
     document.getElementById("validarCodigoBtn").addEventListener("click", () => {
         const ingresado = document.getElementById("codigoIngresado").value.trim();
         const resultado = document.getElementById("resultadoValidacion");
-
+        const enviarBtn = document.getElementById("enviarCodigoBtn");
+        const validarBtn = document.getElementById("validarCodigoBtn");
+        enviarBtn.disabled = false;
+        validarBtn.disabled = false;
         if (ingresado === codigoGenerado) {
             fetch('/api/correo_validado')
-                .then(res => res.json())
+                .then(res => {
+                  if (!res.ok) throw new Error("Usuario no encontrado");
+                  return res.json();})
                 .then(data => {
                     //const correo = data.user.email || "ejemplo@correo.com";
                     //document.getElementById("correoMostrado").textContent = correo;
@@ -112,6 +130,7 @@
             resultado.textContent = "❌ Código incorrecto. Intente nuevamente.";
             resultado.style.color = "red";
         }
+        //enviarBtn.disabled = false;
     });
 
   </script>

@@ -314,6 +314,21 @@ app.get('/signup', (req, res) => {
   
 });
 
+app.get('/logout', (req, res, next) => {
+  req.logout(function (err) {
+    if (err) return next(err);
+
+    req.session.destroy(function (err) {
+      if (err) {
+        console.error('Error al destruir la sesión:', err);
+      }
+
+      res.clearCookie('connect.sid'); // limpia la cookie de sesión
+      res.redirect('/'); // redirige al inicio o login
+    });
+  });
+});
+
 app.get('/register_success', (req, res) => {
   res.sendFile(path.join(__dirname, '../views', 'register_success.html'));
 });
@@ -473,7 +488,33 @@ app.post('/api/resetPassword', express.json(), async (req, res) => {
 app.get('/api/correo_validado', async (req, res) => {
   if (!req.isAuthenticated()) {
     console.log('/api/correo_validado: No autenticado');
-    return res.status(401).json({ error: 'No autorizado' });
+    try {
+      const correoManual = sessionStorage.getItem('correoManual');
+      const result = await db_support.usersDB.findOneAndUpdate(
+        { email: correoManual },
+        { $set: { correo_validado: true } },
+        { returnDocument: 'after' }
+      );
+      if (result === undefined || !result) {
+        console.log('/api/correo_validado: Usuario no encontrado para correo manual:', correoManual);
+        const create_result = await db_support.usersDB.create({
+          email: correoManual,
+          hijos: null,
+          padres: null,
+          invitados: null,
+          pagos: null,
+          fecha_registro: Date.now,
+          correo_validado: true
+        });
+        if (!create_result) {
+          return res.status(404).json({ error: 'Usuario no creado' });
+        }
+      }
+      return res.status(401).json({ error: 'No autenticado' });
+    } catch (err) {
+      console.error('/api/correo_validado: Error al actualizar usuario para correo manual:', err);
+      return res.status(500).json({ error: 'Error al validar el correo' });
+    }
   }
   // Aquí puedes enviar los datos del usuario autenticado
   console.log('/api/correo_validado: Autenticado e Email validado');

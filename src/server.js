@@ -487,7 +487,7 @@ app.post('/api/resetPassword', express.json(), async (req, res) => {
 
 app.get('/api/correo_validado', async (req, res) => {
   if (!req.isAuthenticated()) {
-    console.log('/api/correo_validado: No autenticado');
+    console.log('/api/correo_validado[490]: No autenticado');
     try {
       const correoManual = sessionStorage.getItem('correoManual');
       const result = await db_support.usersDB.findOneAndUpdate(
@@ -496,7 +496,7 @@ app.get('/api/correo_validado', async (req, res) => {
         { returnDocument: 'after' }
       );
       if (result === undefined || !result) {
-        console.log('/api/correo_validado: Usuario no encontrado para correo manual:', correoManual);
+        console.log('/api/correo_validado:[499] Usuario no encontrado para correo manual:', correoManual);
         const create_result = await db_support.usersDB.create({
           email: correoManual,
           hijos: null,
@@ -512,21 +512,27 @@ app.get('/api/correo_validado', async (req, res) => {
       }
       return res.status(401).json({ error: 'No autenticado' });
     } catch (err) {
-      console.error('/api/correo_validado: Error al actualizar usuario para correo manual:', err);
+      console.error('/api/correo_validado:[515] Error al actualizar usuario para correo manual:', err);
       return res.status(500).json({ error: 'Error al validar el correo' });
     }
   }
   // Aquí puedes enviar los datos del usuario autenticado
-  console.log('/api/correo_validado: Autenticado e Email validado');
-  console.log('/api/correo_validado: req.user:', req.user);
+  console.log('/api/correo_validado:[520] Autenticado e Email validado: ', req.user.emails[0].value);
+  //console.log('/api/correo_validado:[521] req.user:', req);
+  console.log('/api/correo_validado:[521] req.user:', req.user);
 
   try {
     const result = await db_support.usersDB.findOneAndUpdate(
-      { email: req.user.email },
+      { email: req.user.emails[0].value },
       { $set: { correo_validado: true } },
       { returnDocument: 'after' }
     );
+    if (result === undefined || !result) {
+      console.log('/api/correo_validado:[530] Usuario no encontrado:', req.user.email);
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
     console.log('/api/correo_validado: Usuario actualizado:', result);
+    //const user
     res.json({ status: 'ok', mensaje: 'Correo validado correctamente' });
 
   } catch (err) {

@@ -605,18 +605,23 @@ form button {
             return res.json();
           })
           .then(data => {
-            console.log("Usuario encontrado:", data);
+            const user = data.user;
+            console.log("Usuario encontrado:", user);
             const esGmail = correo.toLowerCase().endsWith("@gmail.com");
-            const usaGoogleAuth = data.googleId || esGmail;
+            const usaGoogleAuth = user.googleId || esGmail;
 
             if (usaGoogleAuth) {
+              console.log("El usuario debe ingresar con Google Auth.");
               advertencia.style.display = "block";
               passwordInput.disabled = true;
               //botonIngresar.disabled = true;
               //botonIngresar.classList.remove('enabled');
               deshabilitarBotonIngresar();
             } else {
+              console.log("El usuario puede ingresar con contraseña.");
               const password = passwordInput.value.trim();
+              const has_password = user.passwordHash !== undefined && user.passwordHash;
+              console.log(`Usuario tiene contraseña: ${has_password}`);
               fetch('/api/verificarPassword', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

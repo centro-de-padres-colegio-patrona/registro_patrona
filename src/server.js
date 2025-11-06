@@ -819,14 +819,18 @@ app.get('/auth/google/callback',
   res.sendFile(path.join(__dirname, 'src', 'dashboard', 'dashboard.html'));
 });*/
 
-app.get('/authenticated', (req, res) => {
+app.get('/authenticated', async (req, res) => {
   if (!req.isAuthenticated()) return res.redirect('/');
-  console.log(`--> req.user.email: ${req.user.email}, correo validado: ${req.user.correo_validado}`)
+
+  console.log(`--> req.user.id: ${req.user.id}`)
+  let user = await db_support.usersDB.findOne({ googleId: req.user.id });
+  console.log(`--> req.user.email: ${user.email}, correo validado: ${user.correo_validado}`)
+
   //console.log('--> req.user: ', JSON.stringify(req.user))
   //console.log(JSON.stringify(req))
   //res.render('dashboard', { user: req.user });
   // Send the dashboard.html file as a response
-  if (typeof req.user.correo_validado === 'undefined' || !req.user.correo_validado) {
+  if (typeof user.correo_validado === 'undefined' || !user.correo_validado) {
     console.log('Validando correo');
     const validarCorreoPath = path.join(__dirname, '../views', 'validar_correo.html');
     res.sendFile(validarCorreoPath);

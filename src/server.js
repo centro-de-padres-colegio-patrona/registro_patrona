@@ -836,7 +836,7 @@ app.get('/authenticated', async (req, res) => {
     res.sendFile(validarCorreoPath);
   } else {
     console.log('Correo validado');
-    const entradasBingoPath = path.join(__dirname, '../views', 'entradas_bingo.html');
+    const entradasBingoPath = path.join(__dirname, '../views', 'panel_usuario.html');
     res.sendFile(entradasBingoPath);
   }
   //const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');

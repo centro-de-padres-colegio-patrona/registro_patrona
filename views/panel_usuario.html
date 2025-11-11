@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel de Usuario</title>
+  <link rel="stylesheet" href="/styles.css">
+
+
+</head>
+<body class="panel-usuario">
+
+<script>
+  const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+  document.body.classList.add(isMobile ? 'mobile' : 'desktop');
+</script>
+
+  <!-- Controles laterales -->
+  <div id="sidebar">
+    <img src="./img/logo.png" alt="Logo" class="logo">
+    <button onclick="cargarContenido('mis_datos.html', this)">Mis datos</button>
+    <button onclick="cargarContenido('entradas_bingo.html', this)">Mis Entradas Bingo</button>
+  </div>
+
+  <!-- Área de contenido -->
+  <div id="content">
+    <iframe id="visor" src=""></iframe>
+  </div>
+
+  <script>
+    function cargarContenido(url, botonPresionado) {
+    const visor = document.getElementById('visor');
+
+    // Si ya está mostrando el contenido, no hacer nada
+    if (visor.src.endsWith(url)) return;
+    
+    document.getElementById('visor').src = url;
+
+    // Quitar clase 'activo' de todos los botones
+    const botones = document.querySelectorAll('#sidebar button');
+    botones.forEach(boton => boton.classList.remove('activo'));
+
+    // Agregar clase 'activo' al botón presionado
+    botonPresionado.classList.add('activo');
+  }
+  </script>
+
+</body>
+</html>

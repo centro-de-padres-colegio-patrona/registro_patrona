@@ -90,8 +90,8 @@
         <label>Nombres:</label>
         <select name="childName[]">
         </select>
-        <label>Bloque:</label>
-        <input type="text" name="childBloque[]" id="childBloque" readonly>
+        <!--label>Bloque:</label>
+        <input type="text" name="childBloque[]" id="childBloque" readonly-->
       </div>
     </div>
     <button type="button" onclick="addChild()">+ Agregar otro hijo/a</button>
@@ -118,9 +118,9 @@
     <!--button type="submit">Enviar</button-->
 
     <div style="text-align: center; margin-top: 20px;">
-  <label>Correo para recibir próximamente las entradas:</label><br>
+  <!--label>Correo para recibir próximamente las entradas:</label><br-->
   <!--input type="email" id="correoUsuario" name="correoPrincipal" placeholder="ejemplo@correo.com" style="width: 300px; padding: 10px; margin-bottom: 15px;"><br-->
-  <input type="email" id="correoUsuario"  style="width: 300px; padding: 10px; margin-bottom: 15px;" ><br>
+  <!--input type="email" id="correoUsuario"  style="width: 300px; padding: 10px; margin-bottom: 15px;" ><br-->
 
   <!--button type="submit" style="font-size: 18px; padding: 12px 24px;">Enviar</button-->
   <button type="submit" class="enviar-btn">Enviar</button>
@@ -141,7 +141,7 @@
           const curso = childForm.querySelector("select[name='childCourse[]']").value;
           const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
           const nombreSelect = childForm.querySelector("select[name='childName[]']");
-          const bloque = childForm.querySelector("input[name='childBloque[]']");
+          //const bloque = childForm.querySelector("input[name='childBloque[]']");
 
           if (curso && seccion) {
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
@@ -234,47 +234,6 @@
       }
     }
 
-    function addGuest() {
-      const section = document.getElementById('guest-section');
-      const forms = section.querySelectorAll('.guest-form');
-      const button = document.querySelector("button[onclick='addGuest()']");
-      let maxGuests = max_invitados;
-
-      
-
-      // Recopila hijos
-      const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
-        curso: child.querySelector("select[name='childCourse[]']").value
-      }));
-      
-      for (let i = 0; i < hijos.length; i++) {
-        if (hijos[i].curso === "IV° Medio") {
-          maxGuests = 6;
-          break;
-        }
-      }
-
-      if (forms.length >= maxGuests) {
-        button.disabled = true;
-        button.textContent = 'Máximo de invitados alcanzado';
-        return;
-      }
-
-      const clone = forms[0].cloneNode(true);
-
-      // Limpia los campos del nuevo formulario
-      clone.querySelectorAll('input').forEach(input => input.value = '');
-      clone.querySelector("select[name='relationship[]']").value = 'Otro';
-
-      section.appendChild(clone);
-
-      // Desactiva el botón si se alcanzó el máximo
-      if (section.querySelectorAll('.guest-form').length >= maxGuests) {
-        button.disabled = true;
-        button.textContent = 'Máximo de invitados alcanzado';
-      }
-    }
-
     function deshabilitarControles(form) {
       const elementos = form.querySelectorAll('input, select, textarea, button');
       elementos.forEach(el => el.disabled = true);
@@ -359,32 +318,10 @@
       });
     }
 
-    function fillGuestSection(currentUser) {
-      const invitados = currentUser.invitados || [];
-      const section = document.getElementById('guest-section');
-      const baseForm = section.querySelector('.guest-form');
-
-      // Elimina formularios extra si ya hay más de uno
-      section.querySelectorAll('.guest-form').forEach((form, index) => {
-        if (index > 0) form.remove();
-      });
-
-      invitados.forEach((invitado, index) => {
-        const form = index === 0 ? baseForm : baseForm.cloneNode(true);
-        if (index > 0) section.appendChild(form);
-
-        form.querySelector("input[name='guestSurname[]']").value = invitado.apellido || '';
-        form.querySelector("input[name='guestName[]']").value = invitado.nombre || '';
-        form.querySelector("input[name='guestEmail[]']").value = invitado.correo || '';
-        form.querySelector("input[name='guestPhone[]']").value = invitado.telefono || '';
-        form.querySelector("select[name='relationship[]']").value = invitado.parentesco || 'Otro';
-      });
-    }
 
     function fillUserInfo(user) {
       fillChildrenSection(user);
       fillParentSection(user);
-      fillGuestSection(user);
     }
 
 
@@ -450,22 +387,6 @@
     }
     }
 
-    function retrieve_guests() {
-      try {
-      // Recopila invitados
-      const invitados = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
-        apellido: guest.querySelector("input[name='guestSurname[]']").value,
-        correo: guest.querySelector("input[name='guestEmail[]']").value,
-        telefono: guest.querySelector("input[name='guestPhone[]']").value,
-        parentesco: guest.querySelector("select[name='relationship[]']").value,
-        nombre: guest.querySelector("input[name='guestSurname[]']").value + ' ' + guest.querySelector("input[name='guestName[]']").value
-      }));
-
-      return invitados;
-      } catch(error) {
-        return [];
-      }
-    }
 
     document.getElementById('registro-form').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -486,66 +407,19 @@
         parentesco: parent.querySelector("select[name='relationship[]']").value
       }));
 
-      // Recopila invitados
-      const invitados = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
-        nombre: guest.querySelector("input[name='guestName[]']").value,
-        apellido: guest.querySelector("input[name='guestSurname[]']").value,
-        correo: guest.querySelector("input[name='guestEmail[]']").value,
-        telefono: guest.querySelector("input[name='guestPhone[]']").value,
-        parentesco: guest.querySelector("select[name='relationship[]']").value
-      }));
 
-      //Recopila correo gmail
-      const correoGmail = Array.from(document.querySelectorAll(".guest-form")).map(guest => ({
-       correo: guest.querySelector("input[name='guestName[]']").value
-      }));
-
-        //OBTENER SI EL ALUMNO PAGO LA CUOTA
-        const validaPago = false;
-
-            const correoEntradas = {
-              correo: document.getElementById("correoUsuario").value
-            };
-
-            fetch('/api/registro', {
+            fetch('/api/registro_basico', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({...currentUser, hijos, padres, invitados, correoEntradas, estado_pago})
+              //body: JSON.stringify({...currentUser, hijos, padres, invitados, correoEntradas, estado_pago})
+              body: JSON.stringify({...currentUser, hijos, padres})
             })
             .then(res => res.json())
             .then(response => {
-              window.location.href = "register_success";
-
-      if (response.pagadoCCPP){
-              // Datos del correo
-                const correoEntradas = {
-                  correo: document.getElementById("correoUsuario").value
-                };
-
-                alert('CORREO ENVIADO:'+ document.getElementById("correoUsuario").value);
-                // Llamada a la API para enviar el correo
-                fetch('/enviarCorreo', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(correoEntradas)
-                })
-
-                .then(res => res.json())
-                .then(data => {
-                  alert('Correo enviado con éxito');
-                  console.log('Respuesta del servidor:', data);
-                })
-                .catch(error => {
-                  console.error('Error al enviar el correo:', error);
-                  alert('Hubo un problema al enviar el correo, favor contactar con el centro de padres (centrodepadres@colegiopatrona.cl): ' + error);
-                });
-              }/*else{
-                window.location.href = "/pagoCCPP";
-              }*/
+              //window.location.href = "register_success";
+              console.debug('Datos del usuario guardados ')
             })
             .catch(error => {
               console.error('Error al registrar:', error);

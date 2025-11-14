@@ -547,83 +547,21 @@ app.post('/api/registro', express.json(), (req, res) => {
   const registro = req.body;
   console.log('Datos recibidos:', registro);
 
-  //VALIDAR JSON PAGO CP
-  /*let validaPagoCP = false;
+    db_support.usersDB.findOneAndUpdate(
+      { _id: registro._id },       // Filtro para encontrar el usuario
+      { $set: registro },          // Actualización: sobrescribe los campos con los de `registro`
+      { returnDocument: 'after' }  // Opcional: retorna el documento actualizado
+    )
+    .then(userActualizado => {
+      console.log('Usuario actualizado:', userActualizado);
+      let findone = db_support.registroEntradasDB.findOne({id:'estudiantes'});
+      console.log(`registros: ${JSON.stringify(findone.registros)}`);
+    })
+    .catch(err => {
+      console.error('Error al actualizar usuario:', err);
+    });
 
-  const filePathCP = path.join(__dirname, 'pagos.json');
-  const nombreHijo = registro.hijos[0].nombre;
- 
-  fs.readFile(filePathCP, 'utf8', (err, data) => {
-
-        const registrosPrevios = !err && data ? JSON.parse(data) : [];
-
-        // Accede a los datos dentro de la estructura del JSON
-        const filas = registrosPrevios["pago cuota cgpa"]["ws_rowsData"];
-        const columnas = registrosPrevios["pago cuota cgpa"]["ws_colTags"];
-
-        const idxNombre = columnas.indexOf("nombre completo");
-        const idxSiNo = columnas.indexOf("si/no");
-
-        if (idxNombre !== -1 && idxSiNo !== -1) {
-            for (const fila of filas) {
-                const nombre = fila[idxNombre];
-                const siNo = fila[idxSiNo];
-
-                    console.log ('NOMBRE HIJO JSON: ' + nombre);
-                    console.log ('PAGADO JSON: [' + siNo + ']');
-                    console.log ('PAGADO JSON: [' + siNo.trim() + ']');
-                if (nombre === nombreHijo  && (siNo === "si")) {
-                    console.log ('NOMBRE HIJO VALIDADO: ' + nombreHijo);
-                   validaPagoCP = true;
-                    break;
-                }
-            }
-          }   
-
-  });*/
-
-  //console.log('VERDADERO o FALSO:  '+ validaPagoCP);
-
-      //const filePath = path.join(__dirname, 'registros.json');
-
-      db_support.usersDB.findOneAndUpdate(
-        { _id: registro._id },       // Filtro para encontrar el usuario
-        { $set: registro },          // Actualización: sobrescribe los campos con los de `registro`
-        { returnDocument: 'after' }  // Opcional: retorna el documento actualizado
-      )
-      .then(userActualizado => {
-        console.log('Usuario actualizado:', userActualizado);
-        let findone = db_support.registroEntradasDB.findOne({id:'estudiantes'});
-        console.log(`registros: ${JSON.stringify(findone.registros)}`);
-        /*fetch('/api/send_notify_mail', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({userActualizado})
-        })
-        .then(res => res.json());*/
-      })
-      .catch(err => {
-        console.error('Error al actualizar usuario:', err);
-      });
-      // Leer archivo existente y agregar nueva entrada
-      /*fs.readFile(filePath, 'utf8', (err, data) => {
-        const registrosPrevios = !err && data ? JSON.parse(data) : [];
-
-        registrosPrevios.push(registro);
-
-        fs.writeFile(filePath, JSON.stringify(registrosPrevios, null, 2), (err) => {
-          if (err) {
-            console.error('Error al guardar en archivo:', err);
-            return res.status(500).json({ error: 'No se pudo guardar en archivo' });
-          }
-
-          // Continúa con MongoDB...
-        });
-      });*/
-
-      res.json({ status: 'ok', mensaje: 'Registro recibido'});
+    res.json({ status: 'ok', mensaje: 'Registro recibido'});
 
 });
 

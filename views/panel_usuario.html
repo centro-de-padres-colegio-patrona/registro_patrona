@@ -21,6 +21,9 @@
   <!-- Controles laterales -->
   <div id="sidebar">
     <img src="./img/logo.png" alt="Logo" class="logo">
+    <div id="usuario-info">
+      <span id="usuario-correo">Usuario: cargando...</span>
+    </div>
     <button onclick="cargarContenido('mis_datos.html', this)">Mis datos</button>
     <button onclick="cargarContenido('entradas_bingo.html', this)">Mis Entradas Bingo</button>
     <button onclick="cargarContenido('pagos_cpa.html', this)">Mis Pagos al CPA</button>
@@ -35,21 +38,39 @@
 
   <script>
     function cargarContenido(url, botonPresionado) {
-    const visor = document.getElementById('visor');
+      const visor = document.getElementById('visor');
 
-    // Si ya está mostrando el contenido, no hacer nada
-    if (visor.src.endsWith(url)) return;
-    
-    document.getElementById('visor').src = url;
+      // Si ya está mostrando el contenido, no hacer nada
+      if (visor.src.endsWith(url)) return;
+      
+      document.getElementById('visor').src = url;
 
-    // Quitar clase 'activo' de todos los botones
-    const botones = document.querySelectorAll('#sidebar button');
-    botones.forEach(boton => boton.classList.remove('activo'));
+      // Quitar clase 'activo' de todos los botones
+      const botones = document.querySelectorAll('#sidebar button');
+      botones.forEach(boton => boton.classList.remove('activo'));
 
-    // Agregar clase 'activo' al botón presionado
-    botonPresionado.classList.add('activo');
-  }
-  </script>
+      // Agregar clase 'activo' al botón presionado
+      botonPresionado.classList.add('activo');
+    }
+
+
+    fetch('/api/user')
+      .then(res => {
+        if (!res.ok) throw new Error('Usuario no autenticado');
+        return res.json();
+      })
+      .then(data => {
+        const correo = data.user?.email || 'correo no disponible';
+        document.getElementById('usuario-correo').textContent =
+          `Usuario: ${correo}`;
+      })
+      .catch(err => {
+        console.error('No se pudo obtener el usuario:', err);
+        document.getElementById('usuario-correo').textContent =
+          'Usuario: no autenticado';
+      });
+
+</script>
 
 </body>
 </html>

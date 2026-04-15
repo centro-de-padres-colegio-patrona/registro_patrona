@@ -1,0 +1,112 @@
+yarn run v1.22.22
+$ node src/server.js
+Servidor corriendo en puerto 5001
+Conexión exitosa a MongoDB Atlas
+email: l.herreramena@gmail.com, correo_validado: undefined
+--> req.user.id: 103989718358148660019
+--> req.user.email: l.herreramena@gmail.com, correo validado: undefined
+Validando correo
+/api/user: Autenticado
+req.user: {
+  id: '103989718358148660019',
+  displayName: 'leonardo herrera',
+  name: { familyName: 'herrera', givenName: 'leonardo' },
+  emails: [ { value: 'l.herreramena@gmail.com', verified: true } ],
+  photos: [
+    {
+      value: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c'
+    }
+  ],
+  provider: 'google',
+  _raw: '{\n' +
+    '  "sub": "103989718358148660019",\n' +
+    '  "name": "leonardo herrera",\n' +
+    '  "given_name": "leonardo",\n' +
+    '  "family_name": "herrera",\n' +
+    '  "picture": "https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw\\u003ds96-c",\n' +
+    '  "email": "l.herreramena@gmail.com",\n' +
+    '  "email_verified": true\n' +
+    '}',
+  _json: {
+    sub: '103989718358148660019',
+    name: 'leonardo herrera',
+    given_name: 'leonardo',
+    family_name: 'herrera',
+    picture: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c',
+    email: 'l.herreramena@gmail.com',
+    email_verified: true
+  }
+}
+email: l.herreramena@gmail.com, correo validado: undefined
+--> req.user.id: 103989718358148660019
+--> req.user.email: l.herreramena@gmail.com, correo validado: undefined
+Validando correo
+/api/user: Autenticado
+req.user: {
+  id: '103989718358148660019',
+  displayName: 'leonardo herrera',
+  name: { familyName: 'herrera', givenName: 'leonardo' },
+  emails: [ { value: 'l.herreramena@gmail.com', verified: true } ],
+  photos: [
+    {
+      value: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c'
+    }
+  ],
+  provider: 'google',
+  _raw: '{\n' +
+    '  "sub": "103989718358148660019",\n' +
+    '  "name": "leonardo herrera",\n' +
+    '  "given_name": "leonardo",\n' +
+    '  "family_name": "herrera",\n' +
+    '  "picture": "https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw\\u003ds96-c",\n' +
+    '  "email": "l.herreramena@gmail.com",\n' +
+    '  "email_verified": true\n' +
+    '}',
+  _json: {
+    sub: '103989718358148660019',
+    name: 'leonardo herrera',
+    given_name: 'leonardo',
+    family_name: 'herrera',
+    picture: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c',
+    email: 'l.herreramena@gmail.com',
+    email_verified: true
+  }
+}
+email: l.herreramena@gmail.com, correo validado: undefined
+email: l.herreramena@gmail.com, correo_validado: undefined
+--> req.user.id: 103989718358148660019
+--> req.user.email: l.herreramena@gmail.com, correo validado: undefined
+Validando correo
+/api/user: Autenticado
+req.user: {
+  id: '103989718358148660019',
+  displayName: 'leonardo herrera',
+  name: { familyName: 'herrera', givenName: 'leonardo' },
+  emails: [ { value: 'l.herreramena@gmail.com', verified: true } ],
+  photos: [
+    {
+      value: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c'
+    }
+  ],
+  provider: 'google',
+  _raw: '{\n' +
+    '  "sub": "103989718358148660019",\n' +
+    '  "name": "leonardo herrera",\n' +
+    '  "given_name": "leonardo",\n' +
+    '  "family_name": "herrera",\n' +
+    '  "picture": "https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw\\u003ds96-c",\n' +
+    '  "email": "l.herreramena@gmail.com",\n' +
+    '  "email_verified": true\n' +
+    '}',
+  _json: {
+    sub: '103989718358148660019',
+    name: 'leonardo herrera',
+    given_name: 'leonardo',
+    family_name: 'herrera',
+    picture: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c',
+    email: 'l.herreramena@gmail.com',
+    email_verified: true
+  }
+}
+email: l.herreramena@gmail.com, correo validado: undefined
+Código enviado al correo: 717124

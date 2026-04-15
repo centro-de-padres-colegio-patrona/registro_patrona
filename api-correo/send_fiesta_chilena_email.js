@@ -201,15 +201,20 @@ async function send_email_from_cpa_account(body) {
       console.info ('Faltan campos requeridos..');
     }
 
+// 1. Cargar configuración desde el JSON
+    const configPath = path.join(__dirname, 'config', 'cpa_config.json');
+    const configRaw = fs.readFileSync(configPath, 'utf8');
+    const cpaConfig = JSON.parse(configRaw);
+
     const transporter = nodemailer.createTransport({
      service: 'gmail',
       auth: {
-        type: 'OAuth2',
-        user: 'centrodepadres@colegiopatrona.cl',
-        pass: 'Peroconrespeto',
-        clientId: '110435636758-vvkr480b6l0lu7ninig8ddvrkbssuhk7.apps.googleusercontent.com',
-        clientSecret: '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',
-        refreshToken: '1//04wg4HDhyOi4YCgYIARAAGAQSNgF-L9IrEtcIbrnUQ_loGfqrIiEN8NNMACKBBvuNyCW1uKkegggwVsaQmsS9-2ikc2qMQldxpA'
+        //type: 'OAuth2',
+        user: cpaConfig.user,
+        pass: cpaConfig.pass,
+        //clientId: cpaConfig.clientId,
+        //clientSecret: cpaConfig.clientSecret,
+        //refreshToken: cpaConfig.refreshToken
       },
       tls: {
         rejectUnauthorized: false  // evita problemas con certificados autofirmados
@@ -217,7 +222,7 @@ async function send_email_from_cpa_account(body) {
     });
 
     const mailOptions = {
-      from: 'centrodepadres@colegiopatrona.cl',
+      from: `CPA Account <${cpaConfig.user}>`,
       to: email_destinatario,
       subject: asuntoCorreo,
       html: mensajeCorreo,

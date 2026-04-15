@@ -1,7 +1,9 @@
 {
   "user": "l.herreramena@gmail.com",
-  "pass": "alamocom27187853",
-  "clientId": "110435636758-vvkr480b6l0lu7ninig8ddvrkbssuhk7.apps.googleusercontent.com",
-  "clientSecret": "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",
-  "refreshToken": "1//04wg4HDhyOi4YCgYIARAAGAQSNgF-L9IrEtcIbrnUQ_loGfqrIiEN8NNMACKBBvuNyCW1uKkegggwVsaQmsS9-2ikc2qMQldxpA"
+  "pass": "oyoq mhgp kxac aoaj",
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 465,
+    "secure": true
+  }
 }

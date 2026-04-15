@@ -890,6 +890,7 @@ app.post('/api/enviarCodigo', express.json(), async (req, res) => {
   if (result.status === 'ok') {
     res.json({ status: 'ok' });
   } else {
+    console.log(`/api/enviarCodigo: error sending email to ${email_destinatario}. Error: ${result.message}`);
     res.status(500).json({ error: result.message });
   }
 });

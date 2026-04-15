@@ -208,7 +208,7 @@ async function send_email_from_cpa_account(body) {
     const configRaw = fs.readFileSync(configPath, 'utf8');
     const cpaConfig = JSON.parse(configRaw);
 
-    const transporter = nodemailer.createTransport({
+    /*const transporter = nodemailer.createTransport({
      service: 'gmail',
       auth: {
         //type: 'OAuth2',
@@ -220,6 +220,15 @@ async function send_email_from_cpa_account(body) {
       },
       tls: {
         rejectUnauthorized: false  // evita problemas con certificados autofirmados
+      }
+    });*/
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: cpaConfig.user,
+        pass: cpaConfig.pass // App Password
       }
     });
 

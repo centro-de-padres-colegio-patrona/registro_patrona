@@ -740,7 +740,8 @@ app.get('/oauth/github/redirect', (req, res) => {
 })
 
 app.get('/auth/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
+  scope: ['profile', 'email'],
+  prompt: 'select_account' // <--- ESTO obliga a Google a preguntar qué cuenta usar
 }));
 
 app.get('/auth/google/callback',
@@ -869,7 +870,7 @@ app.post('/api/enviarCodigo', express.json(), async (req, res) => {
     return `
       <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
         <p>Estimado/a apoderado/a,</p>
-        <p>Gracias por registrarse en el <strong>Bingo Solidario 2025</strong> del Colegio Patrona.</p>
+        <p>Gracias por registrarse en el <strong>Bingo Solidario 2026</strong> del Colegio Patrona.</p>
         <p>Para validar su correo electrónico, por favor ingrese el siguiente código en el formulario:</p>
         <p style="font-size: 24px; font-weight: bold; color: #4A90E2; text-align: center;">${codigo}</p>
         <p>Este código es válido por unos minutos. Si no solicitó esta validación, puede ignorar este mensaje.</p>

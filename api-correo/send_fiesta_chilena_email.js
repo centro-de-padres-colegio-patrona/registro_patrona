@@ -1,4 +1,6 @@
 const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 
 const { genEntrada, genEntradaCanvas } = require('../src/generateTicket');
 const db_support = require('../backend/db_support');
@@ -202,7 +204,7 @@ async function send_email_from_cpa_account(body) {
     }
 
 // 1. Cargar configuración desde el JSON
-    const configPath = path.join(__dirname, 'config', 'cpa_config.json');
+    const configPath = path.join(__dirname, '..', 'config', 'admin_config.json');
     const configRaw = fs.readFileSync(configPath, 'utf8');
     const cpaConfig = JSON.parse(configRaw);
 

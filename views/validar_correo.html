@@ -107,12 +107,17 @@
         })
         .then(res => res.json())
         .then(data => {
-          alert(`Código enviado al correo ${email_destinatario}.`);
-          console.log("Respuesta del servidor al enviar código:", data);
-          enviarBtn.disabled = false;
-          validarBtn.disabled = false;
+          if (data.status === 'ok') {
+            alert(`Código enviado al correo ${email_destinatario}.`);
+            console.log("Respuesta del servidor al enviar código:", data);
+            enviarBtn.disabled = false;
+            validarBtn.disabled = false;
+          } else {
+            alert(`Codigo no pudo ser enviado al correo ${email_destinatario}. Error: ${data.error}`);
+          }
         })
         .catch(err => {
+          alert(`Codigo no pudo ser enviado al correo ${email_destinatario}`);
           console.error("Error al enviar código:", err);
           enviarBtn.disabled = false;
         });

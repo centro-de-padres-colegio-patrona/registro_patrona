@@ -88,7 +88,7 @@
           <option value="B">B</option>
         </select>
         <label>Nombres:</label>
-        <select name="childName[]">
+        <select name="childName[]" required>
         </select>
         <!--label>Bloque:</label>
         <input type="text" name="childBloque[]" id="childBloque" readonly-->
@@ -106,12 +106,12 @@
               Usuaria/o de la cuenta
           </label>
         </div>
-        <label>Apellidos:</label><input type="text" name="parentSurname[]">
-        <label>Nombres:</label><input type="text" name="parentName[]">
-        <label>Correo:</label><input type="email" name="parentEmail[]">
+        <label>Apellidos:</label><input type="text" name="parentSurname[]" required>
+        <label>Nombres:</label><input type="text" name="parentName[]" required>
+        <label>Correo:</label><input type="email" name="parentEmail[]" required>
         <label>Teléfono (opcional):</label><input type="tel" name="parentPhone[]">
         <label>Parentesco:</label>
-        <select name="relationship[]">
+        <select name="relationship[]" required>
           <option value="Padre">Padre</option>
           <option value="Madre">Madre</option>
           <option value="Apoderado">Apoderado</option>
@@ -156,9 +156,25 @@
 
           if (target.checked) {
             // Deseleccionar los demás
-            parentSection.querySelectorAll('.usuario-cuenta-check').forEach(cb => {
+            /*parentSection.querySelectorAll('.usuario-cuenta-check').forEach(cb => {
               if (cb !== target) cb.checked = false;
+            });*/
+            Array.from(document.querySelectorAll(".parent-form")).map(parent => {
+              const cb = parent.querySelector("input[name='account_owner[]']");
+              if (cb && cb !== target && cb.checked) {
+                cb.checked = false;
+                email = parent.querySelector("input[name='parentEmail[]']");
+                console.log('Deseleccionando checkbox y limpiando correo:', {
+                  emailExists: !!email,
+                  emailValue: email ? email.value : null,
+                  currentUserEmail: currentUser ? currentUser.email : null
+                });
+                if (email && email.value === currentUser.email) {
+                  email.value = '';
+                }
+              } 
             });
+
             /*console.log('Checkbox marcado, copiando correo:', {
               currentUserEmail: currentUser ? currentUser.email : null,
               emailInputValue: emailInput ? emailInput : null,

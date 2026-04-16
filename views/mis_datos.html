@@ -38,7 +38,7 @@
             : "ejemplo@correo.com";
 
         console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
-        document.getElementById("correoUsuario").value = correo;
+        //document.getElementById("correoUsuario").value = correo;
       })
       .catch(error => {
         console.log('Fue ingresado manual:', error);
@@ -47,7 +47,7 @@
           const username = params.get('username');
           const correoManual = params.get('correoManual');
 
-          document.getElementById("correoUsuario").value =correoManual;
+          //document.getElementById("correoUsuario").value =correoManual;
 
 
       });
@@ -102,8 +102,8 @@
       <div class="parent-form">
       <div class="usuario-cuenta-group">
           <label>
-              <input type="checkbox" class="usuario-cuenta-check" data-index="${i}"> 
-              Es el usuario de la cuenta
+              <input type="checkbox" class="usuario-cuenta-check" name="account_owner[]"> 
+              Usuaria/o de la cuenta
           </label>
         </div>
         <label>Apellidos:</label><input type="text" name="parentSurname[]">
@@ -138,6 +138,35 @@
   <script>  
     document.addEventListener('DOMContentLoaded', () => {
       const childrenSection = document.getElementById('children-section');
+      const parentSection = document.getElementById('parent-section');
+
+      parentSection.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.classList.contains('usuario-cuenta-check')) {
+          const parentForm = target.closest('.parent-form');
+          //const checkbox = parentBox.querySelectorAll("select[name='account_owner[]']");
+          const emailInput = parentBox.querySelectorAll("select[name='parentEmail[]']");
+
+          if (target.checked) {
+            // Deseleccionar los demás
+            parentSection.querySelectorAll('.usuario-cuenta-check').forEach(cb => {
+              if (cb !== target) cb.checked = false;
+            });
+
+            // Copiar el correo al campo respectivo
+            if (currentUser && currentUser.email && emailInput && emailInput.value !== currentUser.email) {
+              emailInput.value = currentUser.email || '';
+              emailInput.classList.add('highlight-input'); // Opcional: resaltar el campo
+            }
+          } else {
+            // Si se desmarca, opcionalmente podrías limpiar el campo
+            if (currentUser && emailInput && emailInput.value === currentUser.email) {
+              emailInput.value = '';
+              emailInput.classList.remove('highlight-input'); // Quitar resaltado
+            }
+          }
+        }
+      });
 
       childrenSection.addEventListener('change', (e) => {
         const target = e.target;
@@ -321,7 +350,7 @@
         form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
         form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
         form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
-        form.querySelector('.usuario-cuenta-check').checked = padre.es_usuario_cuenta || false;
+        form.querySelector("input[name='account_owner[]']").checked = padre.es_usuario_cuenta || false;
       });
     }
 
@@ -387,7 +416,7 @@
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value,
         nombre: parent.querySelector("input[name='parentSurname[]']").value + ' ' + parent.querySelector("input[name='parentName[]']").value,
-        es_usuario_cuenta: parent.querySelector('.usuario-cuenta-check') ? parent.querySelector('.usuario-cuenta-check').checked : false
+        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false
       }));
       return padres;
     } catch (error) {
@@ -413,11 +442,11 @@
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value,
-        es_usuario_cuenta: parent.querySelector('.usuario-cuenta-check') ? parent.querySelector('.usuario-cuenta-check').checked : false
+        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false
       }));
 
 
-            fetch('/api/registro_basico', {
+            fetch('/api/registro', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -436,11 +465,17 @@
           });
 
     document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('usuario-cuenta-check')) {
-            const checkboxes = document.querySelectorAll('.usuario-cuenta-check');
+        if (e.target.classList.contains('account_owner')) {
+            const checkboxes = document.querySelectorAll('.account_owner');
             const currentIndex = e.target.getAttribute('data-index');
             const emailInput = document.getElementById(`email_apoderado_${currentIndex}`);
 
+            console.log('Checkbox cambiado:', {
+                checked: e.target.checked,
+                currentIndex,
+                emailInputExists: !!emailInput,
+                currentUserEmail: currentUser ? currentUser.email : null
+            });
             if (e.target.checked) {
                 // 1. Deseleccionar los demás
                 checkboxes.forEach(cb => {
@@ -449,12 +484,15 @@
 
                 // 2. Copiar el correo al campo respectivo
                 if (emailInput) {
-                    emailInput.value = correoUsuarioActual;
+                    emailInput.value = currentUser.email || '';
                     emailInput.classList.add('highlight-input'); // Opcional: resaltar el campo
                 }
             } else {
                 // Si se desmarca, opcionalmente podrías limpiar el campo
-                // emailInput.value = '';
+                if (emailInput && emailInput.value === currentUser.email) {
+                    emailInput.value = '';
+                    emailInput.classList.remove('highlight-input'); // Quitar resaltado
+                }
             }
         }
     });          

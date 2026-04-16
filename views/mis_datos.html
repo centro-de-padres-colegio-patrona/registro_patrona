@@ -100,6 +100,12 @@
     <div id="parent-section">
       <h3>Padres/Madres/Apoderados</h3>
       <div class="parent-form">
+      <div class="usuario-cuenta-group">
+          <label>
+              <input type="checkbox" class="usuario-cuenta-check" data-index="${i}"> 
+              Es el usuario de la cuenta
+          </label>
+        </div>
         <label>Apellidos:</label><input type="text" name="parentSurname[]">
         <label>Nombres:</label><input type="text" name="parentName[]">
         <label>Correo:</label><input type="email" name="parentEmail[]">
@@ -315,6 +321,7 @@
         form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
         form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
         form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
+        form.querySelector('.usuario-cuenta-check').checked = padre.es_usuario_cuenta || false;
       });
     }
 
@@ -379,7 +386,8 @@
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value,
-        nombre: parent.querySelector("input[name='parentSurname[]']").value + ' ' + parent.querySelector("input[name='parentName[]']").value
+        nombre: parent.querySelector("input[name='parentSurname[]']").value + ' ' + parent.querySelector("input[name='parentName[]']").value,
+        es_usuario_cuenta: parent.querySelector('.usuario-cuenta-check') ? parent.querySelector('.usuario-cuenta-check').checked : false
       }));
       return padres;
     } catch (error) {
@@ -404,7 +412,8 @@
         apellido: parent.querySelector("input[name='parentSurname[]']").value,
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
-        parentesco: parent.querySelector("select[name='relationship[]']").value
+        parentesco: parent.querySelector("select[name='relationship[]']").value,
+        es_usuario_cuenta: parent.querySelector('.usuario-cuenta-check') ? parent.querySelector('.usuario-cuenta-check').checked : false
       }));
 
 
@@ -425,7 +434,31 @@
               console.error('Error al registrar:', error);
             });
           });
-         
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('usuario-cuenta-check')) {
+            const checkboxes = document.querySelectorAll('.usuario-cuenta-check');
+            const currentIndex = e.target.getAttribute('data-index');
+            const emailInput = document.getElementById(`email_apoderado_${currentIndex}`);
+
+            if (e.target.checked) {
+                // 1. Deseleccionar los demás
+                checkboxes.forEach(cb => {
+                    if (cb !== e.target) cb.checked = false;
+                });
+
+                // 2. Copiar el correo al campo respectivo
+                if (emailInput) {
+                    emailInput.value = correoUsuarioActual;
+                    emailInput.classList.add('highlight-input'); // Opcional: resaltar el campo
+                }
+            } else {
+                // Si se desmarca, opcionalmente podrías limpiar el campo
+                // emailInput.value = '';
+            }
+        }
+    });          
+
   </script>
 </body>
 </html>

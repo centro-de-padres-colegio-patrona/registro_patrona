@@ -144,19 +144,30 @@
         const target = e.target;
         if (target.classList.contains('usuario-cuenta-check')) {
           const parentForm = target.closest('.parent-form');
-          //const checkbox = parentBox.querySelectorAll("select[name='account_owner[]']");
-          const emailInput = parentBox.querySelectorAll("select[name='parentEmail[]']");
+          //const checkbox = parentForm.querySelectorAll("select[name='account_owner[]']");
+          //const emailInput = parentForm.querySelectorAll("select[name='parentEmail[]']");
+          const emailInput = parentForm.querySelector("input[name='parentEmail[]']");
+          /*console.log('Checkbox cambiado:', {
+            checked: target.checked,
+            emailInputExists: !!emailInput,
+            emailInput2Exists: !!emailInput2,
+            currentUserEmail: currentUser ? currentUser.email : null
+          });*/
 
           if (target.checked) {
             // Deseleccionar los demás
             parentSection.querySelectorAll('.usuario-cuenta-check').forEach(cb => {
               if (cb !== target) cb.checked = false;
             });
-
+            /*console.log('Checkbox marcado, copiando correo:', {
+              currentUserEmail: currentUser ? currentUser.email : null,
+              emailInputValue: emailInput ? emailInput : null,
+              emailInput2Value: emailInput2 ? emailInput2.value : null
+            });*/
             // Copiar el correo al campo respectivo
             if (currentUser && currentUser.email && emailInput && emailInput.value !== currentUser.email) {
               emailInput.value = currentUser.email || '';
-              emailInput.classList.add('highlight-input'); // Opcional: resaltar el campo
+              //emailInput.classList.add('highlight-input'); // Opcional: resaltar el campo
             }
           } else {
             // Si se desmarca, opcionalmente podrías limpiar el campo

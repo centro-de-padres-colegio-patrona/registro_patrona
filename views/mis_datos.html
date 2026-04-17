@@ -15,7 +15,10 @@
 
   <script>
     let max_invitados = 2;
-    let currentUser = null;
+    let currentUser = {
+      hijos: [],
+      padres: []
+    };
     // update_entradas
 
     let estado_pago = null;
@@ -30,6 +33,7 @@
       .then(user => {
         currentUser = user.user;
         fillUserInfo(currentUser);
+        mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
         console.log('Datos del usuario:', user); // Útil para debugging
         
         //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
@@ -127,7 +131,7 @@
   <!--label>Correo para recibir próximamente las entradas:</label><br-->
   <!--input type="email" id="correoUsuario" name="correoPrincipal" placeholder="ejemplo@correo.com" style="width: 300px; padding: 10px; margin-bottom: 15px;"><br-->
   <!--input type="email" id="correoUsuario"  style="width: 300px; padding: 10px; margin-bottom: 15px;" ><br-->
-
+  <div id="statusLabel" style="margin-bottom: 10px; font-weight: bold; min-height: 1.2em;"></div>
   <!--button type="submit" style="font-size: 18px; padding: 12px 24px;">Enviar</button-->
   <button type="submit" class="enviar-btn">Enviar</button>
 
@@ -265,12 +269,16 @@
     function addChild() {
       const section = document.getElementById('children-section');
       const clone = section.querySelector('.child-form').cloneNode(true);
+      clone.querySelector("select[name='childCourse[]']").disabled = false;
+      clone.querySelector("select[name='childSeccion[]']").disabled = false;
+      clone.querySelector("select[name='childName[]']").disabled = false;
+
       section.appendChild(clone);
     }
 
     function addParent() {
       const section = document.getElementById('parent-section');
-      const form = section.querySelector('.parent-form');
+      const form = section.querySelectorAll('.parent-form');
       const button = document.querySelector("button[onclick='addParent()']");
 
       console.log('form.length: ', form.length);
@@ -286,6 +294,7 @@
       // Limpia los campos del nuevo formulario
       clone.querySelectorAll('input').forEach(input => input.value = '');
       clone.querySelector("select[name='relationship[]']").value = '';
+      clone.querySelector("input[name='account_owner[]']").checked = false;
 
       section.appendChild(clone);
 
@@ -451,6 +460,76 @@
     }
     }
 
+    function compareArrays(arr1, arr2) {
+      if (arr1.length !== arr2.length) return false;
+      for (let i = 0; i < arr1.length; i++) {
+        const obj1 = arr1[i];
+        const obj2 = arr2[i];
+        if (JSON.stringify(obj1) !== JSON.stringify(obj2)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function disableSubmitButton() {
+      const submitButton = document.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Datos actualizados';
+      }
+    }
+
+    function enableSubmitButton() {
+      const submitButton = document.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Enviar';
+      }
+    }
+    // Función para mostrar el estado
+    function mostrarEstado(mensaje, status) {
+        const label = document.getElementById('statusLabel');
+        console.log(`Mostrando estado: ${mensaje} (status: ${status})`);
+        label.textContent = mensaje;
+        if (status == 0) {
+            label.style.color = "#28a745"; // Verde para éxito
+            disableSubmitButton();
+        } if (status == 1) {
+            label.style.color = "#dc3545"; // Rojo para error
+            enableSubmitButton();
+        } else {
+          statusLabel.style.color = "#e67e22"; // Color naranja de advertencia
+          enableSubmitButton();
+        }
+        //#label.style.color = esExito ? "#28a745" : "#dc3545"; // Verde para éxito, Rojo para error
+
+        // Limpiar el mensaje automáticamente después de 5 segundos
+        /*setTimeout(() => {
+            label.textContent = "";
+        }, 5000);*/
+    }
+
+    // Escuchar cualquier cambio en el contenedor principal
+    document.addEventListener('input', detectarCambios);
+    document.addEventListener('change', detectarCambios);
+
+    function detectarCambios() {
+        const statusLabel = document.getElementById('statusLabel');
+        hijos = retrieve_hijos();
+        padres = retrieve_parents();
+        //const datosActuales = JSON.stringify(recolectarDatosActuales());
+
+        if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
+            //statusLabel.textContent = "✅ Los datos están actualizados";
+            //statusLabel.style.color = "#2ecc71"; // Color verde
+            mostrarEstado("✅ Los datos están actualizados", 0);
+        } else {
+            //statusLabel.textContent = "⚠️ Tienes cambios sin guardar";
+            //statusLabel.style.color = "#e67e22"; // Color naranja de advertencia
+            mostrarEstado("⚠️ Tienes cambios sin guardar", 2);
+        }
+    }
 
     document.getElementById('registro-form').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -472,6 +551,12 @@
         es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false
       }));
 
+      if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
+        //alert('No se han realizado cambios en los datos.');
+        return;
+      }
+      currentUser.hijos = hijos;
+      currentUser.padres = padres;
 
             fetch('/api/registro', {
               method: 'POST',
@@ -484,9 +569,11 @@
             .then(res => res.json())
             .then(response => {
               //window.location.href = "register_success";
+              mostrarEstado("✅ Datos actualizados correctamente", 0);
               console.debug('Datos del usuario guardados ')
             })
             .catch(error => {
+              mostrarEstado("❌ Error al actualizar los datos", 1);
               console.error('Error al registrar:', error);
             });
           });

@@ -13,7 +13,8 @@ const padreSchema = new mongoose.Schema({
   run: { type: String, required: true },
   correo: { type: String, required: true },
   telefono: String,
-  parentesco: { type: String, required: true }
+  parentesco: { type: String, required: true },
+  es_usuario_cuenta: { type: Boolean, default: false }
 });
 
 const invitadoSchema = new mongoose.Schema({
@@ -127,9 +128,15 @@ const registroEntradasSchema = new mongoose.Schema({
   registros: Object,
 });
 
-const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
+//const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
+const db_password = 'tPyw2Cvb2Hco8HM3'
+const db_user = 'lherreramena_db_user'
+//const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data`
+const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
+//const uri  = "mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data";
+// const db_msg = "old_data cluster"
 
-mongoose.connect(uri, {
+mongoose.connect(db_uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })

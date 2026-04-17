@@ -212,10 +212,11 @@ passport.use(new GoogleStrategy({
     try {
       // Buscar usuario por ID de Google
       let user = await db_support.usersDB.findOne({ googleId: profile.id });
-      console.log(`email: ${user.email}, correo_validado: ${user.correo_validado}`);
-
-      if (user === undefined) {
+      if (user === undefined || user === null) {
         console.log('User undefined');
+      } else {
+        console.log('User:', user);
+        console.log(`email: ${user.email}, correo_validado: ${user.correo_validado}`);
       }
       // Si no existe, podés crearlo o manejarlo como desees
       if (!user || user === undefined) {

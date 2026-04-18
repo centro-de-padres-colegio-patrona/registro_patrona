@@ -7,6 +7,11 @@
   resolved "https://registry.npmjs.org/@babel/runtime/-/runtime-7.28.3.tgz"
   integrity sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==
 
+"@fdograph/rut-utilities@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@fdograph/rut-utilities/-/rut-utilities-1.4.0.tgz#17bc0dbd993da5a84fc1e830599249b2aef64f47"
+  integrity sha512-M+t9YzoI0QIuLhkovXAIcj14dWqVs6YsbJy3fpASnFgSCkPEkZgZvc+LKJvkB/AkAe3/U8c2hDf4ikw1pajazw==
+
 "@jimp/bmp@^0.16.13":
   version "0.16.13"
   resolved "https://registry.npmjs.org/@jimp/bmp/-/bmp-0.16.13.tgz"

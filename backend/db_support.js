@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const hijoSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
-  run: { type: String, required: true },
+  rut: { type: String, required: true },
   curso: { type: String, required: true },
   seccion: { type: String, required: true }
 });
@@ -10,7 +10,7 @@ const hijoSchema = new mongoose.Schema({
 const padreSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   apellido: { type: String, required: true },
-  run: { type: String, required: true },
+  rut: { type: String, required: true },
   correo: { type: String, required: true },
   telefono: String,
   parentesco: { type: String, required: true },
@@ -20,7 +20,7 @@ const padreSchema = new mongoose.Schema({
 const invitadoSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   apellido: { type: String, required: true },
-  run: { type: String, required: true },
+  rut: { type: String, required: true },
   correo: { type: String, required: true },
   telefono: String,
   parentesco: { type: String, required: true }
@@ -109,7 +109,7 @@ const pagosSchema = new mongoose.Schema({
 /// --------------------------------------
 const registradosSchema = new mongoose.Schema({
   nombre: String,
-  run: String,
+  rut: String,
   curso: String,
   seccion: String,
   tipo: String,

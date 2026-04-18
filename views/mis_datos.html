@@ -94,6 +94,11 @@
         <label>Nombres:</label>
         <select name="childName[]" required>
         </select>
+        <label>Rut:</label><input type="text" name="childRut[]" required>
+        <button type="button" class="btn-eliminar-child" 
+                style="background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+            Eliminar
+        </button>
         <!--label>Bloque:</label>
         <input type="text" name="childBloque[]" id="childBloque" readonly-->
       </div>
@@ -113,6 +118,7 @@
         <label>Apellidos:</label><input type="text" name="parentSurname[]" required>
         <label>Nombres:</label><input type="text" name="parentName[]" required>
         <label>Correo:</label><input type="email" name="parentEmail[]" required>
+        <label>Rut:</label><input type="text" name="parentRut[]" required>
         <label>Teléfono (opcional):</label><input type="tel" name="parentPhone[]">
         <label>Parentesco:</label>
         <select name="relationship[]" required>
@@ -120,6 +126,10 @@
           <option value="Madre">Madre</option>
           <option value="Apoderado">Apoderado</option>
         </select>
+        <button type="button" class="btn-eliminar-parent" data-index="${i}" 
+                style="position: absolute; right: 10px; top: 10px; background: #ff4d4d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            &times; Eliminar
+        </button>
       </div>
     </div>
     <button type="button" onclick="addParent()">+ Agregar otro padre/madre/apoderado</button>
@@ -143,6 +153,39 @@
     document.addEventListener('DOMContentLoaded', () => {
       const childrenSection = document.getElementById('children-section');
       const parentSection = document.getElementById('parent-section');
+
+      childrenSection.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-eliminar-child')) {
+          const childForms = childrenSection.querySelectorAll('.child-form');
+          if (childForms.length > 1) {
+            e.target.closest('.child-form').remove();
+          } else {
+            alert('Debe haber al menos un hijo registrado.');
+            childForm = e.target.closest('.child-form');
+            childForm.querySelector("select[name='childCourse[]']").value = '';
+            childForm.querySelector("select[name='childSeccion[]']").value = 'A';
+            childForm.querySelector("select[name='childName[]']").value = '';
+            childForm.querySelector("input[name='childRut[]']").value = '';
+          }
+        }
+      });
+      parentSection.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-eliminar-parent')) {
+          const parentForms = parentSection.querySelectorAll('.parent-form');
+          if (parentForms.length > 1) {
+            e.target.closest('.parent-form').remove();
+          } else {
+            alert('Debe haber al menos un padre/madre/apoderado registrado.');
+            const parentForm = target.closest('.parent-form');
+            parentForm.querySelector("input[name='parentEmail[]']").value = '';
+            parentForm.querySelector("input[name='account_owner[]']").checked = false;
+            parentForm.querySelector("input[name='parentName[]']").value = '';
+            parentForm.querySelector("input[name='parentSurname[]']").value = '';
+            parentForm.querySelector("input[name='parentPhone[]']").value = '';
+            parentForm.querySelector("input[name='parentRut[]']").value = '';
+          }
+        }
+      });
 
       parentSection.addEventListener('change', (e) => {
         const target = e.target;
@@ -207,6 +250,7 @@
           const curso = childForm.querySelector("select[name='childCourse[]']").value;
           const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
           const nombreSelect = childForm.querySelector("select[name='childName[]']");
+          const rutInput = childForm.querySelector("input[name='childRut[]']");
           //const bloque = childForm.querySelector("input[name='childBloque[]']");
 
           if (curso && seccion) {
@@ -229,6 +273,7 @@
             const childForm = target.closest('.child-form');
             const curso = childForm.querySelector("select[name='childCourse[]']").value;
             const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
+            const rutInput = childForm.querySelector("input[name='childRut[]']");
           } catch (error) {
             console.error(`[childName[] handler] Error al actualizar entradas: ${error.message}`, {
               targetName: target.name,
@@ -272,6 +317,7 @@
       clone.querySelector("select[name='childCourse[]']").disabled = false;
       clone.querySelector("select[name='childSeccion[]']").disabled = false;
       clone.querySelector("select[name='childName[]']").disabled = false;
+      clone.querySelector("input[name='childRut[]']").value = '';
 
       section.appendChild(clone);
     }
@@ -387,6 +433,7 @@
         form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
         form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
         form.querySelector("input[name='account_owner[]']").checked = padre.es_usuario_cuenta || false;
+        form.querySelector("input[name='parentRut[]']").value = padre.rut || '';
       });
     }
 
@@ -438,7 +485,8 @@
       const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
         nombre: child.querySelector("select[name='childName[]']").value,
         curso: child.querySelector("select[name='childCourse[]']").value,
-        seccion: child.querySelector("select[name='childSeccion[]']").value
+        seccion: child.querySelector("select[name='childSeccion[]']").value,
+        rut: child.querySelector("input[name='childRut[]']").value
       }));
       return hijos;
     }
@@ -452,7 +500,8 @@
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value,
         nombre: parent.querySelector("input[name='parentSurname[]']").value + ' ' + parent.querySelector("input[name='parentName[]']").value,
-        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false
+        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false,
+        rut: parent.querySelector("input[name='parentRut[]']").value
       }));
       return padres;
     } catch (error) {
@@ -538,7 +587,8 @@
       const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
         nombre: child.querySelector("select[name='childName[]']").value,
         curso: child.querySelector("select[name='childCourse[]']").value,
-        seccion: child.querySelector("select[name='childSeccion[]']").value
+        seccion: child.querySelector("select[name='childSeccion[]']").value,
+        rut: child.querySelector("input[name='childRut[]']").value
       }));
 
       // Recopila padres
@@ -548,7 +598,8 @@
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value,
-        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false
+        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false,
+        rut: parent.querySelector("input[name='parentRut[]']").value
       }));
 
       if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {

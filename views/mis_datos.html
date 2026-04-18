@@ -378,6 +378,7 @@
         // Asigna valores
         form.querySelector("select[name='childCourse[]']").value = hijo.curso;
         form.querySelector("select[name='childSeccion[]']").value = hijo.seccion;
+        form.querySelector("input[name='childRut[]']").value = hijo.rut || '';
 
         // Simula llamada a API para cargar nombres válidos
         if (hijo.curso && hijo.seccion) {

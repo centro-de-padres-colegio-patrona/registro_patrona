@@ -161,7 +161,17 @@
     function validarRutChile(rutCompleto) {
         if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto)) return false;
         
-        let [rut, dv] = rutCompleto.split('-');
+        const splitted = rutCompleto.split('-');
+        let rut = splitted[0];
+        let dv = '';
+        console.log(`Validando RUT: ${JSON.stringify({rut, dv, splitted})}`);
+        if (splitted.length > 2) return false;
+        if (splitted.length === 1) {
+            dv = rut.slice(-1);
+            rut = rut.slice(0, -1);
+        } else {
+          dv = splitted[1];
+        }
         rut = rut.replace(/\./g, ''); // Elimina puntos si los hay
         if (dv.length > 1) return false;
         if (dv.length === 0) {
@@ -237,7 +247,7 @@
           childForm = e.target.closest('.child-form');
           const iconRut = childForm.querySelector("span[name='childIconRut[]']");
           const {rut, is_valid} = validarRutChile(target.value);
-          childForm.querySelector("input[name='childRut[]']").value = '';
+          console.log(`Validación RUT: ${JSON.stringify({rut, is_valid})}`);
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido

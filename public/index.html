@@ -734,25 +734,25 @@ form button {
     }  
   });
 
-  habilitarBotonIngresar = () => {
+  function habilitarBotonIngresar() {
     botonIngresar.disabled = false;
     botonIngresar.classList.add('enabled');
     console.log(`Habilitado Boton Ingresar: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
   };
 
-  deshabilitarBotonIngresar = () => {
+  function deshabilitarBotonIngresar() {
     botonIngresar.disabled = true;
     botonIngresar.classList.remove('enabled');
     console.log(`Deshabilitado Boton Ingresar: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
   };
 
-  habilitarPasswordInput = () => {
+  function habilitarPasswordInput() {
     passwordInput.disabled = false;
     passwordContainer.style.display = 'block';
     console.log(`Habilitado Password Input: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
   };
 
-  deshabilitarPasswordInput = () => {
+  function deshabilitarPasswordInput() {
     passwordInput.disabled = true;
     passwordContainer.style.display = 'none';
     console.log(`Deshabilitado Password Input: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);

@@ -19,8 +19,8 @@
       hijos: [],
       padres: []
     };
-    let rut_status = {
-    };
+    let rut_status = {};
+
     // update_entradas
 
     let estado_pago = null;
@@ -35,9 +35,9 @@
       .then(user => {
         currentUser = user.user;
         fillUserInfo(currentUser);
+        console.log('Datos del usuario:', user); // Útil para debugging
         actualizarLabelCompletitud();
         mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
-        console.log('Datos del usuario:', user); // Útil para debugging
         
         //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
         const correo = currentUser.email && currentUser.email.trim() !== "" 
@@ -174,7 +174,7 @@
     }
 
     // ✅ Tests
-    const tests = [
+    /*const tests = [
       "12345678", "1.2345678", "1.234.5678",
       "1234567-8", "1.234567-8", "1.234.567-8",
       "123456789", "12.3456789", "12.345.6789",
@@ -182,7 +182,7 @@
       "1.2.345678" // ❌ invalid
     ];
 
-    tests.forEach(t => console.log(t, "->", isRutValidFormat(t)));
+    tests.forEach(t => console.log(t, "->", isRutValidFormat(t)));*/
 
     function validarRutChile(rutCompleto) {
         let is_valid = false;
@@ -279,7 +279,7 @@
           const {rut, is_valid} = validarRutChile(target.value);
           const childName = childForm.querySelector("select[name='childName[]']").value || '';
           console.log(`Validación RUT: ${JSON.stringify({rut, is_valid})}`);
-          rut_status[childName] = is_valid;
+          rut_status[childName] = {rut, is_valid};
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido
@@ -298,19 +298,20 @@
         if (target.name === 'parentRut[]') {
           const {rut, is_valid} = validarRutChile(target.value);
           const parentName = target.closest('.parent-form').querySelector("input[name='parentName[]']").value || '';
-          rut_status[parentName] = is_valid;
+          const parentSurName = target.closest('.parent-form').querySelector("input[name='parentSurname[]']").value || '';
+          rut_status[parentSurName + ' ' + parentName] = {rut, is_valid};
           //const iconRut = target.closest('.parent-form').querySelector("span[name='parentIconRut[]']");
           const iconRut = target.parentElement.querySelector("span[name='parentIconRut[]']");
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido
-            console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
+            //console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
             iconRut.textContent = '✅';
             iconRut.style.color = 'green';
-            console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
+            //console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
           } else {
             target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
-            console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
+            //console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
             iconRut.textContent = '⚠️';
             iconRut.style.color = "#dc3545"; //'orange';
           }
@@ -464,19 +465,42 @@
     });
 
     function verificarDatosCompletos() {
-      const childData = retrieve_hijos();
-      const parentData = retrieve_parents();
-      const datosCompletos = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status[child.nombre]) &&
-                            parentData.every(parent => parent.surname && parent.name && parent.email && parent.rut && parent.relationship && rut_status[parent.name]);
-
-      const childDataStatus = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status[child.nombre]);
-      const parentDataStatus = parentData.every(parent => parent.surname && parent.name && parent.email && parent.rut && parent.relationship && rut_status[parent.name]);
-      console.log(`Verificación de datos completos: ${datosCompletos} (Hijos: ${childDataStatus}, Padres: ${parentDataStatus})`, {
-        childData,
-        parentData,
-        rut_status
-      });
-      return datosCompletos;
+      try {
+        const childData = retrieve_hijos();
+        const parentData = retrieve_parents();
+        //console.log('rut_status: ', rut_status);
+        //console.log('child: ', childData);
+        //console.log('parent:', parentData);
+        const datosCompletos = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status && rut_status[child.nombre] && rut_status[child.nombre].is_valid) &&
+                              parentData.every(parent => parent.apellido && parent.name && parent.correo && parent.rut && parent.parentesco && rut_status[parent.nombre].is_valid);
+        //const childDataStatus = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status && rut_status[child.nombre] && rut_status[child.nombre].is_valid);
+        //const parentDataStatus = parentData.every(parent => parent.nombre && parent.apellido && parent.correo && parent.rut && parent.parentesco && rut_status[parent.name].is_valid);
+        /*const consolidatedChild = { childData: childData.map(child => ({
+          curso: child.curso,
+          seccion: child.seccion,
+          nombre: child.nombre,
+          rut: child.rut,
+          rut_valid: rut_status[child.nombre] || false
+        }))};
+        const consolidatedParent = { parentData: parentData.map(parent => ({
+          surname: parent.surname,
+          name: parent.name,
+          email: parent.email,
+          rut: parent.rut,
+          relationship: parent.relationship,
+          rut_valid: rut_status[parent.name] || false
+        }))};
+        const consolidated = {consolidatedChild, consolidatedParent, rut_status};*/
+        //console.log(`Verificación de datos completos: ${datosCompletos} (Hijos: ${childDataStatus}, Padres: ${parentDataStatus})`);
+        //console.log('Datos hijos:', consolidatedChild);
+        //console.log('Datos padres:', consolidatedParent);
+        /*console.log('Estado de RUTs:', JSON.stringify(rut_status));
+        console.log('raw parent data:', JSON.stringify(parentData));*/
+        return datosCompletos;
+      } catch (error) {
+        console.error('Error on verificarDatosCompletos: ', error);
+      }
+      return false;
     }
 
     function actualizarLabelCompletitud() {
@@ -560,15 +584,16 @@
         const iconRut = form.querySelector("span[name='childIconRut[]']");
         if (!is_valid) {
           form.querySelector("input[name='childRut[]']").setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
-          console.log(`RUT inválido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
+          //console.log(`RUT inválido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
           iconRut.textContent = '⚠️';
           iconRut.style.color = "#dc3545"; //'orange';
         } else {
           form.querySelector("input[name='childRut[]']").setCustomValidity('');
-          console.log(`RUT válido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
+          //console.log(`RUT válido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
           iconRut.textContent = '✅';
           iconRut.style.color = 'green';
         }
+        rut_status[hijo.nombre] = {rut, is_valid};
 
         // Simula llamada a API para cargar nombres válidos
         if (hijo.curso && hijo.seccion) {
@@ -636,6 +661,7 @@
           iconRut.textContent = '✅';
           iconRut.style.color = 'green';
         }
+        rut_status[padre.apellido + ' ' + padre.nombre] = {rut, is_valid};
       });
     }
 
@@ -701,6 +727,7 @@
         correo: parent.querySelector("input[name='parentEmail[]']").value,
         telefono: parent.querySelector("input[name='parentPhone[]']").value,
         parentesco: parent.querySelector("select[name='relationship[]']").value,
+        name: parent.querySelector("input[name='parentName[]']").value,
         nombre: parent.querySelector("input[name='parentSurname[]']").value + ' ' + parent.querySelector("input[name='parentName[]']").value,
         es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false,
         rut: parent.querySelector("input[name='parentRut[]']").value
@@ -741,7 +768,7 @@
     // Función para mostrar el estado
     function mostrarEstado(mensaje, status) {
         const label = document.getElementById('statusLabel');
-        console.log(`Mostrando estado: ${mensaje} (status: ${status})`);
+        //console.log(`Mostrando estado: ${mensaje} (status: ${status})`);
         label.textContent = mensaje;
         if (status == 0) {
             label.style.color = "#28a745"; // Verde para éxito

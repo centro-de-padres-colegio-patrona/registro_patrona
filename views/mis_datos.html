@@ -167,15 +167,33 @@
   <script>
     //import { validateRut } from '@fdograph/rut-utilities';
 
+    function isRutValidFormat(value) {
+      const regex = /^(\d{8}|\d{1}\.\d{7}|\d{1}\.\d{3}\.\d{4}|\d{7}-\d{1}|\d{1}\.\d{6}-\d{1}|\d{1}\.\d{3}\.\d{3}-\d{1}|\d{9}|\d{2}\.\d{7}|\d{2}\.\d{3}\.\d{4}|\d{8}-\d{1}|\d{2}\.\d{6}-\d{1}|\d{2}\.\d{3}\.\d{3}-\d{1})$/;
+
+      return regex.test(value);
+    }
+
+    // ✅ Tests
+    const tests = [
+      "12345678", "1.2345678", "1.234.5678",
+      "1234567-8", "1.234567-8", "1.234.567-8",
+      "123456789", "12.3456789", "12.345.6789",
+      "12345678-9", "12.345678-9", "12.345.678-9",
+      "1.2.345678" // ❌ invalid
+    ];
+
+    tests.forEach(t => console.log(t, "->", isRutValidFormat(t)));
+
     function validarRutChile(rutCompleto) {
         let is_valid = false;
         let rut = rutCompleto;
-        if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto)) return {rut, is_valid};
-        
+        //if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto)) return {rut, is_valid};
+        if (!isRutValidFormat(rutCompleto)) return {rut, is_valid};
+
         const splitted = rutCompleto.split('-');
         rut = splitted[0];
         let dv = '';
-        console.log(`Validando RUT: ${JSON.stringify({rut, dv, splitted})}`);
+        //console.log(`Validando RUT: ${JSON.stringify({rut, dv, splitted})}`);
         if (splitted.length > 2) return {rut, is_valid};
         if (splitted.length === 1) {
             dv = rut.slice(-1);
@@ -249,6 +267,7 @@
             childForm.querySelector("select[name='childSeccion[]']").value = 'A';
             childForm.querySelector("select[name='childName[]']").value = '';
           }
+          actualizarLabelCompletitud();
         }
       });
       childrenSection.addEventListener('input', (e) => {
@@ -272,6 +291,7 @@
             iconRut.style.color = "#dc3545"; //'orange';
           }
         }
+        actualizarLabelCompletitud();
       });
       parentSection.addEventListener('input', (e) => {
         const target = e.target;
@@ -279,18 +299,23 @@
           const {rut, is_valid} = validarRutChile(target.value);
           const parentName = target.closest('.parent-form').querySelector("input[name='parentName[]']").value || '';
           rut_status[parentName] = is_valid;
-          const iconRut = target.closest('.parent-form').querySelector("span[name='parentIconRut[]']");
+          //const iconRut = target.closest('.parent-form').querySelector("span[name='parentIconRut[]']");
+          const iconRut = target.parentElement.querySelector("span[name='parentIconRut[]']");
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido
+            console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
             iconRut.textContent = '✅';
             iconRut.style.color = 'green';
+            console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
           } else {
             target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+            console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
             iconRut.textContent = '⚠️';
             iconRut.style.color = "#dc3545"; //'orange';
           }
         }
+        actualizarLabelCompletitud();
       });
       parentSection.addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-eliminar-parent')) {
@@ -308,9 +333,10 @@
             parentForm.querySelector("input[name='parentRut[]']").value = '';
           }
         }
+        actualizarLabelCompletitud();
       });
 
-      parentSection.addEventListener('input', (e) => {
+      /*parentSection.addEventListener('input', (e) => {
         const target = e.target;
         if (target.name === 'parentRut[]') {
           const {rut, is_valid} = validarRutChile(target.value);
@@ -322,30 +348,21 @@
             iconRut.style.color = 'green';
           } else {
             target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+            console.log(`[2] RUT inválido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
             iconRut.textContent = '⚠️';
             iconRut.style.color = "#dc3545"; //'orange';
           }
         }
-      });
+        actualizarLabelCompletitud();
+      });*/
       parentSection.addEventListener('change', (e) => {
         const target = e.target;
         if (target.classList.contains('usuario-cuenta-check')) {
           const parentForm = target.closest('.parent-form');
-          //const checkbox = parentForm.querySelectorAll("select[name='account_owner[]']");
-          //const emailInput = parentForm.querySelectorAll("select[name='parentEmail[]']");
           const emailInput = parentForm.querySelector("input[name='parentEmail[]']");
-          /*console.log('Checkbox cambiado:', {
-            checked: target.checked,
-            emailInputExists: !!emailInput,
-            emailInput2Exists: !!emailInput2,
-            currentUserEmail: currentUser ? currentUser.email : null
-          });*/
 
           if (target.checked) {
             // Deseleccionar los demás
-            /*parentSection.querySelectorAll('.usuario-cuenta-check').forEach(cb => {
-              if (cb !== target) cb.checked = false;
-            });*/
             Array.from(document.querySelectorAll(".parent-form")).map(parent => {
               const cb = parent.querySelector("input[name='account_owner[]']");
               if (cb && cb !== target && cb.checked) {
@@ -362,15 +379,9 @@
               } 
             });
 
-            /*console.log('Checkbox marcado, copiando correo:', {
-              currentUserEmail: currentUser ? currentUser.email : null,
-              emailInputValue: emailInput ? emailInput : null,
-              emailInput2Value: emailInput2 ? emailInput2.value : null
-            });*/
             // Copiar el correo al campo respectivo
             if (currentUser && currentUser.email && emailInput && emailInput.value !== currentUser.email) {
               emailInput.value = currentUser.email || '';
-              //emailInput.classList.add('highlight-input'); // Opcional: resaltar el campo
             }
           } else {
             // Si se desmarca, opcionalmente podrías limpiar el campo
@@ -380,6 +391,7 @@
             }
           }
         }
+        actualizarLabelCompletitud();
       });
 
       childrenSection.addEventListener('change', (e) => {
@@ -422,10 +434,11 @@
           }
         }
       });
+      actualizarLabelCompletitud();
     });
-  </script>
+  //</script>
 
-  <script>
+  //<script>
     /// ----------------------- Verificar Máximo Entradas
     function verificarCursos() {
       const selects = document.querySelectorAll('select[name="childCourse[]"]');
@@ -455,6 +468,14 @@
       const parentData = retrieve_parents();
       const datosCompletos = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status[child.nombre]) &&
                             parentData.every(parent => parent.surname && parent.name && parent.email && parent.rut && parent.relationship && rut_status[parent.name]);
+
+      const childDataStatus = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status[child.nombre]);
+      const parentDataStatus = parentData.every(parent => parent.surname && parent.name && parent.email && parent.rut && parent.relationship && rut_status[parent.name]);
+      console.log(`Verificación de datos completos: ${datosCompletos} (Hijos: ${childDataStatus}, Padres: ${parentDataStatus})`, {
+        childData,
+        parentData,
+        rut_status
+      });
       return datosCompletos;
     }
 

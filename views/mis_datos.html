@@ -38,6 +38,7 @@
         console.log('Datos del usuario:', user); // Útil para debugging
         actualizarLabelCompletitud();
         mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
+        addBrothers();
         
         //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
         const correo = currentUser.email && currentUser.email.trim() !== "" 
@@ -806,6 +807,18 @@
             }
         }
     });          
+
+    async function addBrothers() {
+      const childrenData = retrieve_hijos();
+      const childrenList = Array.from(childrenData).map(child => (child.nombre));
+      const response = await fetch('/api/hermanos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brothers_list: childrenList })
+      });
+      const brotherInfoMap = await response.json();
+      console.log('brothers info: ', brotherInfoMap);
+    }
 
   </script>
 </body>

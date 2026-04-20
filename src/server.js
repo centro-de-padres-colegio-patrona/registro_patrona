@@ -199,6 +199,7 @@ let cursoToBloque = {
 };
 
 const passport = require('passport');
+const { name } = require('ejs');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const urlRender = 'https://registro-patrona.onrender.com'
@@ -341,6 +342,20 @@ app.get('/pagoEntrada', (req, res) => {
   res.sendFile(path.join(__dirname, 'login', 'pagoEntradas.html'));
 });
 
+
+app.post('/api/hermanos', express.json(), async(req, res) => {
+  const brother_list = req.body.brothers_list;
+  console.log('[/api/hermanos] brother list: ', brother_list);
+  const brotherInfoMap = {};
+  for (const full_name of brother_list) {
+    const query = {id: full_name};
+    console.log(`[/api/hermanos? '${full_name}',  query: ${JSON.stringify(query)}`);
+    brotherInfoMap[full_name] = await db_support.hermanosMapDB.findOne({id: full_name});
+    console.log('[/api/hermanos] brotherInfoMap[full_name]: ', brotherInfoMap[full_name])
+  };
+  console.log('brother info map: ', brotherInfoMap);
+  res.json(brotherInfoMap);
+});
 
 
 

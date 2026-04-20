@@ -35,6 +35,7 @@
       .then(user => {
         currentUser = user.user;
         fillUserInfo(currentUser);
+        actualizarLabelCompletitud();
         mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
         console.log('Datos del usuario:', user); // Útil para debugging
         
@@ -60,6 +61,10 @@
   </script>
 
   <h2>Mis Datos</h2>
+
+  <div id="completitudLabel" style="display: none; color: #dc3545; font-weight: bold; margin-bottom: 15px; text-align: center; background-color: #f8d7da; padding: 8px; border-radius: 5px; border: 1px solid #f5c6cb;">
+      ⚠️ Faltan datos por completar
+  </div>
 
   <form id="registro-form">
   <!-- Sección Reporte -->
@@ -124,7 +129,11 @@
         <label>Apellidos:</label><input type="text" name="parentSurname[]" required>
         <label>Nombres:</label><input type="text" name="parentName[]" required>
         <label>Correo:</label><input type="email" name="parentEmail[]" required>
-        <label>Rut:</label><input type="text" name="parentRut[]" required>
+        <label>Rut:</label><!--input type="text" name="parentRut[]" required-->
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="text" name="parentRut[]" required>
+          <span name="parentIconRut[]" class="rut-icon" style="position: absolute; right: 10px; font-size: 1.2em;"></span>
+        </div>
         <label>Teléfono (opcional):</label><input type="tel" name="parentPhone[]">
         <label>Parentesco:</label>
         <select name="relationship[]" required>
@@ -159,13 +168,15 @@
     //import { validateRut } from '@fdograph/rut-utilities';
 
     function validarRutChile(rutCompleto) {
-        if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto)) return false;
+        let is_valid = false;
+        let rut = rutCompleto;
+        if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto)) return {rut, is_valid};
         
         const splitted = rutCompleto.split('-');
-        let rut = splitted[0];
+        rut = splitted[0];
         let dv = '';
         console.log(`Validando RUT: ${JSON.stringify({rut, dv, splitted})}`);
-        if (splitted.length > 2) return false;
+        if (splitted.length > 2) return {rut, is_valid};
         if (splitted.length === 1) {
             dv = rut.slice(-1);
             rut = rut.slice(0, -1);
@@ -173,19 +184,19 @@
           dv = splitted[1];
         }
         rut = rut.replace(/\./g, ''); // Elimina puntos si los hay
-        if (dv.length > 1) return false;
+        if (dv.length > 1) return {rut, is_valid};
         if (dv.length === 0) {
             dv = rut.slice(-1);
             rut = rut.slice(0, -1);
         };
-        if (rut.length < 7 || rut.length > 8) return false;
+        if (rut.length < 7 || rut.length > 8) return {rut, is_valid};
         //let cuerpo = rut.toString();
         let dvEsperado = calcularDV(rut);
         
         is_valid = dv.toLowerCase() === dvEsperado.toString();
         // Formatea el RUT con puntos y guion
         rut = rut.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv;
-        rut_status[rut] = is_valid;
+        //rut_status[rut] = is_valid;
         return { rut, is_valid };
     }
 
@@ -247,7 +258,9 @@
           childForm = e.target.closest('.child-form');
           const iconRut = childForm.querySelector("span[name='childIconRut[]']");
           const {rut, is_valid} = validarRutChile(target.value);
+          const childName = childForm.querySelector("select[name='childName[]']").value || '';
           console.log(`Validación RUT: ${JSON.stringify({rut, is_valid})}`);
+          rut_status[childName] = is_valid;
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido
@@ -264,11 +277,18 @@
         const target = e.target;
         if (target.name === 'parentRut[]') {
           const {rut, is_valid} = validarRutChile(target.value);
+          const parentName = target.closest('.parent-form').querySelector("input[name='parentName[]']").value || '';
+          rut_status[parentName] = is_valid;
+          const iconRut = target.closest('.parent-form').querySelector("span[name='parentIconRut[]']");
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido
+            iconRut.textContent = '✅';
+            iconRut.style.color = 'green';
           } else {
             target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+            iconRut.textContent = '⚠️';
+            iconRut.style.color = "#dc3545"; //'orange';
           }
         }
       });
@@ -294,11 +314,16 @@
         const target = e.target;
         if (target.name === 'parentRut[]') {
           const {rut, is_valid} = validarRutChile(target.value);
+          const iconRut = target.closest('.parent-form').querySelector("span[name='parentIconRut[]']");
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido
+            iconRut.textContent = '✅';
+            iconRut.style.color = 'green';
           } else {
             target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+            iconRut.textContent = '⚠️';
+            iconRut.style.color = "#dc3545"; //'orange';
           }
         }
       });
@@ -425,6 +450,22 @@
       });
     });
 
+    function verificarDatosCompletos() {
+      const childData = retrieve_hijos();
+      const parentData = retrieve_parents();
+      const datosCompletos = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status[child.nombre]) &&
+                            parentData.every(parent => parent.surname && parent.name && parent.email && parent.rut && parent.relationship && rut_status[parent.name]);
+      return datosCompletos;
+    }
+
+    function actualizarLabelCompletitud() {
+        const label = document.getElementById('completitudLabel');
+        if (verificarDatosCompletos()) {
+            label.style.display = 'none';
+        } else {
+            label.style.display = 'block';
+        }
+    }
 
     function addChild() {
       const section = document.getElementById('children-section');
@@ -495,10 +536,17 @@
         form.querySelector("select[name='childSeccion[]']").value = hijo.seccion;
         const {rut, is_valid} = validarRutChile(hijo.rut || '');
         form.querySelector("input[name='childRut[]']").value = rut || '';
+        const iconRut = form.querySelector("span[name='childIconRut[]']");
         if (!is_valid) {
           form.querySelector("input[name='childRut[]']").setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+          console.log(`RUT inválido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
+          iconRut.textContent = '⚠️';
+          iconRut.style.color = "#dc3545"; //'orange';
         } else {
           form.querySelector("input[name='childRut[]']").setCustomValidity('');
+          console.log(`RUT válido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
+          iconRut.textContent = '✅';
+          iconRut.style.color = 'green';
         }
 
         // Simula llamada a API para cargar nombres válidos
@@ -557,10 +605,15 @@
         form.querySelector("input[name='account_owner[]']").checked = padre.es_usuario_cuenta || false;
         const {rut, is_valid} = validarRutChile(padre.rut || '');
         form.querySelector("input[name='parentRut[]']").value = rut || '';
+        const iconRut = form.querySelector("span[name='parentIconRut[]']");
         if (!is_valid) {
           form.querySelector("input[name='parentRut[]']").setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+          iconRut.textContent = '⚠️';
+          iconRut.style.color = "#dc3545"; //'orange';
         } else {
           form.querySelector("input[name='parentRut[]']").setCustomValidity('');
+          iconRut.textContent = '✅';
+          iconRut.style.color = 'green';
         }
       });
     }

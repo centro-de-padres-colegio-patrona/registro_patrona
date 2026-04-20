@@ -232,24 +232,6 @@
         return res;
     }
 
-    /*function validarRut(input) {
-      let rut = input.value.replace(/\./g, '');
-      // Verify if the RUT has the correct format (e.g., 12345678-9, or 1234567-8)
-      // Fix the rut to the correct format if possible
-      if (rut.length === 9 && /^\d{8}[\dkK]$/.test(rut)) {
-        rut = rut.replace(/(\d{8})([\dkK])/, '$1-$2');
-      } else if (rut.length === 8 && /^\d{7}[\dkK]$/.test(rut)) {
-        rut = rut.replace(/(\d{7})([\dkK])/, '$1-$2');
-      } else if (rut.length === 10 && /^\d{9}[\dkK]$/.test(rut)) {
-        rut = rut.replace(/(\d{1,8})([\dkK])/, '$1-$2');
-      }
-
-      if (validateRut(rut)) {
-        input.setCustomValidity('');
-      } else {
-        input.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
-      }
-    }*/
 
     document.addEventListener('DOMContentLoaded', () => {
       const childrenSection = document.getElementById('children-section');
@@ -300,18 +282,14 @@
           const parentName = target.closest('.parent-form').querySelector("input[name='parentName[]']").value || '';
           const parentSurName = target.closest('.parent-form').querySelector("input[name='parentSurname[]']").value || '';
           rut_status[parentSurName + ' ' + parentName] = {rut, is_valid};
-          //const iconRut = target.closest('.parent-form').querySelector("span[name='parentIconRut[]']");
           const iconRut = target.parentElement.querySelector("span[name='parentIconRut[]']");
           if (is_valid) {
             target.setCustomValidity('');
             target.value = rut; // Actualiza el campo con el formato corregido
-            //console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
             iconRut.textContent = '✅';
             iconRut.style.color = 'green';
-            //console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
           } else {
             target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
-            //console.log(`RUT válido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
             iconRut.textContent = '⚠️';
             iconRut.style.color = "#dc3545"; //'orange';
           }
@@ -337,25 +315,6 @@
         actualizarLabelCompletitud();
       });
 
-      /*parentSection.addEventListener('input', (e) => {
-        const target = e.target;
-        if (target.name === 'parentRut[]') {
-          const {rut, is_valid} = validarRutChile(target.value);
-          const iconRut = target.closest('.parent-form').querySelector("span[name='parentIconRut[]']");
-          if (is_valid) {
-            target.setCustomValidity('');
-            target.value = rut; // Actualiza el campo con el formato corregido
-            iconRut.textContent = '✅';
-            iconRut.style.color = 'green';
-          } else {
-            target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
-            console.log(`[2] RUT inválido para padre/madre/apoderado ${parentName}: ${rut}, current icon: ${iconRut.textContent}`);
-            iconRut.textContent = '⚠️';
-            iconRut.style.color = "#dc3545"; //'orange';
-          }
-        }
-        actualizarLabelCompletitud();
-      });*/
       parentSection.addEventListener('change', (e) => {
         const target = e.target;
         if (target.classList.contains('usuario-cuenta-check')) {
@@ -404,7 +363,6 @@
           const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
           const nombreSelect = childForm.querySelector("select[name='childName[]']");
           const rutInput = childForm.querySelector("input[name='childRut[]']");
-          //const bloque = childForm.querySelector("input[name='childBloque[]']");
 
           if (curso && seccion) {
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
@@ -468,34 +426,8 @@
       try {
         const childData = retrieve_hijos();
         const parentData = retrieve_parents();
-        //console.log('rut_status: ', rut_status);
-        //console.log('child: ', childData);
-        //console.log('parent:', parentData);
         const datosCompletos = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status && rut_status[child.nombre] && rut_status[child.nombre].is_valid) &&
                               parentData.every(parent => parent.apellido && parent.name && parent.correo && parent.rut && parent.parentesco && rut_status[parent.nombre].is_valid);
-        //const childDataStatus = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status && rut_status[child.nombre] && rut_status[child.nombre].is_valid);
-        //const parentDataStatus = parentData.every(parent => parent.nombre && parent.apellido && parent.correo && parent.rut && parent.parentesco && rut_status[parent.name].is_valid);
-        /*const consolidatedChild = { childData: childData.map(child => ({
-          curso: child.curso,
-          seccion: child.seccion,
-          nombre: child.nombre,
-          rut: child.rut,
-          rut_valid: rut_status[child.nombre] || false
-        }))};
-        const consolidatedParent = { parentData: parentData.map(parent => ({
-          surname: parent.surname,
-          name: parent.name,
-          email: parent.email,
-          rut: parent.rut,
-          relationship: parent.relationship,
-          rut_valid: rut_status[parent.name] || false
-        }))};
-        const consolidated = {consolidatedChild, consolidatedParent, rut_status};*/
-        //console.log(`Verificación de datos completos: ${datosCompletos} (Hijos: ${childDataStatus}, Padres: ${parentDataStatus})`);
-        //console.log('Datos hijos:', consolidatedChild);
-        //console.log('Datos padres:', consolidatedParent);
-        /*console.log('Estado de RUTs:', JSON.stringify(rut_status));
-        console.log('raw parent data:', JSON.stringify(parentData));*/
         return datosCompletos;
       } catch (error) {
         console.error('Error on verificarDatosCompletos: ', error);
@@ -584,12 +516,10 @@
         const iconRut = form.querySelector("span[name='childIconRut[]']");
         if (!is_valid) {
           form.querySelector("input[name='childRut[]']").setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
-          //console.log(`RUT inválido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
           iconRut.textContent = '⚠️';
           iconRut.style.color = "#dc3545"; //'orange';
         } else {
           form.querySelector("input[name='childRut[]']").setCustomValidity('');
-          //console.log(`RUT válido para hijo ${hijo.nombre}: ${hijo.rut} (formateado: ${rut})`);
           iconRut.textContent = '✅';
           iconRut.style.color = 'green';
         }
@@ -780,12 +710,6 @@
           statusLabel.style.color = "#e67e22"; // Color naranja de advertencia
           enableSubmitButton();
         }
-        //#label.style.color = esExito ? "#28a745" : "#dc3545"; // Verde para éxito, Rojo para error
-
-        // Limpiar el mensaje automáticamente después de 5 segundos
-        /*setTimeout(() => {
-            label.textContent = "";
-        }, 5000);*/
     }
 
     // Escuchar cualquier cambio en el contenedor principal
@@ -796,15 +720,10 @@
         const statusLabel = document.getElementById('statusLabel');
         hijos = retrieve_hijos();
         padres = retrieve_parents();
-        //const datosActuales = JSON.stringify(recolectarDatosActuales());
 
         if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
-            //statusLabel.textContent = "✅ Los datos están actualizados";
-            //statusLabel.style.color = "#2ecc71"; // Color verde
             mostrarEstado("✅ Los datos están actualizados", 0);
         } else {
-            //statusLabel.textContent = "⚠️ Tienes cambios sin guardar";
-            //statusLabel.style.color = "#e67e22"; // Color naranja de advertencia
             mostrarEstado("⚠️ Tienes cambios sin guardar", 2);
         }
     }
@@ -832,7 +751,6 @@
       }));
 
       if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
-        //alert('No se han realizado cambios en los datos.');
         return;
       }
       currentUser.hijos = hijos;
@@ -843,12 +761,10 @@
               headers: {
                 'Content-Type': 'application/json'
               },
-              //body: JSON.stringify({...currentUser, hijos, padres, invitados, correoEntradas, estado_pago})
               body: JSON.stringify({...currentUser, hijos, padres})
             })
             .then(res => res.json())
             .then(response => {
-              //window.location.href = "register_success";
               mostrarEstado("✅ Datos actualizados correctamente", 0);
               console.debug('Datos del usuario guardados ')
             })

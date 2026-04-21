@@ -57,12 +57,17 @@ const userSchema = new mongoose.Schema({
   passwordHash: String,
 });
 
+  const nombreCursoSchema = new mongoose.Schema({
+    id: String,
+    value: String,
+  });
+
   const hermanosMapSchema = new mongoose.Schema({
+    id: String,
     nombre_familia: String,
     hermanos: Array,
     serial: Number,
     apoderado_email: Array,
-    id: String,
   });
 
 const bingo_solidario = new mongoose.Schema({ 
@@ -159,5 +164,5 @@ module.exports.pagosDB = mongoose.model('pagos', pagosSchema);
 module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapSchema);
 module.exports.registroEntradasDB = mongoose.model('registro_entradas', registroEntradasSchema);
 module.exports.deliveryDB = mongoose.model('delivery_entradas', deliverySchema);
-module.exports.hermanosMapDB = mongoose.model('nombreHermanosMapDB', hermanosMapSchema);
-
+module.exports.hermanosMapDB = mongoose.model('nombreHermanosMap', hermanosMapSchema, 'nombreHermanosMap');
+module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSchema);

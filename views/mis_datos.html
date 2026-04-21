@@ -179,6 +179,22 @@
 
   <script>
     //import { validateRut } from '@fdograph/rut-utilities';
+    const reverse_curso_map = {
+      "PK": "Prekínder",
+      "K": "Kínder",
+      "1": "1° Básico",
+      "2": "2° Básico",
+      "3": "3° Básico",
+      "4": "4° Básico",
+      "5": "5° Básico",
+      "6": "6° Básico",
+      "7": "7° Básico",
+      "8": "8° Básico",
+      "1M": "I° Medio",
+      "2M": "II° Medio",
+      "3M": "III° Medio",
+      "4M": "IV° Medio"
+    }
 
     function isRutValidFormat(value) {
       const regex = /^(\d{8}|\d{1}\.\d{7}|\d{1}\.\d{3}\.\d{4}|\d{7}-\d{1}|\d{1}\.\d{6}-\d{1}|\d{1}\.\d{3}\.\d{3}-\d{1}|\d{9}|\d{2}\.\d{7}|\d{2}\.\d{3}\.\d{4}|\d{8}-\d{1}|\d{2}\.\d{6}-\d{1}|\d{2}\.\d{3}\.\d{3}-\d{1})$/;
@@ -253,14 +269,17 @@
       childrenSection.addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-eliminar-child')) {
           const childForms = childrenSection.querySelectorAll('.child-form');
-          if (childForms.length > 1) {
-            e.target.closest('.child-form').remove();
-          } else {
-            alert('Debe haber al menos un hijo registrado.');
-            childForm = e.target.closest('.child-form');
-            childForm.querySelector("select[name='childCourse[]']").value = '';
-            childForm.querySelector("select[name='childSeccion[]']").value = 'A';
-            childForm.querySelector("select[name='childName[]']").value = '';
+          childForm = e.target.closest('.child-form');
+          const name = childForm.querySelector("select[name='childName[]']").value;
+          if (confirm(`¿Está seguro de que desea eliminar el registro ${name}?`)) {
+            if (childForms.length > 1) {
+              e.target.closest('.child-form').remove();
+            } else {
+              alert('Debe haber al menos un hijo registrado.');
+              childForm.querySelector("select[name='childCourse[]']").value = '';
+              childForm.querySelector("select[name='childSeccion[]']").value = 'A';
+              childForm.querySelector("select[name='childName[]']").value = '';
+            }
           }
           actualizarLabelCompletitud();
         }
@@ -312,17 +331,22 @@
       parentSection.addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-eliminar-parent')) {
           const parentForms = parentSection.querySelectorAll('.parent-form');
-          if (parentForms.length > 1) {
-            e.target.closest('.parent-form').remove();
-          } else {
-            alert('Debe haber al menos un padre/madre/apoderado registrado.');
-            const parentForm = target.closest('.parent-form');
-            parentForm.querySelector("input[name='parentEmail[]']").value = '';
-            parentForm.querySelector("input[name='account_owner[]']").checked = false;
-            parentForm.querySelector("input[name='parentName[]']").value = '';
-            parentForm.querySelector("input[name='parentSurname[]']").value = '';
-            parentForm.querySelector("input[name='parentPhone[]']").value = '';
-            parentForm.querySelector("input[name='parentRut[]']").value = '';
+          const parentForm = e.target.closest('.parent-form');
+          const name = parentForm.querySelector("input[name='parentName[]']").value;
+          const surname = parentForm.querySelector("input[name='parentSurname[]']").value;
+          const full_name = name + ' ' + surname;
+          if (confirm(`¿Está seguro de que desea eliminar el registro de ${full_name}?`)) {
+            if (parentForms.length > 1) {
+              e.target.closest('.parent-form').remove();
+            } else {
+              alert('Debe haber al menos un padre/madre/apoderado registrado.');
+              parentForm.querySelector("input[name='parentEmail[]']").value = '';
+              parentForm.querySelector("input[name='account_owner[]']").checked = false;
+              parentForm.querySelector("input[name='parentName[]']").value = '';
+              parentForm.querySelector("input[name='parentSurname[]']").value = '';
+              parentForm.querySelector("input[name='parentPhone[]']").value = '';
+              parentForm.querySelector("input[name='parentRut[]']").value = '';
+            }
           }
         }
         actualizarLabelCompletitud();
@@ -506,15 +530,18 @@
     }
 
     function fillChild(childForm, childInfo) {
-      const { curso, seccion,  nombre} = childInfo;
-      childForm.querySelector("select[name='childCourse[]']").value = curso;
+      const { curso, seccion, nombre} = childInfo;
+      const selectCurso = reverse_curso_map[curso];
+      childForm.querySelector("select[name='childCourse[]']").value = selectCurso;
       childForm.querySelector("select[name='childSeccion[]']").value = seccion;
+      console.log(childInfo);
       if (curso && seccion) {
-        fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
+        fetch(`/api/alumnos?curso=${encodeURIComponent(selectCurso)}&seccion=${encodeURIComponent(seccion)}`)
           .then(res => res.json())
           .then(alumnos => {
-            const nombreSelect = form.querySelector("select[name='childName[]']");
+            const nombreSelect = childForm.querySelector("select[name='childName[]']");
             nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+            console.log(alumnos);
             alumnos.forEach(nombre => {
               const option = document.createElement('option');
               option.value = nombre;
@@ -723,6 +750,7 @@
 
     function disableSubmitButton() {
       const submitButton = document.querySelector('button[type="submit"]');
+      console.log('disableSubmitButton: ', submitButton);
       if (submitButton) {
         submitButton.disabled = true;
         submitButton.textContent = 'Datos actualizados';
@@ -806,8 +834,9 @@
             })
             .then(res => res.json())
             .then(response => {
+              updateUserEmail();
               mostrarEstado("✅ Datos actualizados correctamente", 0);
-              console.debug('Datos del usuario guardados ')
+              console.debug('Datos del usuario guardados ');
             })
             .catch(error => {
               mostrarEstado("❌ Error al actualizar los datos", 1);
@@ -871,8 +900,40 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brothers_list: childrenList, email: currentUser.email })
       });
+      console.log('updateUserEmail result; ', result);
     }
     
+    function retriveEmptyChildForm() {
+      const childForms = document.querySelectorAll(".child-form")
+      childForms.forEach(childForm => {
+        const hijos = {
+          nombre: child.querySelector("select[name='childName[]']").value,
+          curso: child.querySelector("select[name='childCourse[]']").value,
+          seccion: child.querySelector("select[name='childSeccion[]']").value,
+          rut: child.querySelector("input[name='childRut[]']").value
+        };
+        if (nombre === "" && curso === "" && seccion === "") 
+          return childForm;
+      });
+      return null;
+    }
+
+    function verifyEmptyChildForm() {
+      const childrenList = Array.from(retrieve_hijos()).map(child => child.nombre);
+      const cleanChildrenList = retrieveCleanChildrenList();
+      const result = compareArrays(childrenList, cleanChildrenList);
+      console.log('verifyEmptyChildForm: childrenList', childrenList);
+      console.log('verifyEmptyChildForm: cleanChildrenList: ', cleanChildrenList);
+      console.log('verifyEmptyChildForm: compareArrays: ', result);
+      return !result;
+    }
+
+    function retrieveCleanChildrenList() {
+      const childrenData = retrieve_hijos();
+      const childrenList = Array.from(childrenData).map(child => (child.nombre)).filter(name => name !== '');
+      return childrenList;
+    }
+
     async function addBrothers() {
       const childrenData = retrieve_hijos();
       console.log('childrenData: ', childrenData);
@@ -906,7 +967,18 @@
             .then(async curso_section => {
               console.log('/api/curso: ', curso_section);
               const {curso, seccion} = curso_section;
-              form = addChild();
+              const is_there_empty_child_form = verifyEmptyChildForm();
+              let childForm;
+              if (!is_there_empty_child_form) {
+                console.log('calling addChild()');
+                childForm = addChild();
+              } else {
+                console.log('calling retriveEmptyChildForm()');
+                childForm = retriveEmptyChildForm();
+              }
+              console.log('childForm: ', childForm);
+              const childInfo = {curso, seccion, nombre: childName};
+              fillChild(childForm, childInfo);
             })
             .catch(err => console.error('Error al obtener nombres:', err));
         });

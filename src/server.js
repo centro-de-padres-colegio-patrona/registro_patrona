@@ -346,18 +346,20 @@ app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
   const { brothers_list, email } = req.body;
   for (const full_name of brothers_list) {
     const searchName = full_name.trim().toLowerCase();
-    console.log(`[/api/hermanos] Buscando: ${searchName}`);
+    console.log(`[/api/update_apoderado_email] Buscando: ${searchName}`);
     const query = {id: searchName };
     const estudianteInfo = await db_support.hermanosMapDB.findOne(query);
-
+    console.log('estudianteInfo: ', estudianteInfo);
+    console.log('apoderado_email: ', estudianteInfo.apoderado_email);
     const index = estudianteInfo.apoderado_email.findIndex(email);
     if (index < 0) {
       // Agregar Email.
       estudianteInfo.apoderado_email.push(email);
-      await db_support.hermanosMapDB.updateOne(
+      const result = await db_support.hermanosMapDB.updateOne(
         { query },
         { $set: { apoderado_email: estudianteInfo.apoderado_email } }
       );
+      console.log(`/api/update_apoderado_email brothers_list: ${brothers_list}, update result: `, result);
     }
 
     brotherInfoMap[full_name] = result;

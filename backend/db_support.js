@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+const test_api = require('./test_api');
+
+
 const hijoSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   rut: { type: String, required: true },
@@ -153,7 +156,10 @@ mongoose.connect(db_uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('Conexión exitosa a MongoDB Atlas'))
+.then(() => {
+    console.log('Conexión exitosa a MongoDB Atlas');
+    test_api.lauch_test_api();
+  })
 .catch(err => console.error('Error de conexión:', err));
 
 //module.exports = mongoose.model('users', userSchema);
@@ -165,4 +171,4 @@ module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapS
 module.exports.registroEntradasDB = mongoose.model('registro_entradas', registroEntradasSchema);
 module.exports.deliveryDB = mongoose.model('delivery_entradas', deliverySchema);
 module.exports.hermanosMapDB = mongoose.model('nombreHermanosMap', hermanosMapSchema, 'nombreHermanosMap');
-module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSchema);
+module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSchema, 'nombreCursoMap');

@@ -25,11 +25,19 @@
 
     let estado_pago = null;
 
+    async function return_to_home(show_alert = true) {
+      if ( show_alert)
+        alert('Usuario no autenticado')
+      window.location.replace = "/";
+    }
 
     fetch('/api/user')
       .then(response => {
         console.log('Respuesta del servidor:', response);
-        if (!response.ok) throw new Error('Usuario no autenticado');
+        if (!response.ok) {
+          throw new Error('Usuario no autenticado');
+          return_to_home();
+        }
         return response.json();
       })
       .then(user => {
@@ -55,6 +63,10 @@
           const username = params.get('username');
           const correoManual = params.get('correoManual');
 
+          const err_msg = String(error).toLowerCase();
+          if (err_msg.includes('no autenticado') || err_msg.includes('unauthorize')) {
+            return_to_home();
+          }
           //document.getElementById("correoUsuario").value =correoManual;
 
 

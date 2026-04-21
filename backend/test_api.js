@@ -4,6 +4,7 @@ const test_result_array = {};
 async function lauch_test_api(delay_ms = 500) {
   console.log('Launching Api Test...');
     setTimeout(test_api_curso, delay_ms);
+    setTimeout(test_api_email_update, delay_ms);
 }
 
 async function log_result(tag, result) {
@@ -32,6 +33,27 @@ async function test_api_curso() {
       test_result_array[tag] = 'fail';
       log_result(tag, 'fail');
     });
+}
+
+async function test_api_email_update() {
+  const tag = 'test_api_email_update';
+  const brothers_list = ['herrera messina florencia isidora', 'herrera messina cristobal nicolas'];
+  const email = 'l.herreramena@gmail.com';
+  try {
+    const result = await fetch('http://localhost:5001/api/update_apoderado_email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brothers_list, email })
+    });
+    if (result) {
+      log_result(tag, 'pass');
+    } else {
+      log_result(tag, 'fail');  
+    }
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
 }
 
 

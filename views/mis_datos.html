@@ -895,7 +895,7 @@
       const childrenData = retrieve_hijos();
       const childrenListNoFiltered = Array.from(childrenData).map(child => (child.nombre));
       const childrenList = childrenListNoFiltered.filter(name => name !== '');
-      const response = await fetch('/api/update_apoderado_email', {
+      const result = await fetch('/api/update_apoderado_email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brothers_list: childrenList, email: currentUser.email })

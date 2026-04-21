@@ -344,7 +344,7 @@ app.get('/pagoEntrada', (req, res) => {
 
 app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
   const { brothers_list, email } = req.body;
-  for (const full_name of brother_list) {
+  for (const full_name of brothers_list) {
     const searchName = full_name.trim().toLowerCase();
     console.log(`[/api/hermanos] Buscando: ${searchName}`);
     const query = {id: searchName };
@@ -366,14 +366,14 @@ app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
 });
 
 app.post('/api/hermanos', express.json(), async(req, res) => {
-  const { brother_list } = req.body;
-  console.log('[/api/hermanos] brother list: ', brother_list);
-  if (brother_list === undefined || brother_list === null || brother_list.length == 0) {
+  const { brothers_list } = req.body;
+  console.log('[/api/hermanos] brother list: ', brothers_list);
+  if (brothers_list === undefined || brothers_list === null || brothers_list.length == 0) {
     res.json({brotherInfoMap: {}});
   }
 
   const brotherInfoMap = {};
-  for (const full_name of brother_list) {
+  for (const full_name of brothers_list) {
     const searchName = full_name.trim().toLowerCase();
     // Usamos $regex y $options para una búsqueda insensible a mayúsculas
     // Esto evita el problema de que el log muestre un objeto vacío
@@ -395,9 +395,10 @@ app.post('/api/hermanos', express.json(), async(req, res) => {
 
 app.get('/api/curso', async (req, res) => {
   const {nombre} = req.query;
-  console.log('/api/curso: ', nombre);
+  //console.log('/api/curso: ', nombre);
   const query = { id: nombre };
   const result = await db_support.nombreCursoMapDB.findOne(query);
+  //console.log('result: ', result);
   let curso = result.value.slice(0,-1);
   let seccion = result.value.slice(-1);
   res.json({curso, seccion});

@@ -351,8 +351,8 @@ app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
     const estudianteInfo = await db_support.hermanosMapDB.findOne(query);
     console.log('estudianteInfo: ', estudianteInfo);
     console.log('apoderado_email: ', estudianteInfo.apoderado_email);
-    const index = estudianteInfo.apoderado_email.findIndex(email);
-    if (index < 0) {
+    const email_already_exists = estudianteInfo.apoderado_email.includes(email);
+    if (!email_already_exists) {
       // Agregar Email.
       estudianteInfo.apoderado_email.push(email);
       const result = await db_support.hermanosMapDB.updateOne(

@@ -114,7 +114,7 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
   return canvas.toBuffer('image/png');
 }
 
-async function test_brother() {
+/*async function test_brother() {
   console.log('Running test_brother');
 
   const childrenList = [
@@ -132,8 +132,9 @@ async function test_brother() {
   } catch(error) {
     console.error('test brother: ', error);
   }
+  //setTimeout(test2, 1000);
 }
 
-test_brother();
+setTimeout(test_brother, 2000);*/
 
 module.exports = { genEntrada, genEntradaCanvas };

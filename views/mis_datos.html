@@ -386,6 +386,7 @@
             const curso = childForm.querySelector("select[name='childCourse[]']").value;
             const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
             const rutInput = childForm.querySelector("input[name='childRut[]']");
+            addBrothers();
           } catch (error) {
             console.error(`[childName[] handler] Error al actualizar entradas: ${error.message}`, {
               targetName: target.name,
@@ -454,6 +455,8 @@
       clone.querySelector("input[name='childRut[]']").value = '';
 
       section.appendChild(clone);
+
+      return clone;
     }
 
     function addParent() {
@@ -489,6 +492,31 @@
       const elementos = form.querySelectorAll('input, select, textarea, button');
       elementos.forEach(el => el.disabled = true);
     }
+
+    function fillChild(childForm, childInfo) {
+      const { curso, seccion,  nombre} = childInfo;
+      childForm.querySelector("select[name='childCourse[]']").value = curso;
+      childForm.querySelector("select[name='childSeccion[]']").value = seccion;
+      if (curso && seccion) {
+        fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
+          .then(res => res.json())
+          .then(alumnos => {
+            const nombreSelect = form.querySelector("select[name='childName[]']");
+            nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+            alumnos.forEach(nombre => {
+              const option = document.createElement('option');
+              option.value = nombre;
+              option.textContent = nombre;
+              nombreSelect.appendChild(option);
+            });
+            // Selecciona el nombre si está en la lista
+            nombreSelect.value = nombre;
+          })
+          .catch(err => console.error('Error al cargar nombres:', err));
+      }
+
+    }
+
 
     function fillChildrenSection(user) {
       const hijos = user.hijos || [];
@@ -808,16 +836,69 @@
         }
     });          
 
+    function getBrothersList(brotherInfoMap) {
+      if (!brotherInfoMap)
+        return [];
+      // 1. Extraemos todos los arreglos de 'hermanos' y los aplanamos
+      console.log('getBrothersList: brotherInfoMap: ', brotherInfoMap);
+      const listaHermanosDuplicados = Object.values(brotherInfoMap)
+        .map(info => info.hermanos)
+        .flat();
+      // 2. Usamos Set para eliminar los nombres duplicados
+      const listaHermanosUnicos = [...new Set(listaHermanosDuplicados)];
+      listaHermanosUnicos.sort((a, b) => a.localeCompare(b));
+      return listaHermanosUnicos;
+    }
+
+    async function updateUserEmail() {
+      const childrenData = retrieve_hijos();
+      const childrenListNoFiltered = Array.from(childrenData).map(child => (child.nombre));
+      const childrenList = childrenListNoFiltered.filter(name => name !== '');
+      const response = await fetch('/api/update_apoderado_email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brothers_list: childrenList, email: currentUser.email })
+      });
+    }
+    
     async function addBrothers() {
       const childrenData = retrieve_hijos();
-      const childrenList = Array.from(childrenData).map(child => (child.nombre));
+      console.log('childrenData: ', childrenData);
+      //const childrenListNoFiltered = Array.from(childrenData).map(child => (child.nombre));
+      //const childrenList = childrenListNoFiltered.filter(name => name !== '');
+      const childrenList = Array.from(childrenData).map(child => (child.nombre)).filter(name => name !== '');
+      console.log('childrenList: ', childrenList);
+      if (childrenList.length === 0)
+        return;
+      childrenList.sort((a, b) => a.localeCompare(b));
       const response = await fetch('/api/hermanos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brothers_list: childrenList })
       });
       const brotherInfoMap = await response.json();
+      console.log('brotherInfoMap: ', brotherInfoMap);
+      const brothersList = getBrothersList(brotherInfoMap);
       console.log('brothers info: ', brotherInfoMap);
+      console.log('brothersList: ', brothersList);
+      isEqual = compareArrays(childrenList, brothersList);
+      console.log('compareArrays: ', isEqual);
+      if (!isEqual) {
+        const childrenSet = new Set(childrenList);
+        const newBrothersList = brothersList.filter(brother => !childrenSet.has(brother));
+        console.log('newBrothersList: ', newBrothersList);
+        newBrothersList.forEach(childName => {
+          console.log('fetching name ', childName);
+          fetch(`/api/curso?nombre=${encodeURIComponent(childName)}`)
+            .then(res => res.json())
+            .then(async curso_section => {
+              console.log('/api/curso: ', curso_section);
+              const {curso, seccion} = curso_section;
+              form = addChild();
+            })
+            .catch(err => console.error('Error al obtener nombres:', err));
+        });
+      }
     }
 
   </script>

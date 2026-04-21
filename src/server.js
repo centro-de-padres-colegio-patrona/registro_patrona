@@ -342,22 +342,66 @@ app.get('/pagoEntrada', (req, res) => {
   res.sendFile(path.join(__dirname, 'login', 'pagoEntradas.html'));
 });
 
+app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
+  const { brothers_list, email } = req.body;
+  for (const full_name of brother_list) {
+    const searchName = full_name.trim().toLowerCase();
+    console.log(`[/api/hermanos] Buscando: ${searchName}`);
+    const query = {id: searchName };
+    const estudianteInfo = await db_support.hermanosMapDB.findOne(query);
+
+    const index = estudianteInfo.apoderado_email.findIndex(email);
+    if (index < 0) {
+      // Agregar Email.
+      estudianteInfo.apoderado_email.push(email);
+      await db_support.hermanosMapDB.updateOne(
+        { query },
+        { $set: { apoderado_email: estudianteInfo.apoderado_email } }
+      );
+    }
+
+    brotherInfoMap[full_name] = result;
+    console.log(`[/api/hermanos] brotherInfoMap[${full_name}]: `, brotherInfoMap[full_name])
+  };
+});
 
 app.post('/api/hermanos', express.json(), async(req, res) => {
-  const brother_list = req.body.brothers_list;
+  const { brother_list } = req.body;
   console.log('[/api/hermanos] brother list: ', brother_list);
+  if (brother_list === undefined || brother_list === null || brother_list.length == 0) {
+    res.json({brotherInfoMap: {}});
+  }
+
   const brotherInfoMap = {};
   for (const full_name of brother_list) {
-    const query = {id: full_name};
-    console.log(`[/api/hermanos? '${full_name}',  query: ${JSON.stringify(query)}`);
-    brotherInfoMap[full_name] = await db_support.hermanosMapDB.findOne({id: full_name});
-    console.log('[/api/hermanos] brotherInfoMap[full_name]: ', brotherInfoMap[full_name])
+    const searchName = full_name.trim().toLowerCase();
+    // Usamos $regex y $options para una búsqueda insensible a mayúsculas
+    // Esto evita el problema de que el log muestre un objeto vacío
+    console.log(`[/api/hermanos] Buscando: ${searchName}`);
+
+    //const result = await db_support.hermanosMapDB.find({id: searchName});
+
+    // EXPLICACIÓN: Usamos findOne para obtener el objeto y $regex para ignorar mayúsculas
+    const result = await db_support.hermanosMapDB.findOne({
+      id: { $regex: `^${searchName}$`, $options: 'i' }
+    });
+
+    brotherInfoMap[full_name] = result;
+    console.log(`[/api/hermanos] brotherInfoMap[${full_name}]: `, brotherInfoMap[full_name])
   };
   console.log('brother info map: ', brotherInfoMap);
   res.json(brotherInfoMap);
 });
 
-
+app.get('/api/curso', async (req, res) => {
+  const {nombre} = req.query;
+  console.log('/api/curso: ', nombre);
+  const query = { id: nombre };
+  const result = await db_support.nombreCursoMapDB.findOne(query);
+  let curso = result.value.slice(0,-1);
+  let seccion = result.value.slice(-1);
+  res.json({curso, seccion});
+});
 
 app.get('/api/user', async (req, res) => {
   if (!req.isAuthenticated()) {

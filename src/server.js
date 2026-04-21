@@ -344,27 +344,28 @@ app.get('/pagoEntrada', (req, res) => {
 
 app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
   const { brothers_list, email } = req.body;
+  const resultArray = {};
   for (const full_name of brothers_list) {
     const searchName = full_name.trim().toLowerCase();
-    console.log(`[/api/update_apoderado_email] Buscando: ${searchName}`);
+    //console.log(`[/api/update_apoderado_email] Buscando: ${searchName}`);
     const query = {id: searchName };
     const estudianteInfo = await db_support.hermanosMapDB.findOne(query);
-    console.log('estudianteInfo: ', estudianteInfo);
-    console.log('apoderado_email: ', estudianteInfo.apoderado_email);
+    //console.log('estudianteInfo: ', estudianteInfo);
+    //console.log('apoderado_email: ', estudianteInfo.apoderado_email);
     const email_already_exists = estudianteInfo.apoderado_email.includes(email);
     if (!email_already_exists) {
       // Agregar Email.
       estudianteInfo.apoderado_email.push(email);
-      const result = await db_support.hermanosMapDB.updateOne(
-        { query },
+      result = await db_support.hermanosMapDB.updateOne(
+        query,
         { $set: { apoderado_email: estudianteInfo.apoderado_email } }
       );
-      console.log(`/api/update_apoderado_email brothers_list: ${brothers_list}, update result: `, result);
+      //console.log(`/api/update_apoderado_email ${full_name}, emails: `, estudianteInfo.apoderado_email);
+      resultArray[full_name] = result;
+      //console.log(`[/api/update_apoderado_email] result for ${full_name}: `, resultArray[full_name]);
     }
-
-    brotherInfoMap[full_name] = result;
-    console.log(`[/api/hermanos] brotherInfoMap[${full_name}]: `, brotherInfoMap[full_name])
   };
+  res.json(resultArray);
 });
 
 app.post('/api/hermanos', express.json(), async(req, res) => {

@@ -497,7 +497,7 @@
 
     function addParent() {
       const section = document.getElementById('parent-section');
-      const form = section.querySelectorAll('.parent-form');
+      const form = section.querySelector('.parent-form');
       const button = document.querySelector("button[onclick='addParent()']");
 
       console.log('form.length: ', form.length);

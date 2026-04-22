@@ -681,7 +681,7 @@ app.get('/api/max_invitados', async (req, res) => {
 
 app.get('/api/estado_pago_cpa', async (req, res) => {
   //console.log('req.user:', req.user);
-  console.log('/api/estado_pago_cpa');
+  //console.log('/api/estado_pago_cpa');
   try {
     const { user_email = null } = req.query;
     let user = null;
@@ -701,16 +701,16 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
       console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
       res.status(500).json({ error: 'Error user not found' });
     } else {
-      console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
-      console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
+      //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
+      //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
       const pagos = [];
       if (user.hijos !== undefined && user.hijos.length > 0) {
         //console.log(JSON.stringify(req));
         for ( let childInfo of user.hijos ) {
           estudiante = childInfo['nombre'];
-          console.log(estudiante);
+          //console.log(estudiante);
           pago = await db_support.pagosDB.findOne({id: estudiante});
-          console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
+          //console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
           pagos.push(pago);
         }
         /*estudiante = user.hijos[0]['nombre'];
@@ -730,7 +730,8 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
       const cuota_cpa_pagada = pago.cuota_cpa === true;
       const entradas_pagadas = pago.entradas_pagadas
       res.json({cuota_cpa_pagada, entradas_pagadas});*/
-      res.json(pagos);
+      console.log(`[/api/estado_pago_cpa] pagos: ${JSON.stringify(pagos)}`);
+      res.json(pagos);  
     }
   } catch (error) {
     console.error(`[/api/estado_pago_cpa] Error al procesar la solicitud:`, error);

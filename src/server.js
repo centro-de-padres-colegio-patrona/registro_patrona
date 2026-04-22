@@ -683,7 +683,12 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
   //console.log('req.user:', req.user);
   console.log('/api/estado_pago_cpa');
   try {
-    let user = await db_support.usersDB.findOne({ googleId: req.user.id });
+    const { user_email = null } = req.query;
+    let user = null;
+    if ( user_email === undefined || user_email === null )
+      user = await db_support.usersDB.findOne({ googleId: req.user.id });
+    else
+      user = await db_support.usersDB.findOne({ email: user_email });
 
     if (user === undefined) {
       console.log('User undefined');
@@ -698,13 +703,20 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
     } else {
       console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
       console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
-      let pago;
+      const pagos = [];
       if (user.hijos !== undefined && user.hijos.length > 0) {
         //console.log(JSON.stringify(req));
-        estudiante = user.hijos[0]['nombre'];
+        for ( let childInfo of user.hijos ) {
+          estudiante = childInfo['nombre'];
+          console.log(estudiante);
+          pago = await db_support.pagosDB.findOne({id: estudiante});
+          console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
+          pagos.push(pago);
+        }
+        /*estudiante = user.hijos[0]['nombre'];
         console.log(estudiante);
         pago = await db_support.pagosDB.findOne({id: estudiante});
-        console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
+        console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);*/
       } else {
         console.log(`[/api/estado_pago_cpa] req.query: ${JSON.stringify(req.query)}`);
         //console.log(JSON.stringify(user.hijos));
@@ -714,10 +726,11 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
         pago = await db_support.pagosDB.findOne({id: estudiante});
         console.log(`[/api/estado_pago_cpa] pago estudiante: ${JSON.stringify(pago)}`);
       }
-      console.log(JSON.stringify(pago));
+      /*console.log(JSON.stringify(pago));
       const cuota_cpa_pagada = pago.cuota_cpa === true;
       const entradas_pagadas = pago.entradas_pagadas
-      res.json({cuota_cpa_pagada, entradas_pagadas});
+      res.json({cuota_cpa_pagada, entradas_pagadas});*/
+      res.json(pagos);
     }
   } catch (error) {
     console.error(`[/api/estado_pago_cpa] Error al procesar la solicitud:`, error);

@@ -12,9 +12,20 @@ async function log_result(tag, result) {
       console.log(`${tag}.....${result_upppercase}`);
 }
 
+async function test_api_get(tag, url, payload,  callback) {
+  fetch(`http://localhost:5001${url}?${key}=${encodeURIComponent(payload)}`)
+    .then(res => res.json())
+    .then(async res => callback(res))
+    .catch(err => {
+      console.error('Error', err);
+      test_result_array[tag] = 'fail';
+      log_result(tag, 'fail');
+    });
+} 
+
 async function test_api_curso() {
-  query = "herrera messina cristobal nicolas";
-  tag = "[test /api/curso]";
+  const query = "herrera messina cristobal nicolas";
+  const tag = "[test /api/curso]";
   //console.log('fetching name ', query);
   fetch(`http://localhost:5001/api/curso?nombre=${encodeURIComponent(query)}`)
     .then(res => res.json())
@@ -56,5 +67,7 @@ async function test_api_email_update() {
   }
 }
 
-
+async function test_api_pagos_cpa() {
+  /api/estado_pago_cpa
+}
 module.exports.lauch_test_api = lauch_test_api;

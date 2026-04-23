@@ -6,6 +6,7 @@ async function lauch_test_api(delay_ms = 500) {
     setTimeout(test_api_curso, delay_ms);
     setTimeout(test_api_email_update, delay_ms);
     setTimeout(test_api_pagos_cpa, delay_ms);
+    setTimeout(test_api_compromisos_pago, delay_ms);
 }
 
 async function log_result(tag, result) {
@@ -34,6 +35,28 @@ async function test_api_pagos_cpa() {
       //console.log('test_api_pagos: ', pagos);
       test_result_array[tag] = 'pass';
       log_result(tag, 'pass');
+    });
+  } catch (err) {
+      console.error('Error al obtener nombres:', err);
+      test_result_array[tag] = 'fail';
+      log_result(tag, 'fail');
+  }
+}
+
+async function test_api_compromisos_pago() {
+  const tag = 'test /api/compromisos_pago';
+  const url = '/api/compromisos_pago';
+  const key = 'user_email';
+  const user_email = 'l.herreramena@gmail.com';
+  try {
+    const result = await test_api_get(tag, url, key, user_email, result => { 
+      console.log('test /api/compromisos_pago: ', result);
+      if (result === undefined || result === null) {
+        log_result(tag, 'fail');
+      } else {
+        test_result_array[tag] = 'pass';
+        log_result(tag, 'pass');
+      }
     });
   } catch (err) {
       console.error('Error al obtener nombres:', err);

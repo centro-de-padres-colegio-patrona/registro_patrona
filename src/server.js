@@ -679,6 +679,21 @@ app.get('/api/max_invitados', async (req, res) => {
   }
 });
 
+app.get('/api/compromisos_pago', async (req, res) => {
+  try {
+    //console.log('[/api/compromisos_pago] Quering info to database...');
+    const compromisos_pago = await db_support.compromisosPagoDB.find({});
+    //console.log('[/api/compromisos_pago] returned info: ', compromisos_pago);
+    res.json(compromisos_pago);
+  } catch (error) {
+    console.error(`[/api/compromisos_pago] Error al procesar la solicitud:`, error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      detalle: error.message,
+    });
+  }
+});
+
 app.get('/api/estado_pago_cpa', async (req, res) => {
   //console.log('req.user:', req.user);
   //console.log('/api/estado_pago_cpa');
@@ -730,7 +745,7 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
       const cuota_cpa_pagada = pago.cuota_cpa === true;
       const entradas_pagadas = pago.entradas_pagadas
       res.json({cuota_cpa_pagada, entradas_pagadas});*/
-      console.log(`[/api/estado_pago_cpa] pagos: ${JSON.stringify(pagos)}`);
+      //console.log(`[/api/estado_pago_cpa] pagos: ${JSON.stringify(pagos)}`);
       res.json(pagos);  
     }
   } catch (error) {

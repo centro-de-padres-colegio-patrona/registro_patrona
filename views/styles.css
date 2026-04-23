@@ -260,6 +260,14 @@ iframe {
     transition: opacity 0.5s ease-in-out;
     font-size: 0.9em;
 }
+
+#payments-commitment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px; /* Cambia de 20px a 40px para duplicar la separación */
+  padding: 20px;
+}
+
 /*body.panel-usuario {
   padding-top: 60px; / espacio para que el contenido no quede debajo de la barra /
 }*/

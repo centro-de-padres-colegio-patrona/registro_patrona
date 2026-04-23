@@ -84,10 +84,43 @@
 
     .status-pagado { background: #e1f7e1; color: #2e7d32; }
     .status-pendiente { background: #fff3cd; color: #856404; }
+
+    /* Contenedor individual para compromiso + sus beneficios */
+    .commitment-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 280px;
+      flex: 1;
+    }
+
+    /* Estilo para las tarjetas de beneficios */
+    .benefit-card {
+      background-color: #f0f7ff; /* Azul muy claro */
+      border: 1px dashed #4A90E2;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin-left: 20px; /* Indentación para mostrar jerarquía */
+      font-size: 0.85rem;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .benefit-card::before {
+      content: "🎁"; /* Icono de regalo para beneficios */
+    }
+
   </style>
 </head>
 <body>
   <div class="dashboard-container">
+
+    <h2>Compromisos de Pagos</h2>
+    <div id="payments-commitment" class="summary-cards">
+    </div>
+
     <h2>Resumen de Pagos Individuales</h2>
 
     <div class="summary-cards">
@@ -125,6 +158,48 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       try {
+        // Adding Payments Commitments
+        const res_compromisos = await fetch('/api/compromisos_pago');
+        const compromisos = await res_compromisos.json();
+        console.log('Compromisos: ', compromisos);
+        // Adding payments commitments cards
+        const container = document.getElementById('payments-commitment');
+        console.log(' logging: ', container);
+            // Limpiamos el contenedor por si tiene contenido estático previo
+            container.innerHTML = '';
+
+            compromisos.forEach(item => {
+              // Creamos el elemento de la tarjeta
+              const card = document.createElement('div');
+              //card.className = 'payment-card'; // Asegúrate de tener este estilo en tu CSS
+              card.className = 'card'; // Asegúrate de tener este estilo en tu CSS
+
+              // Formateamos el monto a moneda chilena
+              const montoCLP = new Intl.NumberFormat('es-CL', {
+                style: 'currency',
+                currency: 'CLP'
+              }).format(item.monto);
+
+              // Inyectamos el HTML de la tarjeta
+              card.innerHTML = `
+                <div class="card-header">
+                  <h3>${item.descripcion}</h3>
+                  <span class="tag-tipo">${item.tipo}</span>
+                </div>
+                <div class="card-body">
+                  <p class="monto-texto">Monto: <strong>${montoCLP}</strong></p>
+                  <p class="limite-texto">Límite: ${item.limite_maximo_por_cliente}</p>
+                </div>
+                <div class="card-footer">
+                  <button class="btn-pagar" onclick="iniciarPago('${item.id}')">
+                    Iniciar Pago  
+                  </button>
+                </div>
+              `;
+
+              container.appendChild(card);
+            });
+
         // Asumiendo que crearás esta ruta en server.js
         const response = await fetch('/api/estado_pago_cpa');
         const pagos = await response.json();
@@ -163,6 +238,13 @@
         console.error("Error cargando pagos:", error);
       }
     });
+
+    // Función de ejemplo para el botón de la tarjeta
+    function iniciarPago(idCompromiso) {
+      console.log('Iniciando proceso para:', idCompromiso);
+      // Aquí puedes redirigir a la pasarela o abrir un modal
+    }
+
   </script>
 </body>
 </html>

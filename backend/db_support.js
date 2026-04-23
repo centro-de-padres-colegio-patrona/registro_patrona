@@ -65,6 +65,17 @@ const userSchema = new mongoose.Schema({
     value: String,
   });
 
+  const compromisosPagoSchema = new mongoose.Schema({
+    id: String,
+    nombre: String,
+    descripcion: String,
+    monto: Number,
+    tipo: String,
+    limite_maximo_por_cliente: String,
+    clientes: Array,
+    beneficios: Array
+  });
+
   const hermanosMapSchema = new mongoose.Schema({
     id: String,
     nombre_familia: String,
@@ -172,3 +183,4 @@ module.exports.registroEntradasDB = mongoose.model('registro_entradas', registro
 module.exports.deliveryDB = mongoose.model('delivery_entradas', deliverySchema);
 module.exports.hermanosMapDB = mongoose.model('nombreHermanosMap', hermanosMapSchema, 'nombreHermanosMap');
 module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSchema, 'nombreCursoMap');
+module.exports.compromisosPagoDB = mongoose.model('compromisosPagoApoderados', compromisosPagoSchema, 'compromisosPagoApoderados');

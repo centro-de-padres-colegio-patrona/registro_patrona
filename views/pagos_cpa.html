@@ -126,16 +126,19 @@
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         // Asumiendo que crearás esta ruta en server.js
-        const response = await fetch('/api/mis_pagos_individuales');
-        const data = await response.json();
+        const response = await fetch('/api/estado_pago_cpa');
+        const pagos = await response.json();
+        console.log('/api/estado_pago_cpa: ', pagos);
 
         const tbody = document.getElementById('tabla-pagos-body');
         let pagadoAcumulado = 0;
         let pendienteAcumulado = 0;
 
-        data.pagos.forEach(pago => {
+        pagos.forEach(pago => {
           const row = document.createElement('tr');
-          
+          pago['estado'] = 'Pagado';
+          if ( pagos.metodo_pago === undefined || !pagos.metodo_pago )
+            pago['metodo_pago'] = '';
           // Formatear moneda
           const montoFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pago.monto);
           
@@ -143,10 +146,10 @@
           else pendienteAcumulado += pago.monto;
 
           row.innerHTML = `
-            <td>${pago.concepto}</td>
+            <td>${pago.tipo}</td>
             <td>${pago.fecha}</td>
             <td>${montoFormateado}</td>
-            <td>${pago.metodo}</td>
+            <td>${pago.metodo_pago}</td>
             <td><span class="status-pill ${pago.estado === 'Pagado' ? 'status-pagado' : 'status-pendiente'}">${pago.estado}</span></td>
           `;
           tbody.appendChild(row);

@@ -161,44 +161,55 @@
         // Adding Payments Commitments
         const res_compromisos = await fetch('/api/compromisos_pago');
         const compromisos = await res_compromisos.json();
-        console.log('Compromisos: ', compromisos);
+        //console.log('Compromisos: ', compromisos);
         // Adding payments commitments cards
         const container = document.getElementById('payments-commitment');
-        console.log(' logging: ', container);
-            // Limpiamos el contenedor por si tiene contenido estático previo
-            container.innerHTML = '';
+        //console.log(' logging: ', container);
+        // Limpiamos el contenedor por si tiene contenido estático previo
+        container.innerHTML = '';
 
-            compromisos.forEach(item => {
-              // Creamos el elemento de la tarjeta
-              const card = document.createElement('div');
-              //card.className = 'payment-card'; // Asegúrate de tener este estilo en tu CSS
-              card.className = 'card'; // Asegúrate de tener este estilo en tu CSS
+        compromisos.forEach(item => {
+          // 1. Creamos un grupo para el compromiso y sus beneficios
+          const group = document.createElement('div');
+          group.className = 'commitment-group';
 
-              // Formateamos el monto a moneda chilena
-              const montoCLP = new Intl.NumberFormat('es-CL', {
-                style: 'currency',
-                currency: 'CLP'
-              }).format(item.monto);
+          // 2. Creamos la tarjeta principal del compromiso
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.style.borderLeft = "5px solid #4A90E2";
+          
+          const montoFormateado = new Intl.NumberFormat('es-CL', { 
+            style: 'currency', 
+            currency: 'CLP' 
+          }).format(item.monto);
 
-              // Inyectamos el HTML de la tarjeta
-              card.innerHTML = `
-                <div class="card-header">
-                  <h3>${item.descripcion}</h3>
-                  <span class="tag-tipo">${item.tipo}</span>
-                </div>
-                <div class="card-body">
-                  <p class="monto-texto">Monto: <strong>${montoCLP}</strong></p>
-                  <p class="limite-texto">Límite: ${item.limite_maximo_por_cliente}</p>
-                </div>
-                <div class="card-footer">
-                  <button class="btn-pagar" onclick="iniciarPago('${item.id}')">
-                    Iniciar Pago  
-                  </button>
-                </div>
-              `;
+          card.innerHTML = `
+            <h3>${item.descripcion}</h3>
+            <div class="value">${montoFormateado}</div>
+            <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+            <button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+              Iniciar Pago
+            </button>
+          `;
+          
+          group.appendChild(card);
 
-              container.appendChild(card);
+          // 3. Si el compromiso tiene beneficios, los agregamos debajo
+          if (item.beneficios && item.beneficios.length > 0) {
+            item.beneficios.forEach(beneficio => {
+              const benefitCard = document.createElement('div');
+              benefitCard.className = 'benefit-card';
+              
+              // Ajusta 'beneficio.nombre' o 'beneficio.descripcion' según tu BD
+              const textoBeneficio = typeof beneficio === 'string' ? beneficio : (beneficio.descripcion || beneficio.nombre);
+              
+              benefitCard.innerHTML = `<span><strong>Beneficio:</strong> ${textoBeneficio}</span>`;
+              group.appendChild(benefitCard);
             });
+          }
+
+          container.appendChild(group);
+        });
 
         // Asumiendo que crearás esta ruta en server.js
         const response = await fetch('/api/estado_pago_cpa');

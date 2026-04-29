@@ -3,10 +3,18 @@ const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+const CryptoJS = require("crypto-js");
+
+const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
+const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
+
+const FlowApi = require('./flow_api');
+const flow = new FlowApi();
 
 const { genEntrada, genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 
+const BASEURL = 'http://localhost:5001';
 
 const nodemailer = require('nodemailer');
 const cors = require('cors');
@@ -879,6 +887,73 @@ app.get('/ingreso_manual.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'ingreso_manual.html'));
 });
 
+app.post('/api/boton_pago_compromiso', async (req, res) => {
+  try {
+    const {compromiso_key, user_email} = req.body;
+    const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
+    const {monto} = compromiso_pago;
+    console.log('compromiso pago: ', compromiso_pago);
+    console.log('monto: ', monto);
+    optional = {
+      rut: "9999999-9",
+      otroDato: "otroDato"
+    };
+
+    const params = {
+      commerceOrder: 1111,
+      subject: compromiso_key,
+      currency: 'CLP',
+      amount: String(monto),
+      email: user_email,
+      //paymentMethod: 9,
+      urlConfirmation: BASEURL + '/api/payments/confirm',
+      urlReturn: BASEURL + '/api/payments/result',
+      optional: JSON.stringify(optional)
+      //apiKey: flow_api_key,
+    };
+
+    /*keys = Object.keys(params);
+    keys.sort();
+    let stringToSign = '';
+    keys.forEach(key => {
+      stringToSign += key + params[key];
+    });
+    console.log('stringToSign', stringToSign);
+    const sign = CryptoJS.HmacSHA256(stringToSign, flow_secret_key);
+    params['s'] = sign;
+
+    console.log('params: ', params);
+    //let url = 'https://www.flow.cl/api';
+    let url = 'https://sandbox.flow.cl/api';
+    service = '/payment/create';
+    url = url + service;
+    url = url + '?' + encodeURIComponent(sign);
+    //const raw_response = await fetch(url);
+    const raw_response = await fetch(url , {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });*/
+
+    //const response = await raw_response.json();
+    const simpleParams = {apiKey: flow_api_key};
+    const sgn = flow.sign(simpleParams);
+    simpleParams.s = sgn;
+    console.log('simpleParams: ', simpleParams);
+
+    const response = await flow.send("payment/create", params, "POST");
+
+    console.log('Flow Response: ', response);
+    if ( response.code === 200 )
+      return res.status(200).json({ data: `pago efectuado ${user_email}` });
+    else
+      return res.status(400).json({ error: 'Error al efectuar el pago: ' + response });
+  } catch (error) {
+    console.error("Error al enviar:", error);
+    return res.status(400).json({ error: 'Error al efectuar el pago: ' + error });
+  }
+
+});
 
 app.post('/api/send_email_entradas', async (req, res) => {
   const {email_destinatario} = req.body;

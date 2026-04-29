@@ -169,6 +169,11 @@
         container.innerHTML = '';
 
         compromisos.forEach(item => {
+          const compromiso_status = verificarVigencia(item.start_date, item.stop_date);
+
+          if ( compromiso_status === 'inactivo') 
+            return;
+
           // 1. Creamos un grupo para el compromiso y sus beneficios
           const group = document.createElement('div');
           group.className = 'commitment-group';
@@ -183,15 +188,25 @@
             currency: 'CLP' 
           }).format(item.monto);
 
-          card.innerHTML = `
-            <h3>${item.descripcion}</h3>
-            <div class="value">${montoFormateado}</div>
-            <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
-            <button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
-              Iniciar Pago
-            </button>
-          `;
-          
+          if (compromiso_status === 'activo') {
+            card.innerHTML = `
+              <h3>${item.descripcion}</h3>
+              <div class="value">${montoFormateado}</div>
+              <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+              <button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+                Iniciar Pago
+              </button>
+            `;
+          } else {
+            card.innerHTML = `
+              <h3>${item.descripcion}</h3>
+              <div class="value">Terminado</div>
+              <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+              <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+                Iniciar Pago
+              </button-->
+            `;
+          }
           group.appendChild(card);
 
           // 3. Si el compromiso tiene beneficios, los agregamos debajo
@@ -254,6 +269,32 @@
     function iniciarPago(idCompromiso) {
       console.log('Iniciando proceso para:', idCompromiso);
       // Aquí puedes redirigir a la pasarela o abrir un modal
+    }
+
+    function verificarVigencia(startDateStr, stopDateStr) {
+      try {
+        const ahora = new Date(); // Fecha y hora actual
+        
+        // Convertir strings a objetos Date
+        const startDate = startDateStr ? new Date(startDateStr) : undefined;
+        const stopDate = stopDateStr ? new Date(stopDateStr) : undefined;
+
+        // Verificación 1: start_date <= ahora
+        const iniciado = startDate === undefined ? true : startDate <= ahora;
+        
+        // Verificación 2: stop_date > ahora (mayor estricto)
+        const terminado = stopDate === undefined ? false : stopDate < ahora;
+
+        let status = iniciado? 'activo': 'inactivo'
+        status = terminado? 'finalizado': status;
+
+        console.log({ahora, stopDate, 'stopDate > ahora': stopDate > ahora, terminado, status});
+
+        return status;
+      } catch (error) {
+        console.error('Error in verificarVigencia: ', error)
+        throw (error);
+      }
     }
 
   </script>

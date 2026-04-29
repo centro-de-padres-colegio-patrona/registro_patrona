@@ -889,9 +889,12 @@ app.get('/ingreso_manual.html', (req, res) => {
 
 app.post('/api/boton_pago_compromiso', async (req, res) => {
   try {
-    const {compromiso_key, user_email} = req.body;
+    let {compromiso_key, user_email} = req.body;
     const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
     const {monto} = compromiso_pago;
+    if ( user_email === undefined || user_email === null) 
+      user_email = req.user.emails[0].value;
+    console.log('email: ', user_email);
     console.log('compromiso pago: ', compromiso_pago);
     console.log('monto: ', monto);
     optional = {
@@ -912,40 +915,17 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       //apiKey: flow_api_key,
     };
 
-    /*keys = Object.keys(params);
-    keys.sort();
-    let stringToSign = '';
-    keys.forEach(key => {
-      stringToSign += key + params[key];
-    });
-    console.log('stringToSign', stringToSign);
-    const sign = CryptoJS.HmacSHA256(stringToSign, flow_secret_key);
-    params['s'] = sign;
-
-    console.log('params: ', params);
-    //let url = 'https://www.flow.cl/api';
-    let url = 'https://sandbox.flow.cl/api';
-    service = '/payment/create';
-    url = url + service;
-    url = url + '?' + encodeURIComponent(sign);
-    //const raw_response = await fetch(url);
-    const raw_response = await fetch(url , {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params)
-    });*/
-
-    //const response = await raw_response.json();
-    const simpleParams = {apiKey: flow_api_key};
+    /*const simpleParams = {apiKey: flow_api_key};
     const sgn = flow.sign(simpleParams);
     simpleParams.s = sgn;
-    console.log('simpleParams: ', simpleParams);
+    console.log('simpleParams: ', simpleParams);*/
 
     const response = await flow.send("payment/create", params, "POST");
+    response.params = params;
 
     console.log('Flow Response: ', response);
-    if ( response.code === 200 )
-      return res.status(200).json({ data: `pago efectuado ${user_email}` });
+    if ( response.code === undefined && response.token !== undefined && response.url !== undefined && response.flowOrder !== undefined)
+      return res.status(200).json(response);
     else
       return res.status(400).json({ error: 'Error al efectuar el pago: ' + response });
   } catch (error) {

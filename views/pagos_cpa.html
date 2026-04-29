@@ -266,9 +266,32 @@
     });
 
     // Función de ejemplo para el botón de la tarjeta
-    function iniciarPago(idCompromiso) {
-      console.log('Iniciando proceso para:', idCompromiso);
+    async function iniciarPago(idCompromiso) {
+      console.log('Iniciando proceso de pago para:', idCompromiso);
       // Aquí puedes redirigir a la pasarela o abrir un modal
+
+      const key = 'compromiso_key';
+      const compromiso_key = idCompromiso;
+      //const user_email = 'l.herreramena@gmail.com';
+      try{
+        const response_raw = await fetch('/api/boton_pago_compromiso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ compromiso_key })
+        });
+        response = await response_raw.json();
+        const  {token, url, flowOrder, code, message} = response;
+        console.log('Retorno de Flow: ', response);
+        if (code === undefined && url !== undefined && token !== undefined && flowOrder) {
+          // Redirecionar a url + "?token=" + token
+          console.log('Redireccionando hacia ', url + "?token=" + token);
+        } else {
+          console.error('Error from /api/boton_pago_compromiso: ', message)
+        }
+      } catch(err){
+        console.error('Botón inicio pago: Error:', err);
+      };
+      
     }
 
     function verificarVigencia(startDateStr, stopDateStr) {

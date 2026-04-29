@@ -3,10 +3,11 @@ const test_result_array = {};
 
 async function lauch_test_api(delay_ms = 500) {
   console.log('Launching Api Test...');
-    setTimeout(test_api_curso, delay_ms);
+    /*setTimeout(test_api_curso, delay_ms);
     setTimeout(test_api_email_update, delay_ms);
     setTimeout(test_api_pagos_cpa, delay_ms);
-    setTimeout(test_api_compromisos_pago, delay_ms);
+    setTimeout(test_api_compromisos_pago, delay_ms);*/
+    setTimeout(test_api_pago_compromiso, delay_ms);
 }
 
 async function log_result(tag, result) {
@@ -50,7 +51,7 @@ async function test_api_compromisos_pago() {
   const user_email = 'l.herreramena@gmail.com';
   try {
     const result = await test_api_get(tag, url, key, user_email, result => { 
-      console.log('test /api/compromisos_pago: ', result);
+      //console.log('test /api/compromisos_pago: ', result);
       if (result === undefined || result === null) {
         log_result(tag, 'fail');
       } else {
@@ -108,5 +109,28 @@ async function test_api_email_update() {
     log_result(tag, 'fail');
   }
 }
+
+async function test_api_pago_compromiso() {
+  const tag = 'test /api/boton_pago_compromiso';
+  const compromiso_key = 'cuota_cpa';
+  const user_email = 'l.herreramena@gmail.com';
+  try {
+    const result = await fetch('http://localhost:5001/api/boton_pago_compromiso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ compromiso_key, user_email })
+    });
+    //console.log('Test Result: ', result);
+    if (result.status === 200) {
+      log_result(tag, 'pass');
+    } else {
+      log_result(tag, 'fail');  
+    }
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 module.exports.lauch_test_api = lauch_test_api;

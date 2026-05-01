@@ -120,6 +120,29 @@ const cursoSchema = new mongoose.Schema({
   bloque: Object,
 });
 
+const commerceSchema = new mongoose.Schema({
+  apiKey: String,
+  commerceOrder: String,
+  currency: String,
+  amount: Number,
+  email: String,
+  paymentMethod: Number,
+  urlConfirmation: String,
+  urlReturn: String,
+  optional: String,
+  timeout: Number,
+  checkout_timeout: Number,
+  merchantId: String,
+  payment_currency: String,
+  timestamp: String,
+  timeout: Number,
+  merchantId: String,
+  sign: String,
+  token: String,
+  url: String,
+  flowOrder: String,
+});
+
 const pagosSchema = new mongoose.Schema({
   id: String,
   num_folio: Number,
@@ -131,6 +154,8 @@ const pagosSchema = new mongoose.Schema({
   fecha: String,
   comentarios: String,
   entradas_pagadas: Number,
+  payment_method: String,
+  commerce_order: String,
 });
 
 /// --------------------------------------
@@ -154,6 +179,19 @@ const registroEntradasSchema = new mongoose.Schema({
   id: String,
   registros: Object,
 });
+
+const commerceOrderSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true }, // Ejemplo: 'pagos_flow'
+  secuencia: { type: Number, default: 0 }
+});
+
+/*const CommerceOrders = mongoose.model('CommerceOrders', commerceOrderSchema);
+
+module.exports = {
+  // ... tus otros modelos (pagosDB, compromisosPagoDB, etc.)
+  paymentOrdersDB: mongoose.model('PaymentOrders', paymentOrderSchema), 
+  commerceOrderDB: CommerceOrders 
+};*/
 
 //const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
 const db_password = 'tPyw2Cvb2Hco8HM3'
@@ -184,3 +222,5 @@ module.exports.deliveryDB = mongoose.model('delivery_entradas', deliverySchema);
 module.exports.hermanosMapDB = mongoose.model('nombreHermanosMap', hermanosMapSchema, 'nombreHermanosMap');
 module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSchema, 'nombreCursoMap');
 module.exports.compromisosPagoDB = mongoose.model('compromisosPagoApoderados', compromisosPagoSchema, 'compromisosPagoApoderados');
+module.exports.paymentOrdersDB = mongoose.model('paymentOrders', commerceSchema, 'paymentOrders');
+module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderSchema, 'CommerceOrders');

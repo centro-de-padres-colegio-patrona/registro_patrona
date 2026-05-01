@@ -3,11 +3,11 @@ const test_result_array = {};
 
 async function lauch_test_api(delay_ms = 500) {
   console.log('Launching Api Test...');
-    /*setTimeout(test_api_curso, delay_ms);
+    setTimeout(test_api_curso, delay_ms);
     setTimeout(test_api_email_update, delay_ms);
     setTimeout(test_api_pagos_cpa, delay_ms);
-    setTimeout(test_api_compromisos_pago, delay_ms);*/
-    setTimeout(test_api_pago_compromiso, delay_ms);
+    setTimeout(test_api_compromisos_pago, delay_ms);
+    //setTimeout(test_api_pago_compromiso, delay_ms);
 }
 
 async function log_result(tag, result) {
@@ -114,11 +114,14 @@ async function test_api_pago_compromiso() {
   const tag = 'test /api/boton_pago_compromiso';
   const compromiso_key = 'cuota_cpa';
   const user_email = 'l.herreramena@gmail.com';
+  const nombre = 'Leonardo Cristian Herrera Messina';
+  const rut = '20.123.456-7';
+  const telefono = '+56912345678';
   try {
     const result = await fetch('http://localhost:5001/api/boton_pago_compromiso', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ compromiso_key, user_email })
+      body: JSON.stringify({ compromiso_key, user_email, nombre, rut, telefono, test: true })
     });
     //console.log('Test Result: ', result);
     if (result.status === 200) {

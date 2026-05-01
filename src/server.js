@@ -890,7 +890,7 @@ app.get('/ingreso_manual.html', (req, res) => {
 
 app.post('/api/boton_pago_compromiso', async (req, res) => {
   try {
-    let {compromiso_key, user_email, nombre, rut, telefono} = req.body;
+    let {compromiso_key, user_email, nombre, rut, telefono, test = false} = req.body;
     const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
     const {monto} = compromiso_pago;
     if ( user_email === undefined || user_email === null) 
@@ -919,7 +919,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       urlReturn: BASEURL + '/api/payments/result',
       optional: JSON.stringify(optional)
     };*/
-    const params_post = await fetch('/api/generate_payment_order', {
+    /*const params_post = await fetch('/api/generate_payment_order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -929,7 +929,8 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
         optional: optional
       })
     });
-    const params = await params_post.json();
+    const params = await params_post.json();*/
+    const params = await generatePaymentOrder(monto, compromiso_key, user_email, optional);
 
     const response = await flow.send("payment/create", params, "POST");
     const {allParams} = response;
@@ -940,7 +941,8 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     );
     console.log('Commerce Order Update Result: ', commerceOrderUpdateResult);
     console.log('Flow Response: ', response);
-    if ( response.code === undefined && response.token !== undefined && response.url !== undefined && response.flowOrder !== undefined)
+    const {payment_create_response} = response;
+    if ( payment_create_response.code === undefined && payment_create_response.token !== undefined && payment_create_response.url !== undefined && payment_create_response.flowOrder !== undefined)
       return res.status(200).json(response);
     else
       return res.status(400).json({ error: 'Error al efectuar el pago: ' + response });
@@ -978,11 +980,10 @@ async function getNextCorrelativeCommerceOrder() {
   return commerceOrder.secuencia;
 }
 
-app.post('/api/generate_payment_order', async (req, res) => {
+async function generatePaymentOrder(amount, subject, email, optional) {
   try {
-    const { amount, subject, email, optional } = req.body;
     const commerceOrder = await getNextCorrelativeCommerceOrder();
-    console.log(`[/api/generate_payment_order] amount: ${amount}, subject: ${subject}, email: ${email}`);
+    console.log(`[generatePaymentOrder] amount: ${amount}, subject: ${subject}, email: ${email}`);
     const paymentOrder = {
       commerceOrder: commerceOrder,
       subject: subject,
@@ -995,10 +996,25 @@ app.post('/api/generate_payment_order', async (req, res) => {
     };
     const resp = await db_support.paymentOrdersDB.create(paymentOrder);
     if (!resp) {
-      console.error(`[/api/generate_payment_order] Error al guardar la orden de pago en la base de datos. No se puede generar la orden de pago.`);
-      return res.status(500).json({ error: 'Error al generar la orden de pago' });
+      console.error(`[generatePaymentOrder] Error al guardar la orden de pago en la base de datos. No se puede generar la orden de pago.`);
+      //return res.status(500).json({ error: 'Error al generar la orden de pago' });
+      throw new Error({ message: 'Error al generar la orden de pago', status: 500 });
     }
-    console.log(`[/api/generate_payment_order] order: ${JSON.stringify(paymentOrder)}`);
+    console.log(`[generatePaymentOrder] order: ${JSON.stringify(paymentOrder)}`);
+    return paymentOrder;
+  } catch (error) {
+    console.error(`[generatePaymentOrder] Error al generar la orden de pago:`, error);
+    throw new Error({
+      error: 'Error interno del servidor',
+      detalle: error.message,
+    });
+  }
+}
+app.post('/api/generate_payment_order', async (req, res) => {
+  try {
+    const { amount, subject, email, optional } = req.body;
+    console.log(`[/api/generate_payment_order] amount: ${amount}, subject: ${subject}, email: ${email}`);
+    const paymentOrder = await generatePaymentOrder(amount, subject, email, optional);
     res.json(paymentOrder);
   } catch (error) {
     console.error(`[/api/generate_payment_order] Error al generar la orden de pago:`, error);

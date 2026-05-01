@@ -14,7 +14,8 @@ const flow = new FlowApi();
 const { genEntrada, genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 
-const BASEURL = 'http://localhost:5001';
+//const BASEURL = 'http://localhost:5001';
+const BASEURL = 'https://unloving-cusp-canning.ngrok-free.dev';
 
 const nodemailer = require('nodemailer');
 const cors = require('cors');
@@ -889,40 +890,55 @@ app.get('/ingreso_manual.html', (req, res) => {
 
 app.post('/api/boton_pago_compromiso', async (req, res) => {
   try {
-    let {compromiso_key, user_email} = req.body;
+    let {compromiso_key, user_email, nombre, rut, telefono} = req.body;
     const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
     const {monto} = compromiso_pago;
     if ( user_email === undefined || user_email === null) 
       user_email = req.user.emails[0].value;
     console.log('email: ', user_email);
+    console.log('compromiso_key: ', compromiso_key);
+    console.log('nombre: ', nombre);
+    console.log('rut: ', rut);
+    console.log('telefono: ', telefono);
     console.log('compromiso pago: ', compromiso_pago);
     console.log('monto: ', monto);
     optional = {
-      rut: "9999999-9",
-      otroDato: "otroDato"
+      rut: rut || "9999999-9",
+      nombre: nombre || "Unknown",
+      telefono: telefono || "",
+      otroDato: "sin datos adicionales"
     };
 
-    const params = {
+    /*const params = {
       commerceOrder: 1111,
       subject: compromiso_key,
       currency: 'CLP',
       amount: String(monto),
       email: user_email,
-      //paymentMethod: 9,
       urlConfirmation: BASEURL + '/api/payments/confirm',
       urlReturn: BASEURL + '/api/payments/result',
       optional: JSON.stringify(optional)
-      //apiKey: flow_api_key,
-    };
-
-    /*const simpleParams = {apiKey: flow_api_key};
-    const sgn = flow.sign(simpleParams);
-    simpleParams.s = sgn;
-    console.log('simpleParams: ', simpleParams);*/
+    };*/
+    const params_post = await fetch('/api/generate_payment_order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: compromiso_key,
+        email: user_email,
+        amount: monto,
+        optional: optional
+      })
+    });
+    const params = await params_post.json();
 
     const response = await flow.send("payment/create", params, "POST");
-    response.params = params;
-
+    const {allParams} = response;
+    commerceOrderUpdateResult = await db_support.paymentOrdersDB.findOneAndUpdate(
+      { commerceOrder: allParams.commerceOrder },
+      { $set: allParams },
+      { returnDocument: 'after' }
+    );
+    console.log('Commerce Order Update Result: ', commerceOrderUpdateResult);
     console.log('Flow Response: ', response);
     if ( response.code === undefined && response.token !== undefined && response.url !== undefined && response.flowOrder !== undefined)
       return res.status(200).json(response);
@@ -933,6 +949,138 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     return res.status(400).json({ error: 'Error al efectuar el pago: ' + error });
   }
 
+});
+
+/*async function generarSiguienteCommerceOrder() {
+  // Buscamos el último registro ordenado por commerceOrder de forma descendente[cite: 4]
+  const lastOrder = await db_support.pagosDB.findOne({}, { sort: { commerceOrder: -1 } });
+  
+  let siguienteNumero = 1;
+  
+  if (lastOrder && lastOrder.commerceOrder) {
+    // Asumiendo que commerceOrder es un número. 
+    // Si es un string como "CPA-100", necesitarías usar regex para extraer el número.
+    siguienteNumero = parseInt(lastOrder.commerceOrder) + 1;
+  }
+  
+  return siguienteNumero;
+}*/
+async function getNextCorrelativeCommerceOrder() {
+  const commerceOrder = await db_support.commerceOrderDB.findOneAndUpdate(
+    { id: "pagos_flow" }, 
+    { $inc: { secuencia: 1 } }, 
+    { 
+      upsert: true,     // Si no existe el documento, lo crea
+      new: true,        // Retorna el documento actualizado
+      returnDocument: 'after' 
+    }
+  );
+  return commerceOrder.secuencia;
+}
+
+app.post('/api/generate_payment_order', async (req, res) => {
+  try {
+    const { amount, subject, email, optional } = req.body;
+    const commerceOrder = await getNextCorrelativeCommerceOrder();
+    console.log(`[/api/generate_payment_order] amount: ${amount}, subject: ${subject}, email: ${email}`);
+    const paymentOrder = {
+      commerceOrder: commerceOrder,
+      subject: subject,
+      currency: 'CLP',
+      amount: parseInt(amount),
+      email: email,
+      urlConfirmation: BASEURL + '/api/payments/confirm',
+      urlReturn: BASEURL + '/api/payments/result',
+      optional: JSON.stringify(optional)
+    };
+    const resp = await db_support.paymentOrdersDB.create(paymentOrder);
+    if (!resp) {
+      console.error(`[/api/generate_payment_order] Error al guardar la orden de pago en la base de datos. No se puede generar la orden de pago.`);
+      return res.status(500).json({ error: 'Error al generar la orden de pago' });
+    }
+    console.log(`[/api/generate_payment_order] order: ${JSON.stringify(paymentOrder)}`);
+    res.json(paymentOrder);
+  } catch (error) {
+    console.error(`[/api/generate_payment_order] Error al generar la orden de pago:`, error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      detalle: error.message,
+    });
+  }
+}
+);
+
+app.get('/api/payments/confirm', async (req, res) => {
+  console.log('GET /api/payments/confirm - Esto es una prueba');
+  res.status(200).send('Test Request');
+});
+
+// Flow enviará un POST a esta ruta con el token del pago
+app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async (req, res) => {
+  try {
+    const { token } = req.body;
+    console.log('Recibida confirmación de Flow para el token:', token);
+
+    // 1. Consultar el estado real del pago en Flow
+    const result = await flow.send("payment/getStatus", { token }, "GET");
+
+    if (result.status === 2) { // Estado 2 es "Pagado" en Flow
+      console.log('Pago confirmado exitosamente:', result.commerceOrder);
+      
+      // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
+      // Ejemplo: buscar al usuario/estudiante y marcar el compromiso como pagado
+      /*const emailPagador = result.payer;
+      const concepto = result.subject; // 'cuota_cpa' por ejemplo
+      
+      await db_support.pagosDB.updateOne(
+        { email: emailPagador, 'pagos.id': concepto },
+        { $set: { 'pagos.$.estado': 'Pagado', 'pagos.$.fecha': new Date().toLocaleDateString() } }
+      );*/
+    } else {
+      console.error('Hubo un problema con el pago: ', result);
+    }
+
+    // SIEMPRE responder con un 200 para que Flow sepa que recibiste la notificación
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Error en confirmación de pago:', error);
+    res.status(500).send('Error');
+  }
+});
+
+// Flow redirige al usuario aquí mediante POST
+app.post('/api/payments/result', express.urlencoded({ extended: true }), async (req, res) => {
+  const url_panel_usuario = path.join(__dirname, '../views', 'panel_usuario.html');
+  try {
+    const { token } = req.body;
+    
+    // Consultamos el estado para mostrar un mensaje personalizado
+    const result = await flow.send("payment/getStatus", { token }, "GET");
+    
+    // Renderizamos una vista con el resultado
+    // Puedes crear un 'resultado_pago.ejs' o redirigir al panel con un mensaje
+    let mensaje = "";
+    let exito = false;
+
+    if (result.status === 2) {
+      mensaje = "¡Tu pago ha sido procesado con éxito!";
+      exito = true;
+    } else if (result.status === 1) {
+      mensaje = "Tu pago aún está pendiente de confirmación.";
+    } else {
+      mensaje = "El pago no pudo ser procesado o fue cancelado.";
+    }
+
+    console.log('Resultado del pago:', result);
+    console.log('Mensaje para el usuario:', mensaje);
+    const forwarding = `${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`;
+    console.log('Redirigiendo al panel de usuario con mensaje...', forwarding);
+    // Opción A: Redirigir de vuelta al panel con parámetros
+    res.redirect(`${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`);
+    
+  } catch (error) {
+    res.redirect(`${url_panel_usuario}?status=error&msg=Error al verificar el estado del pago`);
+  }
 });
 
 app.post('/api/send_email_entradas', async (req, res) => {

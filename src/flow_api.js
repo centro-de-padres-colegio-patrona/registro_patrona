@@ -65,7 +65,12 @@ class FlowApi {
         const url = `${this.apiUrl}/${service}`;
         
         // Agregar apiKey a los parámetros y firmar
-        const allParams = { apiKey: this.apiKey, ...params };
+        const allParams = { 
+            apiKey: this.apiKey, 
+            paymentMethod:9, 
+            timeout: 900,
+            merchantId: 'colegio-patrona-registro',
+            ...params };
         allParams.s = this.sign(allParams);
 
         console.log('send params: ', allParams);
@@ -85,8 +90,8 @@ class FlowApi {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 });
             }
-
-            return response.data;
+            
+            return { payment_create_response: response.data, status: response.status, statusText: response.statusText, allParams };
 
         } catch (error) {
             if (error.response) {

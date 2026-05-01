@@ -90,8 +90,10 @@ class FlowApi {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 });
             }
-            
-            return { payment_create_response: response.data, status: response.status, statusText: response.statusText, allParams };
+            //Concatenar la respuesta con los parámetros enviados para tener un registro completo
+            allParams = {...allParams, ...response.data, status: response.status, statusText: response.statusText};
+            //return { payment_create_response: response.data, status: response.status, statusText: response.statusText, allParams };
+            return allParams;
 
         } catch (error) {
             if (error.response) {

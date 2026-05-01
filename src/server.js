@@ -932,20 +932,20 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     const params = await params_post.json();*/
     const params = await generatePaymentOrder(monto, compromiso_key, user_email, optional);
 
-    const response = await flow.send("payment/create", params, "POST");
-    const {allParams} = response;
+    const allParams = await flow.send("payment/create", params, "POST");
+    //const {allParams} = response;
     commerceOrderUpdateResult = await db_support.paymentOrdersDB.findOneAndUpdate(
       { commerceOrder: allParams.commerceOrder },
       { $set: allParams },
       { returnDocument: 'after' }
     );
     console.log('Commerce Order Update Result: ', commerceOrderUpdateResult);
-    console.log('Flow Response: ', response);
-    const {payment_create_response} = response;
-    if ( payment_create_response.code === undefined && payment_create_response.token !== undefined && payment_create_response.url !== undefined && payment_create_response.flowOrder !== undefined)
-      return res.status(200).json(response);
+    console.log('Flow Response: ', allParams);
+    //const {code} = allParams;
+    if ( allParams.code === undefined && allParams.token !== undefined && allParams.url !== undefined && allParams.flowOrder !== undefined)
+      return res.status(200).json(allParams);
     else
-      return res.status(400).json({ error: 'Error al efectuar el pago: ' + response });
+      return res.status(400).json({ error: 'Error al efectuar el pago: ' + allParams.message });
   } catch (error) {
     console.error("Error al enviar:", error);
     return res.status(400).json({ error: 'Error al efectuar el pago: ' + error });

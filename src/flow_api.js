@@ -65,33 +65,33 @@ class FlowApi {
         const url = `${this.apiUrl}/${service}`;
         
         // Agregar apiKey a los parámetros y firmar
-        const allParams = { 
+        const signedParams = { 
             apiKey: this.apiKey, 
             paymentMethod:9, 
             timeout: 900,
             merchantId: 'colegio-patrona-registro',
             ...params };
-        allParams.s = this.sign(allParams);
+        signedParams.s = this.sign(signedParams);
 
-        console.log('send params: ', allParams);
+        console.log('send params: ', signedParams);
         try {
             let response;
 
             if (method === "GET") {
                 // En GET usamos query strings
-                response = await axios.get(url, { params: allParams });
+                response = await axios.get(url, { params: signedParams });
             } else {
                 // En POST, Flow espera x-www-form-urlencoded
-                const formData = querystring.stringify(allParams);
+                const formData = querystring.stringify(signedParams);
                 console.log('formData: ', formData);
-                const body = new URLSearchParams(allParams).toString();
+                const body = new URLSearchParams(signedParams).toString();
                 console.log('body: ', body);
                 response = await axios.post(url, body /*formData*/, {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 });
             }
             //Concatenar la respuesta con los parámetros enviados para tener un registro completo
-            allParams = {...allParams, ...response.data, status: response.status, statusText: response.statusText};
+            const allParams = {...signedParams, ...response.data, status: response.status, statusText: response.statusText};
             //return { payment_create_response: response.data, status: response.status, statusText: response.statusText, allParams };
             return allParams;
 

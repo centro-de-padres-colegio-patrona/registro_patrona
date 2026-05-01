@@ -1,0 +1,5 @@
+version: "2"
+tunnels:
+  mi-servicio:
+    proto: http
+    addr: 5001

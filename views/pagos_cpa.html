@@ -178,14 +178,14 @@
       })
       .then(user => {
         currentUser = user.user;
-        console.log('Datos del usuario:', user); // Útil para debugging
+        console.log('Datos del usuario:', currentUser); // Útil para debugging
         
         //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
         user_email = currentUser.email && currentUser.email.trim() !== "" 
             ? currentUser.email 
             : "";
 
-        console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
+        console.log(`[/api/user] correo: ${user_email}`);
         //document.getElementById("correoUsuario").value = correo;
         // Obtener información del padre
         if (currentUser.padres && currentUser.padres.length > 0) {

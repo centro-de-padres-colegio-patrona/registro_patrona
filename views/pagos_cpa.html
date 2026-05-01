@@ -156,6 +156,7 @@
   </div>
 
   <script>
+    let user_email = '';
     let currentUser = {
       hijos: [],
       padres: []
@@ -180,7 +181,7 @@
         console.log('Datos del usuario:', user); // Útil para debugging
         
         //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
-        const user_email = currentUser.email && currentUser.email.trim() !== "" 
+        user_email = currentUser.email && currentUser.email.trim() !== "" 
             ? currentUser.email 
             : "";
 
@@ -335,9 +336,9 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ compromiso_key, user_email, nombre: parent_name, rut: parentInfo ? parentInfo.rut : 'unknown', telefono: parentInfo ? parentInfo.telefono : '' })
         });
-        response = await response_raw.json();
-        const  {token, url, flowOrder, code, message} = response;
-        console.log('Retorno de Flow: ', response);
+        allParams = await response_raw.json();
+        const  {token, url, flowOrder, code, message} = allParams;
+        console.log('Retorno de Flow: ', allParams);
         if (code === undefined && url !== undefined && token !== undefined && flowOrder) {
           // Redirecionar a url + "?token=" + token
           console.log('Redireccionando hacia la página de pago de Flow ', url + "?token=" + token);

@@ -1027,7 +1027,7 @@ app.post('/api/generate_payment_order', async (req, res) => {
 );
 
 app.get('/api/payments/confirm', async (req, res) => {
-  console.log('GET /api/payments/confirm - Esto es una prueba');
+  console.log('[/api/payments/confirm] GET - Esto es una prueba');
   res.status(200).send('Test Request');
 });
 
@@ -1035,13 +1035,14 @@ app.get('/api/payments/confirm', async (req, res) => {
 app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async (req, res) => {
   try {
     const { token } = req.body;
-    console.log('Recibida confirmación de Flow para el token:', token);
+    console.log('[/api/payments/confirm] Recibida confirmación de Flow para el token:', token);
 
     // 1. Consultar el estado real del pago en Flow
+    console.log('[/api/payments/confirm] Consultando estado del pago en Flow...');
     const result = await flow.send("payment/getStatus", { token }, "GET");
-
-    if (result.status === 2) { // Estado 2 es "Pagado" en Flow
-      console.log('Pago confirmado exitosamente:', result.commerceOrder);
+    console.log('[/api/payments/confirm] Resultado:', result);
+    if (result.status === 200) { // Estado 2 es "Pagado" en Flow
+      console.log('[/api/payments/confirm] Pago confirmado exitosamente:', result.commerceOrder);
       
       // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
       // Ejemplo: buscar al usuario/estudiante y marcar el compromiso como pagado
@@ -1053,13 +1054,13 @@ app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async 
         { $set: { 'pagos.$.estado': 'Pagado', 'pagos.$.fecha': new Date().toLocaleDateString() } }
       );*/
     } else {
-      console.error('Hubo un problema con el pago: ', result);
+      console.error('[/api/payments/confirm] Hubo un problema con el pago: ', result);
     }
 
     // SIEMPRE responder con un 200 para que Flow sepa que recibiste la notificación
     res.status(200).send('OK');
   } catch (error) {
-    console.error('Error en confirmación de pago:', error);
+    console.error('[/api/payments/confirm] Error en confirmación de pago:', error);
     res.status(500).send('Error');
   }
 });
@@ -1087,14 +1088,15 @@ app.post('/api/payments/result', express.urlencoded({ extended: true }), async (
       mensaje = "El pago no pudo ser procesado o fue cancelado.";
     }
 
-    console.log('Resultado del pago:', result);
-    console.log('Mensaje para el usuario:', mensaje);
+    console.log('[/api/payments/result] Resultado del pago:', result);
+    console.log('[/api/payments/result] Mensaje para el usuario:', mensaje);
     const forwarding = `${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`;
-    console.log('Redirigiendo al panel de usuario con mensaje...', forwarding);
+    console.log('[/api/payments/result] Redirigiendo al panel de usuario con mensaje...', forwarding);
     // Opción A: Redirigir de vuelta al panel con parámetros
     res.redirect(`${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`);
     
   } catch (error) {
+    console.error('[/api/payments/result] Error al verificar el estado del pago:', error);
     res.redirect(`${url_panel_usuario}?status=error&msg=Error al verificar el estado del pago`);
   }
 });

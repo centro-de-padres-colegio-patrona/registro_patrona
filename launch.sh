@@ -3,8 +3,10 @@
 set -x
 set -e
 
-ngrok service install --config /ruta/a/tu/ngrok.yml
-ngrok service start
+ROOT_PATH=$(dirname "$(readlink -f "$BASH_SOURCE")")
+
+$ROOT_PATH/ngrok_launch_service.sh
+
 
 #node index.js
 yarn start

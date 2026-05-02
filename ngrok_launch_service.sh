@@ -20,15 +20,26 @@ if systemctl list-unit-files | grep -q "^$SERVICE_NAME.service"; then
         echo "[✔] El servicio ya está en ejecución. No hay nada que hacer."
     else
         echo "[!] El servicio existe pero está detenido. Arrancando..."
-        sudo ngrok service start
+        #ngrok service start
+        systemctl restart ngrok
     fi
 else
     echo "[+] El servicio no está instalado. Procediendo con la instalación..."
     
     # 3. Validar si el archivo de configuración existe antes de instalar
     if [ -f "$CONFIG_PATH" ]; then
-        sudo ngrok service install --config "$CONFIG_PATH"
-        sudo ngrok service start
+        NGROK_SERVICE_PATH=/etc/systemd/system
+        if [ ! -f "$NGROK_SERVICE_FILEPATH" ]; then
+            # Copiar el archivo de servicio y el script de ejecución a la ubicación adecuada
+            sudo cp $ROOT_PATH/ngrok.service $NGROK_SERVICE_PATH/
+        fi
+        mkdir -p /etc/ngrok
+        if [ ! -f "$/etc/ngrok/ngrok_exec.sh" ]; then
+            sudo cp $ROOT_PATH/ngrok_exec.sh /etc/ngrok/
+        fi
+        systemctl daemon-reload
+        systemctl enable ngrok
+        systemctl start ngrok
         echo "[✔] Servicio instalado y arrancado con éxito."
     else
         echo "[✘] ERROR: El archivo de configuración en $CONFIG_PATH no existe."

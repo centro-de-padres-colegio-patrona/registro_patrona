@@ -161,6 +161,7 @@
       hijos: [],
       padres: []
     };
+    let nombres_hijos = [];
     let parentInfo = null;
     async function return_to_home(show_alert = true) {
       if ( show_alert)
@@ -179,7 +180,7 @@
       .then(user => {
         currentUser = user.user;
         console.log('Datos del usuario:', currentUser); // Útil para debugging
-        
+        nombres_hijos = currentUser.hijos ? currentUser.hijos.map(hijo => hijo.nombre) : [];
         //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
         user_email = currentUser.email && currentUser.email.trim() !== "" 
             ? currentUser.email 
@@ -334,7 +335,7 @@
         const response_raw = await fetch('/api/boton_pago_compromiso', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compromiso_key, user_email, nombre: parent_name, rut: parentInfo ? parentInfo.rut : 'unknown', telefono: parentInfo ? parentInfo.telefono : '' })
+          body: JSON.stringify({ compromiso_key, user_email, nombre: parent_name, rut: parentInfo ? parentInfo.rut : 'unknown', telefono: parentInfo ? parentInfo.telefono : '', nombres_hijos })
         });
         allParams = await response_raw.json();
         const  {token, url, flowOrder, code, message} = allParams;

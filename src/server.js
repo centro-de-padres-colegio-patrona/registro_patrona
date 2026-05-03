@@ -890,7 +890,7 @@ app.get('/ingreso_manual.html', (req, res) => {
 
 app.post('/api/boton_pago_compromiso', async (req, res) => {
   try {
-    let {compromiso_key, user_email, nombre, rut, telefono, test = false} = req.body;
+    let {compromiso_key, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
     const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
     const {monto} = compromiso_pago;
     if ( user_email === undefined || user_email === null) 
@@ -900,12 +900,14 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     console.log('nombre: ', nombre);
     console.log('rut: ', rut);
     console.log('telefono: ', telefono);
+    console.log('nombres_hijos: ', nombres_hijos);
     console.log('compromiso pago: ', compromiso_pago);
     console.log('monto: ', monto);
     optional = {
       rut: rut || "9999999-9",
       nombre: nombre || "Unknown",
       telefono: telefono || "",
+      nombres_hijos,
       otroDato: "sin datos adicionales"
     };
 
@@ -1045,6 +1047,25 @@ app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async 
       console.log('[/api/payments/confirm] Pago confirmado exitosamente:', result.commerceOrder);
       
       // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
+      const resultDbCreate = await db_support.paymentOrdersDB.create(result);
+      console.log('[/api/payments/confirm] Resultado guardado en DB:', resultDbCreate);
+
+      const pago = {
+        id: result.optional.nombres_hijos[0],
+        num_folio: result.commerceOrder,
+        tipo: 'flow',
+        cuota_cpa: result.subject === 'cuota_cpa',
+        monto: result.amount,
+        cantidad_agendas: 0,
+        entrega_agendas: 0,
+        fecha: result.requestDate,
+        comentarios: '',
+        entradas_pagadas: 0,
+        payment_method: 'flow',
+        commerce_order: result.commerceOrder,
+      }
+      const resultPagoCreate = await db_support.pagosDB.create(pago);
+      console.log('[/api/payments/confirm] Pago guardado en DB:', resultPagoCreate);
       // Ejemplo: buscar al usuario/estudiante y marcar el compromiso como pagado
       /*const emailPagador = result.payer;
       const concepto = result.subject; // 'cuota_cpa' por ejemplo
@@ -1079,7 +1100,7 @@ app.post('/api/payments/result', express.urlencoded({ extended: true }), async (
     let mensaje = "";
     let exito = false;
 
-    if (result.status === 2) {
+    if (result.status === 200) {
       mensaje = "¡Tu pago ha sido procesado con éxito!";
       exito = true;
     } else if (result.status === 1) {

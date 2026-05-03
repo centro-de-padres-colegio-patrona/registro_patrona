@@ -141,6 +141,12 @@ const commerceSchema = new mongoose.Schema({
   token: String,
   url: String,
   flowOrder: String,
+  pending_info: Object,
+  paymentData: Object,
+  status: String,
+  statusText: String,
+  requestDate: String,
+  
 });
 
 const pagosSchema = new mongoose.Schema({

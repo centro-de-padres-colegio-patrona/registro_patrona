@@ -907,7 +907,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       rut: rut || "9999999-9",
       nombre: nombre || "Unknown",
       telefono: telefono || "",
-      nombres_hijos,
+      nombres_hijos: JSON.stringify(nombres_hijos),
       otroDato: "sin datos adicionales"
     };
 
@@ -1050,8 +1050,9 @@ app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async 
       const resultDbCreate = await db_support.paymentOrdersDB.create(result);
       console.log('[/api/payments/confirm] Resultado guardado en DB:', resultDbCreate);
 
+      const nombres_hijos = JSON.parse(result.optional.nombres_hijos);
       const pago = {
-        id: result.optional.nombres_hijos[0],
+        id: nombres_hijos[0],
         num_folio: result.commerceOrder,
         tipo: 'flow',
         cuota_cpa: result.subject === 'cuota_cpa',

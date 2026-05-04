@@ -918,7 +918,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       amount: String(monto),
       email: user_email,
       urlConfirmation: BASEURL + '/api/payments/confirm',
-      urlReturn: BASEURL + '/api/payments/result',
+      urlReturn: BASEURL + '/api/payments/return',
       optional: JSON.stringify(optional)
     };*/
     /*const params_post = await fetch('/api/generate_payment_order', {
@@ -993,7 +993,7 @@ async function generatePaymentOrder(amount, subject, email, optional) {
       amount: parseInt(amount),
       email: email,
       urlConfirmation: BASEURL + '/api/payments/confirm',
-      urlReturn: BASEURL + '/api/payments/result',
+      urlReturn: BASEURL + '/api/payments/return',
       optional: JSON.stringify(optional)
     };
     const resp = await db_support.paymentOrdersDB.create(paymentOrder);
@@ -1088,8 +1088,8 @@ app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async 
 });
 
 // Flow redirige al usuario aquí mediante POST
-app.post('/api/payments/result', express.urlencoded({ extended: true }), async (req, res) => {
-  const url_panel_usuario = path.join(__dirname, '../views', 'panel_usuario.html');
+app.post('/api/payments/return', express.urlencoded({ extended: true }), async (req, res) => {
+  const url_panel_usuario = path.join(__dirname, '../views', 'pagos_cpa.html');
   try {
     const { token } = req.body;
     
@@ -1110,15 +1110,16 @@ app.post('/api/payments/result', express.urlencoded({ extended: true }), async (
       mensaje = "El pago no pudo ser procesado o fue cancelado.";
     }
 
-    console.log('[/api/payments/result] Resultado del pago:', result);
-    console.log('[/api/payments/result] Mensaje para el usuario:', mensaje);
+    console.log('[/api/payments/return] Resultado del pago:', result);
+    console.log('[/api/payments/return] Mensaje para el usuario:', mensaje);
     const forwarding = `${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`;
-    console.log('[/api/payments/result] Redirigiendo al panel de usuario con mensaje...', forwarding);
+    console.log('[/api/payments/return] Redirigiendo al panel de usuario con mensaje...', forwarding);
     // Opción A: Redirigir de vuelta al panel con parámetros
-    res.redirect(`${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`);
+    //res.redirect(`${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`);
+    res.sendFile(url_panel_usuario);
     
   } catch (error) {
-    console.error('[/api/payments/result] Error al verificar el estado del pago:', error);
+    console.error('[/api/payments/return] Error al verificar el estado del pago:', error);
     res.redirect(`${url_panel_usuario}?status=error&msg=Error al verificar el estado del pago`);
   }
 });

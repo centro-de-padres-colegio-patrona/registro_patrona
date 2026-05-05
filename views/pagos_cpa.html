@@ -156,7 +156,11 @@
   </div>
 
   <script>
-    let user_email = '';
+    const params = new URLSearchParams(window.location.search);
+    console.log('URL Params:', params);
+    console.log('URL Search Params:', params.toString());
+    console.log('Parámetros de URL:', Object.fromEntries(params.entries()));
+    let {user_email = ''} = params;
     let currentUser = {
       hijos: [],
       padres: []

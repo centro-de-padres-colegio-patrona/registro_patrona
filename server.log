@@ -27,9 +27,9 @@ Servidor corriendo en puerto 5001
 Conexión exitosa a MongoDB Atlas
 Launching Api Test...
 test /api/curso.....PASS
+test /api/compromisos_pago.....PASS
 test /api/update_apoderado_email.....PASS
 test /api/estado_pago_cpa.....PASS
-test /api/compromisos_pago.....PASS
 User: {
   _id: new ObjectId("69e6faaba11e174335a81dff"),
   googleId: '103989718358148660019',
@@ -116,6 +116,9 @@ req.user: {
   }
 }
 email: l.herreramena@gmail.com, correo validado: true
+--> req.user.id: 103989718358148660019
+--> req.user.email: l.herreramena@gmail.com, correo validado: true
+Correo validado
 /api/user: Autenticado
 req.user: {
   id: '103989718358148660019',
@@ -148,240 +151,35 @@ req.user: {
   }
 }
 email: l.herreramena@gmail.com, correo validado: true
-email:  l.herreramena@gmail.com
-compromiso_key:  cuota_cpa
-nombre:  Leonardo Cristian Herrera Mena
-rut:  12.485.285-4
-telefono:  978512617
-nombres_hijos:  [
-  'herrera messina florencia isidora',
-  'herrera messina cristobal nicolas'
-]
-compromiso pago:  {
-  beneficios: [],
-  _id: new ObjectId("69e93aac4e965e455445a6a3"),
-  nombre: 'cuota_cpa',
-  descripcion: 'Cuota Centro de Padres',
-  monto: 20000,
-  tipo: 'voluntaria',
-  clientes: [ 'familia' ],
-  id: 'cuota_cpa',
-  limite_maximo_por_cliente: '1'
+/api/user: Autenticado
+req.user: {
+  id: '103989718358148660019',
+  displayName: 'leonardo herrera',
+  name: { familyName: 'herrera', givenName: 'leonardo' },
+  emails: [ { value: 'l.herreramena@gmail.com', verified: true } ],
+  photos: [
+    {
+      value: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c'
+    }
+  ],
+  provider: 'google',
+  _raw: '{\n' +
+    '  "sub": "103989718358148660019",\n' +
+    '  "name": "leonardo herrera",\n' +
+    '  "given_name": "leonardo",\n' +
+    '  "family_name": "herrera",\n' +
+    '  "picture": "https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw\\u003ds96-c",\n' +
+    '  "email": "l.herreramena@gmail.com",\n' +
+    '  "email_verified": true\n' +
+    '}',
+  _json: {
+    sub: '103989718358148660019',
+    name: 'leonardo herrera',
+    given_name: 'leonardo',
+    family_name: 'herrera',
+    picture: 'https://lh3.googleusercontent.com/a/ACg8ocK6go7TNC8xkTAENEWSVCGk_BB5jBJ5m2n4X6Tmn14Bdbjvjw=s96-c',
+    email: 'l.herreramena@gmail.com',
+    email_verified: true
+  }
 }
-monto:  20000
-[generatePaymentOrder] amount: 20000, subject: cuota_cpa, email: l.herreramena@gmail.com
-[generatePaymentOrder] order: {"commerceOrder":16,"subject":"cuota_cpa","currency":"CLP","amount":20000,"email":"l.herreramena@gmail.com","urlConfirmation":"https://unloving-cusp-canning.ngrok-free.dev/api/payments/confirm","urlReturn":"https://unloving-cusp-canning.ngrok-free.dev/api/payments/return","optional":"{\"rut\":\"12.485.285-4\",\"nombre\":\"Leonardo Cristian Herrera Mena\",\"telefono\":\"978512617\",\"nombres_hijos\":\"herrera messina florencia isidora,herrera messina cristobal nicolas\",\"otroDato\":\"sin datos adicionales\"}"}
-send params:  {
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  paymentMethod: 9,
-  timeout: 900,
-  merchantId: 'colegio-patrona-registro',
-  commerceOrder: 16,
-  subject: 'cuota_cpa',
-  currency: 'CLP',
-  amount: 20000,
-  email: 'l.herreramena@gmail.com',
-  urlConfirmation: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/confirm',
-  urlReturn: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/return',
-  optional: '{"rut":"12.485.285-4","nombre":"Leonardo Cristian Herrera Mena","telefono":"978512617","nombres_hijos":"herrera messina florencia isidora,herrera messina cristobal nicolas","otroDato":"sin datos adicionales"}',
-  s: '95304e4f02ff8065849f87477e37808d8ae3ef2923127d23658ee15d2b0033f5'
-}
-formData:  apiKey=50820F32-D480-4CDB-9B04-4330L4590A18&paymentMethod=9&timeout=900&merchantId=colegio-patrona-registro&commerceOrder=16&subject=cuota_cpa&currency=CLP&amount=20000&email=l.herreramena%40gmail.com&urlConfirmation=https%3A%2F%2Funloving-cusp-canning.ngrok-free.dev%2Fapi%2Fpayments%2Fconfirm&urlReturn=https%3A%2F%2Funloving-cusp-canning.ngrok-free.dev%2Fapi%2Fpayments%2Freturn&optional=%7B%22rut%22%3A%2212.485.285-4%22%2C%22nombre%22%3A%22Leonardo%20Cristian%20Herrera%20Mena%22%2C%22telefono%22%3A%22978512617%22%2C%22nombres_hijos%22%3A%22herrera%20messina%20florencia%20isidora%2Cherrera%20messina%20cristobal%20nicolas%22%2C%22otroDato%22%3A%22sin%20datos%20adicionales%22%7D&s=95304e4f02ff8065849f87477e37808d8ae3ef2923127d23658ee15d2b0033f5
-body:  apiKey=50820F32-D480-4CDB-9B04-4330L4590A18&paymentMethod=9&timeout=900&merchantId=colegio-patrona-registro&commerceOrder=16&subject=cuota_cpa&currency=CLP&amount=20000&email=l.herreramena%40gmail.com&urlConfirmation=https%3A%2F%2Funloving-cusp-canning.ngrok-free.dev%2Fapi%2Fpayments%2Fconfirm&urlReturn=https%3A%2F%2Funloving-cusp-canning.ngrok-free.dev%2Fapi%2Fpayments%2Freturn&optional=%7B%22rut%22%3A%2212.485.285-4%22%2C%22nombre%22%3A%22Leonardo+Cristian+Herrera+Mena%22%2C%22telefono%22%3A%22978512617%22%2C%22nombres_hijos%22%3A%22herrera+messina+florencia+isidora%2Cherrera+messina+cristobal+nicolas%22%2C%22otroDato%22%3A%22sin+datos+adicionales%22%7D&s=95304e4f02ff8065849f87477e37808d8ae3ef2923127d23658ee15d2b0033f5
-Commerce Order Update Result:  {
-  _id: new ObjectId("69f970b430fecf69b743f90a"),
-  commerceOrder: '16',
-  currency: 'CLP',
-  amount: 20000,
-  email: 'l.herreramena@gmail.com',
-  urlConfirmation: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/confirm',
-  urlReturn: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/return',
-  optional: '{"rut":"12.485.285-4","nombre":"Leonardo Cristian Herrera Mena","telefono":"978512617","nombres_hijos":"herrera messina florencia isidora,herrera messina cristobal nicolas","otroDato":"sin datos adicionales"}',
-  __v: 0,
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  flowOrder: '7057573',
-  merchantId: 'colegio-patrona-registro',
-  paymentMethod: 9,
-  status: '200',
-  statusText: 'OK',
-  timeout: 900,
-  token: '2883B30EC1FC968BF06BEAE73871FC7C74FB544J',
-  url: 'https://sandbox.flow.cl/app/web/pay.php'
-}
-Flow Response:  {
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  paymentMethod: 9,
-  timeout: 900,
-  merchantId: 'colegio-patrona-registro',
-  commerceOrder: 16,
-  subject: 'cuota_cpa',
-  currency: 'CLP',
-  amount: 20000,
-  email: 'l.herreramena@gmail.com',
-  urlConfirmation: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/confirm',
-  urlReturn: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/return',
-  optional: '{"rut":"12.485.285-4","nombre":"Leonardo Cristian Herrera Mena","telefono":"978512617","nombres_hijos":"herrera messina florencia isidora,herrera messina cristobal nicolas","otroDato":"sin datos adicionales"}',
-  s: '95304e4f02ff8065849f87477e37808d8ae3ef2923127d23658ee15d2b0033f5',
-  token: '2883B30EC1FC968BF06BEAE73871FC7C74FB544J',
-  url: 'https://sandbox.flow.cl/app/web/pay.php',
-  flowOrder: 7057573,
-  status: 200,
-  statusText: 'OK'
-}
-[/api/payments/confirm] Recibida confirmación de Flow para el token: 2883B30EC1FC968BF06BEAE73871FC7C74FB544J
-[/api/payments/confirm] Consultando estado del pago en Flow...
-send params:  {
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  paymentMethod: 9,
-  timeout: 900,
-  merchantId: 'colegio-patrona-registro',
-  token: '2883B30EC1FC968BF06BEAE73871FC7C74FB544J',
-  s: '37596b56757c18bef32403a4966a8cb33a50c0e150a4c1c1dec8832bb7ac9b43'
-}
-[/api/payments/confirm] Resultado: {
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  paymentMethod: 9,
-  timeout: 900,
-  merchantId: null,
-  token: '2883B30EC1FC968BF06BEAE73871FC7C74FB544J',
-  s: '37596b56757c18bef32403a4966a8cb33a50c0e150a4c1c1dec8832bb7ac9b43',
-  flowOrder: 7057573,
-  commerceOrder: '16',
-  requestDate: '2026-05-05 00:23:16',
-  status: 200,
-  subject: 'cuota_cpa',
-  currency: 'CLP',
-  amount: '20000',
-  payer: 'l.herreramena@gmail.com',
-  optional: {
-    rut: '12.485.285-4',
-    nombre: 'Leonardo Cristian Herrera Mena',
-    telefono: '978512617',
-    nombres_hijos: 'herrera messina florencia isidora,herrera messina cristobal nicolas',
-    otroDato: 'sin datos adicionales'
-  },
-  pending_info: { media: null, date: null },
-  paymentData: {
-    date: '2026-05-05 00:23:56',
-    media: 'Webpay',
-    conversionDate: null,
-    conversionRate: null,
-    amount: '20000.00',
-    currency: 'CLP',
-    fee: '638.00',
-    balance: 19241,
-    transferDate: '2026-05-06 00:00:00',
-    taxes: 121
-  },
-  statusText: 'OK'
-}
-[/api/payments/confirm] Pago confirmado exitosamente: 16
-[/api/payments/confirm] Resultado guardado en DB: {
-  _id: new ObjectId("69f970b430fecf69b743f90a"),
-  commerceOrder: '16',
-  currency: 'CLP',
-  amount: 20000,
-  email: 'l.herreramena@gmail.com',
-  urlConfirmation: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/confirm',
-  urlReturn: 'https://unloving-cusp-canning.ngrok-free.dev/api/payments/return',
-  optional: '{"rut":"12.485.285-4","nombre":"Leonardo Cristian Herrera Mena","telefono":"978512617","nombres_hijos":"herrera messina florencia isidora,herrera messina cristobal nicolas","otroDato":"sin datos adicionales"}',
-  __v: 0,
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  flowOrder: '7057573',
-  merchantId: null,
-  paymentMethod: 9,
-  status: '200',
-  statusText: 'OK',
-  timeout: 900,
-  token: '2883B30EC1FC968BF06BEAE73871FC7C74FB544J',
-  url: 'https://sandbox.flow.cl/app/web/pay.php',
-  paymentData: {
-    date: '2026-05-05 00:23:56',
-    media: 'Webpay',
-    conversionDate: null,
-    conversionRate: null,
-    amount: '20000.00',
-    currency: 'CLP',
-    fee: '638.00',
-    balance: 19241,
-    transferDate: '2026-05-06 00:00:00',
-    taxes: 121
-  },
-  pending_info: { media: null, date: null },
-  requestDate: '2026-05-05 00:23:16'
-}
-[/api/payments/confirm] Pago guardado en DB: {
-  id: 'herrera messina florencia isidora',
-  num_folio: 16,
-  tipo: 'flow',
-  cuota_cpa: true,
-  monto: 20000,
-  cantidad_agendas: 0,
-  entrega_agendas: 0,
-  fecha: '2026-05-05 00:23:16',
-  comentarios: '',
-  entradas_pagadas: 0,
-  payment_method: 'flow',
-  commerce_order: '16',
-  _id: new ObjectId("69f970dd30fecf69b743f90e"),
-  __v: 0
-}
-send params:  {
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  paymentMethod: 9,
-  timeout: 900,
-  merchantId: 'colegio-patrona-registro',
-  token: '2883B30EC1FC968BF06BEAE73871FC7C74FB544J',
-  s: '37596b56757c18bef32403a4966a8cb33a50c0e150a4c1c1dec8832bb7ac9b43'
-}
-[/api/payments/return] Resultado del pago: {
-  apiKey: '50820F32-D480-4CDB-9B04-4330L4590A18',
-  paymentMethod: 9,
-  timeout: 900,
-  merchantId: null,
-  token: '2883B30EC1FC968BF06BEAE73871FC7C74FB544J',
-  s: '37596b56757c18bef32403a4966a8cb33a50c0e150a4c1c1dec8832bb7ac9b43',
-  flowOrder: 7057573,
-  commerceOrder: '16',
-  requestDate: '2026-05-05 00:23:16',
-  status: 200,
-  subject: 'cuota_cpa',
-  currency: 'CLP',
-  amount: '20000',
-  payer: 'l.herreramena@gmail.com',
-  optional: {
-    rut: '12.485.285-4',
-    nombre: 'Leonardo Cristian Herrera Mena',
-    telefono: '978512617',
-    nombres_hijos: 'herrera messina florencia isidora,herrera messina cristobal nicolas',
-    otroDato: 'sin datos adicionales'
-  },
-  pending_info: { media: null, date: null },
-  paymentData: {
-    date: '2026-05-05 00:23:56',
-    media: 'Webpay',
-    conversionDate: null,
-    conversionRate: null,
-    amount: '20000.00',
-    currency: 'CLP',
-    fee: '638.00',
-    balance: 19241,
-    transferDate: '2026-05-06 00:00:00',
-    taxes: 121
-  },
-  statusText: 'OK'
-}
-[/api/payments/return] Mensaje para el usuario: ¡Tu pago ha sido procesado con éxito!
-[/api/payments/return] Redirigiendo al panel de usuario con mensaje... /pagos_cpa.html?user_email=l.herreramena%40gmail.com&hijos=herrera%20messina%20florencia%20isidora%2Cherrera%20messina%20cristobal%20nicolas
-/api/user: No autenticado
-[/api/estado_pago_cpa] Error al procesar la solicitud: TypeError: Cannot read properties of undefined (reading 'id')
-    at /home/lhm/spd/registro_patrona_github/src/server.js:713:68
-    at Layer.handle [as handle_request] (/home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/layer.js:95:5)
-    at next (/home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/route.js:149:13)
-    at Route.dispatch (/home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/route.js:119:3)
-    at Layer.handle [as handle_request] (/home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/layer.js:95:5)
-    at /home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/index.js:284:15
-    at Function.process_params (/home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/index.js:346:12)
-    at next (/home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/index.js:280:10)
-    at jsonParser (/home/lhm/spd/registro_patrona_github/node_modules/body-parser/lib/types/json.js:113:7)
-    at Layer.handle [as handle_request] (/home/lhm/spd/registro_patrona_github/node_modules/express/lib/router/layer.js:95:5)
+email: l.herreramena@gmail.com, correo validado: true

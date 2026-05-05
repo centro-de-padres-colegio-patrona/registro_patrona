@@ -172,6 +172,42 @@
         alert('Usuario no autenticado')
       window.location.replace = "/";
     }
+    if (user_email) {
+      //const raw_user = await fetch('/api/manualUser?email=' + encodeURIComponent(user_email));
+      //const user_data = await raw_user.json();
+      fetch('/api/manualUser?email=' + encodeURIComponent(user_email))
+        .then(response => {
+          console.log('Respuesta del servidor para manualUser:', response);
+          if (!response.ok) {
+            throw new Error('Usuario no autenticado');
+            return_to_home();
+          }
+          return response.json();
+        })
+        .then(user => {
+          currentUser = user.user;
+          console.log('Datos del usuario (manual):', currentUser); // Útil para debugging
+          nombres_hijos = currentUser.hijos ? currentUser.hijos.map(hijo => hijo.nombre) : [];
+          //VAlidar si el correo esta vacio, y dejar por defecto el correo:
+          user_email = currentUser.email && currentUser.email.trim() !== "" 
+              ? currentUser.email 
+              : "";
+          console.log(`[/api/manualUser] correo: ${user_email}`);
+          // Obtener información del padre
+          if (currentUser.padres && currentUser.padres.length > 0) {
+            // Buscar al padre que tenga un correo electrónico coincidente con user_email
+            parentInfo = currentUser.padres.find(padre => padre.correo && padre.correo.trim() === user_email);
+            console.log('Información del padre encontrada (manual):', parentInfo);
+          } else {
+            console.log('No se encontraron padres asociados al usuario (manual).');
+          }
+        })
+        .catch(error => {
+          console.log('Error al obtener usuario manual:', error);
+          alert('Usuario no autenticado');
+          return_to_home(false);
+        });
+    } else {
     fetch('/api/user')
       .then(response => {
         console.log('Respuesta del servidor:', response);
@@ -216,6 +252,7 @@
 
 
       });
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {

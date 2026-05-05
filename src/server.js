@@ -903,11 +903,12 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     console.log('nombres_hijos: ', nombres_hijos);
     console.log('compromiso pago: ', compromiso_pago);
     console.log('monto: ', monto);
+
     optional = {
       rut: rut || "9999999-9",
       nombre: nombre || "Unknown",
       telefono: telefono || "",
-      nombres_hijos: JSON.stringify(nombres_hijos),
+      nombres_hijos: nombres_hijos.join(','),
       otroDato: "sin datos adicionales"
     };
 
@@ -1045,12 +1046,18 @@ app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async 
     console.log('[/api/payments/confirm] Resultado:', result);
     if (result.status === 200) { // Estado 2 es "Pagado" en Flow
       console.log('[/api/payments/confirm] Pago confirmado exitosamente:', result.commerceOrder);
-      
+      const nombres_hijos = result.optional.nombres_hijos.split(',');
+      const optional = {...result.optional};
+      result.optional = JSON.stringify(optional);
       // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
-      const resultDbCreate = await db_support.paymentOrdersDB.create(result);
-      console.log('[/api/payments/confirm] Resultado guardado en DB:', resultDbCreate);
+      //const resultDbCreate = await db_support.paymentOrdersDB.create(result);
+      const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
+        { commerceOrder: result.commerceOrder },
+        { $set: result },
+        { returnDocument: 'after' }
+      );
+      console.log('[/api/payments/confirm] Resultado guardado en DB:', resultDbUpdate);
 
-      const nombres_hijos = JSON.parse(result.optional.nombres_hijos);
       const pago = {
         id: nombres_hijos[0],
         num_folio: result.commerceOrder,
@@ -1112,11 +1119,13 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
 
     console.log('[/api/payments/return] Resultado del pago:', result);
     console.log('[/api/payments/return] Mensaje para el usuario:', mensaje);
-    const forwarding = `${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`;
-    console.log('[/api/payments/return] Redirigiendo al panel de usuario con mensaje...', forwarding);
+    const forwarding = `${url_panel_usuario}?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
+    const webPath = "/pagos_cpa.html";
+    const params = `?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
+    console.log('[/api/payments/return] Redirigiendo al panel de usuario con mensaje...', webPath + params);
     // Opción A: Redirigir de vuelta al panel con parámetros
-    //res.redirect(`${url_panel_usuario}?status=${exito ? 'success' : 'error'}&msg=${encodeURIComponent(mensaje)}`);
-    res.sendFile(url_panel_usuario);
+    res.redirect(webPath + params);
+    //res.sendFile(forwarding);
     
   } catch (error) {
     console.error('[/api/payments/return] Error al verificar el estado del pago:', error);

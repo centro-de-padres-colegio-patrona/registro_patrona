@@ -731,11 +731,11 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
       if (user.hijos !== undefined && user.hijos.length > 0) {
         //console.log(JSON.stringify(req));
         for ( let childInfo of user.hijos ) {
-          estudiante = childInfo['nombre'];
+          const estudiante = childInfo['nombre'];
           //console.log(estudiante);
-          pago = await db_support.pagosDB.findOne({id: estudiante});
+          const pagos_estudantes = await db_support.pagosDB.find({id: estudiante});
           //console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
-          pagos.push(pago);
+          pagos.push(...pagos_estudantes);
         }
         /*estudiante = user.hijos[0]['nombre'];
         console.log(estudiante);

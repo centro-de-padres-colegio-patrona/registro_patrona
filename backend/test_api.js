@@ -1,4 +1,4 @@
-
+//const db_support = require('../backend/db_support');
 const test_result_array = {};
 
 async function lauch_test_api(delay_ms = 500) {
@@ -7,6 +7,7 @@ async function lauch_test_api(delay_ms = 500) {
     setTimeout(test_api_email_update, delay_ms);
     setTimeout(test_api_pagos_cpa, delay_ms);
     setTimeout(test_api_compromisos_pago, delay_ms);
+    //setTimeout(actualizarTiposDePago, delay_ms);
     //setTimeout(test_api_pago_compromiso, delay_ms);
 }
 
@@ -134,6 +135,22 @@ async function test_api_pago_compromiso() {
     log_result(tag, 'fail');
   }
 }
+
+// Usando el modelo definido en db_support.js
+const actualizarTiposDePago = async () => {
+  try {
+    const resultado = await db_support.pagosDB.updateMany(
+      { tipo: 'pago_cuota' },   // Filtro: registros que coincidan con el valor antiguo
+      { $set: { tipo: 'cuota_cpa' } } // Acción: cambiar el valor al nuevo
+    );
+
+    console.log(`Operación completada:`);
+    console.log(`- Registros encontrados: ${resultado.matchedCount}`);
+    console.log(`- Registros actualizados: ${resultado.modifiedCount}`);
+  } catch (error) {
+    console.error("Error al actualizar los registros:", error);
+  }
+};
 
 
 module.exports.lauch_test_api = lauch_test_api;

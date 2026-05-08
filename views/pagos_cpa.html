@@ -324,7 +324,7 @@
           container.appendChild(group);
         });
 
-        // Asumiendo que crearás esta ruta en server.js
+        
         const response = await fetch('/api/estado_pago_cpa');
         const pagos = await response.json();
         console.log('/api/estado_pago_cpa: ', pagos);
@@ -334,9 +334,10 @@
         let pendienteAcumulado = 0;
 
         pagos.forEach(pago => {
+          console.log('Procesando pago: ', pago);
           const row = document.createElement('tr');
           pago['estado'] = 'Pagado';
-          if ( pagos.metodo_pago === undefined || !pagos.metodo_pago )
+          if ( pago.metodo_pago === undefined || !pago.metodo_pago )
             pago['metodo_pago'] = '';
           // Formatear moneda
           const montoFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pago.monto);

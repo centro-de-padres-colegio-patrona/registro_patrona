@@ -153,6 +153,7 @@ const pagosSchema = new mongoose.Schema({
   id: String,
   num_folio: Number,
   tipo: String,
+  subtipo: String,
   cuota_cpa: Boolean,
   monto: Number,
   cantidad_agendas: Number,

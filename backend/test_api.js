@@ -1,4 +1,4 @@
-//const db_support = require('../backend/db_support');
+const db_support = require('../backend/db_support');
 const test_result_array = {};
 
 async function lauch_test_api(delay_ms = 500) {
@@ -8,6 +8,7 @@ async function lauch_test_api(delay_ms = 500) {
     setTimeout(test_api_pagos_cpa, delay_ms);
     setTimeout(test_api_compromisos_pago, delay_ms);
     //setTimeout(actualizarTiposDePago, delay_ms);
+    setTimeout(listing_all_tipos_de_pago, delay_ms+1000);
     //setTimeout(test_api_pago_compromiso, delay_ms);
 }
 
@@ -139,9 +140,14 @@ async function test_api_pago_compromiso() {
 // Usando el modelo definido en db_support.js
 const actualizarTiposDePago = async () => {
   try {
-    const resultado = await db_support.pagosDB.updateMany(
+    /*const resultado = await db_support.pagosDB.updateMany(
       { tipo: 'pago_cuota' },   // Filtro: registros que coincidan con el valor antiguo
       { $set: { tipo: 'cuota_cpa' } } // Acción: cambiar el valor al nuevo
+    );*/
+
+    const resultado = await db_support.pagosDB.updateMany(
+      { tipo: 'pago_agenda_sin_cpa' },   // Filtro: registros que coincidan con el valor antiguo
+      { $set: { tipo: 'agenda_escolar', subtipo: 'agenda_sin_cpa' } } // Acción: cambiar el valor al nuevo
     );
 
     console.log(`Operación completada:`);
@@ -152,5 +158,13 @@ const actualizarTiposDePago = async () => {
   }
 };
 
+async function listing_all_tipos_de_pago() {
+  try {
+    const tipos = await db_support.pagosDB.distinct('tipo', {});
+    console.log('Tipos de pago encontrados:', tipos);
+  } catch (error) {
+    console.error("Error al listar los tipos de pago:", error);
+  }
+}
 
 module.exports.lauch_test_api = lauch_test_api;

@@ -328,10 +328,12 @@
         const response = await fetch('/api/estado_pago_cpa');
         const pagos = await response.json();
         console.log('/api/estado_pago_cpa: ', pagos);
+        const pagos_by_type = {};
 
         const tbody = document.getElementById('tabla-pagos-body');
         let pagadoAcumulado = 0;
         let pendienteAcumulado = 0;
+        let lastPagoFecha = null;
 
         pagos.forEach(pago => {
           console.log('Procesando pago: ', pago);
@@ -341,12 +343,32 @@
             pago['metodo_pago'] = '';
           // Formatear moneda
           const montoFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pago.monto);
+
+          //Ultimo pago
+          const pagoFecha = new Date(pago.fecha);
+          console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
+          if (pago.fecha && (!lastPagoFecha || pagoFecha > lastPagoFecha)) {
+            lastPagoFecha = pagoFecha;
+            console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
+            document.getElementById('fecha-ultimo-pago').textContent = lastPagoFecha.toLocaleDateString('es-CL');
+          }
           
           if(pago.estado === 'Pagado') pagadoAcumulado += pago.monto;
           else pendienteAcumulado += pago.monto;
 
+          if ( pagos_by_type[pago.tipo] === undefined ) {
+            pagos_by_type[pago.tipo] = [pago.monto];
+          } else {
+            pagos_by_type[pago.tipo].push(pago.monto);
+          }
+          //console.log('Compromisos:', compromisos);
+          const compromiso_asociado = compromisos.find(c => c.nombre === pago.tipo);
+          //console.log(`Buscando descripción para tipo de pago '${pago.tipo}' en compromisos...`, compromiso_asociado);
+          tipo_pago_descripcion = compromiso_asociado ? compromiso_asociado.descripcion : pago.tipo;
+          //console.log(`Pago tipo: ${pago.tipo}, descripción encontrada: ${tipo_pago_descripcion}`);
+
           row.innerHTML = `
-            <td>${pago.tipo}</td>
+            <td>${tipo_pago_descripcion}</td>
             <td>${pago.fecha}</td>
             <td>${montoFormateado}</td>
             <td>${pago.metodo_pago}</td>

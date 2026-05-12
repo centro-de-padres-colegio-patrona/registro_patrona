@@ -112,6 +112,20 @@
       content: "🎁"; /* Icono de regalo para beneficios */
     }
 
+    /* Alinea la primera columna (donde está el checkbox) a la izquierda */
+    #tabla-compromisos td:first-child, 
+    #tabla-compromisos th:first-child {
+        text-align: left;
+        /* padding-left: 20px; /* Un poco de margen para que no pegue al borde */
+    }
+
+    /* Opcional: Asegúrate de que el checkbox no tenga márgenes automáticos */
+    .pago-check {
+        margin: 0;
+        vertical-align: middle;
+        align-self: left;
+        margin-left: 10;
+    }
   </style>
 </head>
 <body>
@@ -119,6 +133,26 @@
 
     <h2>Compromisos de Pagos</h2>
     <div id="payments-commitment" class="summary-cards">
+    </div>
+
+    <!--thead>
+      <tr>
+        <th>Seleccionar</th> <th>Compromiso</th>
+        <th>Monto</th>
+        <th>Estado</th>
+      </tr>
+    </thead-->
+    <!--tbody id="tabla-compromisos">
+      </tbody-->
+
+    <div class="summary-cards">
+      <div class="card" id="card-pago" style="display: none;">
+        <h3>Total a Pagar</h3>
+        <div id="pago-multiple-container" style="text-align: left; margin-top: 20px; display: none;">
+          <span id="total-seleccionado" style="margin-right: 20px; font-weight: bold;">Total: $0</span>
+          <button id="btn-pagar-todo" class="btn-pago" onclick="procesarPagoMultiple()">Pagar Todo lo Seleccionado</button>
+        </div>
+      </div>
     </div>
 
     <h2>Resumen de Pagos Individuales</h2>
@@ -291,9 +325,13 @@
               <h3>${item.descripcion}</h3>
               <div class="value">${montoFormateado}</div>
               <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
-              <button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+              <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
                 Iniciar Pago
-              </button>
+              </button-->
+              <!--td class="col-seleccion" style="text-align: left; padding-left: 20px;"-->
+                <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
+                <!--Agregar para pagar-->
+              <!--/td-->
             `;
           } else {
             card.innerHTML = `
@@ -442,6 +480,18 @@
         console.error('Error in verificarVigencia: ', error)
         throw (error);
       }
+    }
+
+    function actualizarTotal() {
+      let total = 0;
+      const checks = document.querySelectorAll('.pago-check:checked');
+      checks.forEach(c => total += parseInt(c.dataset.monto));
+      
+      document.getElementById('total-seleccionado').textContent = `Total: $${total.toLocaleString()}`;
+      document.getElementById('pago-multiple-container').style.display = checks.length > 0 ? 'block' : 'none';
+
+      const cardPago = document.getElementById('card-pago');
+      cardPago.style.display = checks.length > 0 ? 'block' : 'none';
     }
 
   </script>

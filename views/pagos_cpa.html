@@ -134,6 +134,38 @@
       color: #777;
       vertical-align: bottom;
     }
+    /* Contenedor de opciones de pago */
+    .metodos-pago {
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .btn-pasarela {
+      padding: 10px 20px;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-pasarela:hover {
+      border-color: #4A90E2;
+      background-color: #f0f7ff;
+    }
+
+    /* Estilo para resaltar la pasarela seleccionada */
+    .btn-pasarela.selected {
+      border-color: #2ecc71;
+      background-color: #eafaf1;
+      color: #27ae60;
+    }
 
   </style>
 </head>
@@ -155,11 +187,32 @@
       </tbody-->
 
     <div class="summary-cards">
-      <div class="card" id="card-pago" style="display: none;">
+      <!--div class="card" id="card-pago" style="display: none;">
         <h3>Total a Pagar</h3>
         <div id="pago-multiple-container" style="text-align: left; margin-top: 20px; display: none;">
           <span id="total-seleccionado" style="margin-right: 20px; font-weight: bold;">Total: $0</span>
           <button id="btn-pagar-todo" class="btn-pago" onclick="procesarPagoMultiple()">Pagar Todo lo Seleccionado</button>
+        </div>
+      </div-->
+      <div class="card" id="card-pago" style="display: none;">
+        <h3>Resumen de Selección</h3>
+        <div id="pago-multiple-container" style="margin-top: 15px;">
+          <div class="value" id="total-seleccionado" style="font-size: 1.5rem; margin-bottom: 15px;">Total: $0</div>
+          
+          <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Seleccione su medio de pago:</p>
+          <div class="metodos-pago">
+            <button class="btn-pasarela" onclick="seleccionarPasarela('flow', this)">
+              💳 Flow (Webpay/Khipu)
+            </button>
+            <button class="btn-pasarela" onclick="seleccionarPasarela('mercadopago', this)">
+              🔵 Mercado Pago
+            </button>
+          </div>
+          <button id="btn-pagar-todo" class="btn-pago" 
+                  onclick="procesarPagoMultiple()" 
+                  style="width: 100%; margin-top: 20px; padding: 12px; background-color: #4A90E2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none;">
+            Pagar
+          </button>
         </div>
       </div>
     </div>
@@ -505,6 +558,43 @@
 
       const cardPago = document.getElementById('card-pago');
       cardPago.style.display = checks.length > 0 ? 'block' : 'none';
+    }
+
+    let pasarelaSeleccionada = null;
+
+    function seleccionarPasarela(metodo, elemento) {
+      // Guardar la elección
+      pasarelaSeleccionada = metodo;
+      console.log("Pasarela elegida:", pasarelaSeleccionada);
+
+      // Cambiar estado visual de los botones
+      const botones = document.querySelectorAll('.btn-pasarela');
+      botones.forEach(btn => btn.classList.remove('selected'));
+      elemento.classList.add('selected');
+
+      // Mostrar el botón final de pago
+      document.getElementById('btn-pagar-todo').style.display = 'block';
+    }
+
+    async function procesarPagoMultiple() {
+      if (!pasarelaSeleccionada) {
+        alert("Por favor, seleccione una pasarela de pago.");
+        return;
+      }
+
+      const checks = document.querySelectorAll('.pago-check:checked');
+      const ids = Array.from(checks).map(c => c.dataset.id);
+      
+      console.log(`Procesando pago vía ${pasarelaSeleccionada} para los IDs:`, ids);
+
+      // Aquí modificas tu fetch para enviar también la 'pasarelaSeleccionada'
+      // Ejemplo:
+      // await fetch('/api/crear_orden', { 
+      //   method: 'POST', 
+      //   body: JSON.stringify({ ids, pasarela: pasarelaSeleccionada, ... }) 
+      // });
+      
+      alert(`Redirigiendo a ${pasarelaSeleccionada.toUpperCase()}...`);
     }
 
   </script>

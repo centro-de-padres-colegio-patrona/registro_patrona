@@ -166,6 +166,37 @@
       background-color: #eafaf1;
       color: #27ae60;
     }
+    .cantidad-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .btn-cantidad {
+        width: 25px;
+        height: 25px;
+        border: 1px solid #ccc;
+        background: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    .btn-cantidad:hover {
+        background: #e9ecef;
+    }
+
+    .input-cantidad {
+        width: 30px;
+        text-align: center;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: bold;
+    }
 
   </style>
 </head>
@@ -350,6 +381,18 @@
       });
     }
 
+    async function fetchCompromisos() {
+      try {
+        const res = await fetch('/api/compromisos_pago');
+        const compromisos = await res.json();
+        console.log('Compromisos: ', compromisos);
+        return compromisos;
+      } catch (error) {
+        console.error('Error fetching compromisos:', error);
+      }
+      return [];
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         // Adding Payments Commitments
@@ -382,6 +425,21 @@
             currency: 'CLP' 
           }).format(item.monto);
 
+          const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
+          const mostrarCantidad = !unidades_maximas || unidades_maximas > 1;
+          const cantidadHtml = mostrarCantidad ? `
+            <div class="cantidad-control">
+              <span class="label-pago">Cantidad:</span>
+              <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', -1)">-</button>
+              <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" readonly>
+              <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${item.limite_maximo_por_cliente})">+</button>
+            </div>
+          ` : '';
+
+          if (unidades_maximas !== null && unidades_maximas > 1) {
+            card.style.borderLeft = "5px solid #f39c12"; // Cambia el color para compromisos con límite
+          }
+
           if (compromiso_status === 'activo') {
             card.innerHTML = `
               <h3>${item.descripcion}</h3>
@@ -397,7 +455,8 @@
               <div style="margin-top: 10px;">
                 <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
                 <span class="label-pago">Agregar para pagar</span>
-                </div>
+              </div>
+              ${cantidadHtml}
             `;
           } else {
             card.innerHTML = `
@@ -548,6 +607,10 @@
       }
     }
 
+    async function calcularBeneficios() {
+      
+    }
+
     function actualizarTotal() {
       let total = 0;
       const checks = document.querySelectorAll('.pago-check:checked');
@@ -595,6 +658,27 @@
       // });
       
       alert(`Redirigiendo a ${pasarelaSeleccionada.toUpperCase()}...`);
+    }
+
+    function cambiarCantidad(id, delta, max) {
+        const input = document.getElementById(`cant-${id}`);
+        const checkbox = document.getElementById(`check-${id}`);
+        let nuevaCantidad = parseInt(input.value) + delta;
+
+        // Validar límites (mínimo 1, máximo según el campo de la BD)
+        if (nuevaCantidad < 1) nuevaCantidad = 1;
+        if (max && nuevaCantidad > max) nuevaCantidad = max;
+
+        input.value = nuevaCantidad;
+
+        // Actualizar el monto total de este item específico en el data-attribute
+        const montoBase = parseInt(checkbox.dataset.montoBase);
+        checkbox.dataset.monto = montoBase * nuevaCantidad;
+
+        // Si el item está seleccionado, actualizar el total general de la pantalla
+        if (checkbox.checked) {
+            actualizarTotal();
+        }
     }
 
   </script>

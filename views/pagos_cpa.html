@@ -287,6 +287,7 @@
     console.log('URL Params:', params);
     console.log('URL Search Params:', params.toString());
     console.log('Parámetros de URL:', Object.fromEntries(params.entries()));
+    const pagos_by_type = {};
     let {user_email = ''} = params;
     let currentUser = {
       hijos: [],
@@ -491,7 +492,7 @@
         const response = await fetch('/api/estado_pago_cpa');
         const pagos = await response.json();
         console.log('/api/estado_pago_cpa: ', pagos);
-        const pagos_by_type = {};
+        pagos_by_type = {};
 
         const tbody = document.getElementById('tabla-pagos-body');
         let pagadoAcumulado = 0;
@@ -608,8 +609,49 @@
     }
 
     async function calcularBeneficios() {
-      
+      const compromisos = await fetchCompromisos();
+      // Crear un objeto para mapear beneficios por compromiso
+      const beneficios = {};
+      compromisos.forEach(item => {
+        beneficios[`${item.id}`] = item.beneficios || [];
+      });
+      return beneficios;
     }
+
+    async function getCompromisosPagados() {
+      try {
+        const response = await fetch('/api/compromisos_pago');
+        const compromisos = await response.json();
+        // Filtrar solo los compromisos que estén pagados
+        const compromisos_pagados = compromisos.filter(c => verificarVigencia(c.start_date, c.stop_date) === 'finalizado');
+        return compromisos_pagados;
+      } catch (error) {
+        console.error('Error fetching compromisos pagados:', error);
+        return [];
+      }
+    }
+
+    async function obtenerBeneficiosActivos(compromiso_id) {
+      const beneficios = await calcularBeneficios();
+      const compromisos_pagados = await getCompromisosPagados();
+      const beneficions_activos = compromisos_pagados.flatMap(c => c.beneficios);
+      const compromiso = compromisos.find(c => c.id === compromiso_id);
+      return compromiso ? compromiso.beneficios : [];
+    }
+
+    async function obtenerBeneficios(compromiso_id) {
+      const compromisos = await fetchCompromisos();
+      const compromiso = compromisos.find(c => c.id === compromiso_id);
+      return compromiso ? compromiso.beneficios : [];
+    }
+
+    async function listaCompromisosSeleccionadosParaPagar() {
+      const checks = document.querySelectorAll('.pago-check:checked');
+      const compromisos_seleccionados = checks.map(c => c.dataset.id);
+      return compromisos_seleccionados;
+    }
+
+    
 
     function actualizarTotal() {
       let total = 0;

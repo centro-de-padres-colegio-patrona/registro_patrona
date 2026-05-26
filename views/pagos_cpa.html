@@ -287,7 +287,11 @@
     console.log('URL Params:', params);
     console.log('URL Search Params:', params.toString());
     console.log('Parámetros de URL:', Object.fromEntries(params.entries()));
+    
     const pagos_by_type = {};
+    const compromisos_pagados = [];
+    const beneficios_activados = {};
+
     let {user_email = ''} = params;
     let currentUser = {
       hijos: [],
@@ -492,7 +496,7 @@
         const response = await fetch('/api/estado_pago_cpa');
         const pagos = await response.json();
         console.log('/api/estado_pago_cpa: ', pagos);
-        pagos_by_type = {};
+        //pagos_by_type = {};
 
         const tbody = document.getElementById('tabla-pagos-body');
         let pagadoAcumulado = 0;
@@ -520,6 +524,7 @@
           if(pago.estado === 'Pagado') pagadoAcumulado += pago.monto;
           else pendienteAcumulado += pago.monto;
 
+          //beneficios = obtenerListaTodosLosBeneficios();
           if ( pagos_by_type[pago.tipo] === undefined ) {
             pagos_by_type[pago.tipo] = [pago.monto];
           } else {
@@ -541,6 +546,58 @@
           tbody.appendChild(row);
         });
 
+        // Compromisos pagados
+        const compromisos_sin_beneficios = obtenerCompromisosSinBeneficios(compromisos);
+        compromisos_sin_beneficios.forEach(compromiso => {
+          const tipo_compromiso = compromiso.nombre;
+          console.log(`Procesando compromisos sin beneficios para tipo '${tipo_compromiso}'...`);
+          if (pagos_by_type[tipo_compromiso] !== undefined) {
+            const total_por_tipo = pagos_by_type[tipo_compromiso].reduce((acc, monto) => acc + monto, 0);
+            console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
+            //const compromiso_asociado = compromisos.find(c => c.nombre === tipo_compromiso);
+            const qty = parseInt(total_por_tipo / compromiso.monto);
+            if (qty > 0) {
+              const compromiso_pagado = {};
+              compromiso_pagado[tipo_compromiso] = {
+                cantidad: qty,
+                monto_total: total_por_tipo,
+                //beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
+              };
+              compromisos_pagados.push(compromiso_pagado);
+              console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
+              // Deshabilitar checkbox y mostrar cantidad pagada
+              const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
+              checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                checkbox.disabled = true;
+                // Ocultar el checkbox y mostrar un mensaje de "Pagado"
+                const label = checkbox.nextElementSibling; // Asumiendo que el label está justo después
+                if (label && label.classList.contains('label-pago')) {
+                  label.textContent = 'Pagado';
+                  label.style.color = '#2ecc71';
+                }
+                // Obtener el contenedor del checkbox (el div que creamos para agruparlo)
+                const contenedorCheck = checkbox.parentNode;
+                
+                if (contenedorCheck) {
+                  // Reemplazamos todo el contenido interno del contenedor para estructurar el estado "Pagado" de manera vertical
+                  contenedorCheck.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
+                      <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                        ✓ Pagado
+                      </span>
+                      <span style="font-size: 0.8rem; color: #2ecc71; font-weight: 500;">
+                        Cantidad Pagada: ${qty}
+                      </span>
+                    </div>
+                  `;
+                }              
+              });
+            } else {
+              console.log(`No se pudo calcular cantidad para tipo '${tipo_compromiso}' debido a monto total de 0.`);
+            }
+          }
+        });
         // Actualizar tarjetas
         document.getElementById('total-pagado').textContent = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pagadoAcumulado);
         document.getElementById('total-pendiente').textContent = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pendienteAcumulado);
@@ -608,15 +665,19 @@
       }
     }
 
-    async function calcularBeneficios() {
+    /*async function obtenerListaTodosLosBeneficios() {
       const compromisos = await fetchCompromisos();
       // Crear un objeto para mapear beneficios por compromiso
       const beneficios = {};
       compromisos.forEach(item => {
         beneficios[`${item.id}`] = item.beneficios || [];
       });
+      condicionBeneficiosMap = {};
+      beneficios.forEach(item => {
+        condicionBeneficiosMap[`${item.id}`] = item.condicion_beneficio || null;
+      });
       return beneficios;
-    }
+    }*/
 
     async function getCompromisosPagados() {
       try {
@@ -631,12 +692,65 @@
       }
     }
 
+    function obtenerCompromisosSinBeneficios(array_compromisos) {
+      return array_compromisos.filter(c => !c.beneficios || c.beneficios.length === 0);
+    }
+
+    function obtenerCompromisosConBeneficios(array_compromisos) {
+      return array_compromisos.filter(c => c.beneficios && c.beneficios.length > 0);
+    }
+
+    function obtenerBeneficios(array_compromisos_con_beneficios) {
+      const mapa_compromisos = array_compromisos_con_beneficios.map(c => ({ nombre: c.nombre, beneficios: c.beneficios }));
+      return mapa_compromisos;
+    }
+
+    function obtenerBeneficiosPorCompromisoPagado(array_compromisos, tipo_compromiso_pagado, cantidad_pagada) {
+      const compromisos_con_beneficios = array_compromisos.filter(c => c.beneficios && c.beneficios.length > 0);
+      //const mapa_compromisos = compromisos_con_beneficios.map(c => ({ nombre: c.nombre, beneficios: c.beneficios }));
+      compromisos_con_beneficios.forEach(c => {
+        console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}, Cantidad pagada: ${cantidad_pagada}`);
+        c.beneficios_activados = c.beneficios.filter(b => {
+          console.log(`Evaluando beneficio: ${b} para compromiso ${c.nombre}`);
+          // Aquí puedes agregar la lógica de condición específica para cada beneficio
+          // Por ejemplo, si el beneficio solo se activa para ciertos tipos o cantidades:
+          if (c.nombre === tipo_compromiso_pagado && cantidad_pagada >= 1) {
+            console.log(`Activando beneficio: ${b} para compromiso ${c.nombre}`);
+            return true; // Activa este beneficio
+          }
+          return false; // No activa este beneficio
+        });
+      });
+
+      mapa_compromisos.forEach(compromiso => {
+        console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}`)
+
+      });
+      const compromiso = mapa_compromisos.find(c => c.nombre === tipo);
+      if (!compromiso) return [];
+      
+      // Si el compromiso tiene beneficios, calcular cuántos corresponden según la cantidad pagada
+      if (compromiso.beneficios && compromiso.beneficios.length > 0) {
+        const beneficiosCorrespondientes = [];
+        for (let i = 0; i < cantidad; i++) {
+          beneficiosCorrespondientes.push(...compromiso.beneficios);
+        }
+        return beneficiosCorrespondientes;
+      }
+      return [];
+    }
+
     async function obtenerBeneficiosActivos(compromiso_id) {
-      const beneficios = await calcularBeneficios();
+      const beneficios = await obtenerTodosLosBeneficios();
       const compromisos_pagados = await getCompromisosPagados();
       const beneficions_activos = compromisos_pagados.flatMap(c => c.beneficios);
       const compromiso = compromisos.find(c => c.id === compromiso_id);
       return compromiso ? compromiso.beneficios : [];
+    }
+
+    async function obtenerBeneficiosPorCompromiso(compromiso_id) {
+      const beneficios = await calcularBeneficios();
+      return beneficios[compromiso_id] || [];
     }
 
     async function obtenerBeneficios(compromiso_id) {

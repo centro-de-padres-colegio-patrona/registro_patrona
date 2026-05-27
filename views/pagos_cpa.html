@@ -288,8 +288,6 @@
     console.log('URL Search Params:', params.toString());
     console.log('Parámetros de URL:', Object.fromEntries(params.entries()));
     
-    const pagos_by_type = {};
-    const compromisos_pagados = {};
     const beneficios_activados = {};
 
     let {user_email = ''} = params;
@@ -398,165 +396,173 @@
       return [];
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        // Adding Payments Commitments
-        const res_compromisos = await fetch('/api/compromisos_pago');
-        const compromisos = await res_compromisos.json();
-        //console.log('Compromisos: ', compromisos);
-        // Adding payments commitments cards
-        const container = document.getElementById('payments-commitment');
-        //console.log(' logging: ', container);
-        // Limpiamos el contenedor por si tiene contenido estático previo
-        container.innerHTML = '';
+    function total_pagos_por_compromiso(tipo_compromiso, pagos_by_type) {
+      if (pagos_by_type[tipo_compromiso] !== undefined) {
+        const pagos_compromiso = pagos_by_type[tipo_compromiso];
+        const total_por_tipo = pagos_compromiso ? Object.values(pagos_compromiso).reduce((acc, pago) => acc + pago.monto, 0) : 0;
+        return total_por_tipo;
+      } else {
+        return 0;
+      }
+    }
 
-        compromisos.forEach(item => {
-          const compromiso_status = verificarVigencia(item.start_date, item.stop_date);
-
-          if ( compromiso_status === 'inactivo') 
-            return;
-
-          // 1. Creamos un grupo para el compromiso y sus beneficios
-          const group = document.createElement('div');
-          group.className = 'commitment-group';
-
-          // 2. Creamos la tarjeta principal del compromiso
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.style.borderLeft = "5px solid #4A90E2";
-          
-          const montoFormateado = new Intl.NumberFormat('es-CL', { 
-            style: 'currency', 
-            currency: 'CLP' 
-          }).format(item.monto);
-
-          const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
-          const mostrarCantidad = !unidades_maximas || unidades_maximas > 1;
-          const cantidadHtml = mostrarCantidad ? `
-            <div class="cantidad-control">
-              <span class="label-pago">Cantidad:</span>
-              <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', -1)">-</button>
-              <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" readonly>
-              <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${item.limite_maximo_por_cliente})">+</button>
-            </div>
-          ` : '';
-
-          if (unidades_maximas !== null && unidades_maximas > 1) {
-            card.style.borderLeft = "5px solid #f39c12"; // Cambia el color para compromisos con límite
+    function obtenerPagosPorTipo(pagos) {
+      const pagos_by_type = {};
+      pagos.forEach(pago => {
+        if (!pagos_by_type[pago.tipo]) {
+          pagos_by_type[pago.tipo] = {};
+          pagos_by_type[pago.tipo][pago.num_folio] = pago.monto;
+        } else {
+          if (pagos_by_type[pago.tipo][pago.num_folio] === undefined) {
+            pagos_by_type[pago.tipo][pago.num_folio] = pago.monto;
           }
+        }
+      });
+      return pagos_by_type;
+    }
 
-          if (compromiso_status === 'activo') {
-            card.innerHTML = `
-              <h3>${item.descripcion}</h3>
-              <div class="value">${montoFormateado}</div>
-              <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
-              <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
-                Iniciar Pago
-              </button-->
-              <!--td class="col-seleccion" style="text-align: left; padding-left: 20px;">
-                <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
-                Agregar para pagar
-              </td-->
-              <div style="margin-top: 10px;">
-                <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
-                <span class="label-pago">Agregar para pagar</span>
-              </div>
-              ${cantidadHtml}
-            `;
-          } else {
-            card.innerHTML = `
-              <h3>${item.descripcion}</h3>
-              <div class="value">Terminado</div>
-              <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
-              <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
-                Iniciar Pago
-              </button-->
-            `;
-          }
-          group.appendChild(card);
+    async function paymentsCommitmentsUpdate(compromisos) {
+      const container = document.getElementById('payments-commitment');
+      //console.log(' logging: ', container);
+      // Limpiamos el contenedor por si tiene contenido estático previo
+      container.innerHTML = '';
 
-          // 3. Si el compromiso tiene beneficios, los agregamos debajo
-          if (item.beneficios && item.beneficios.length > 0) {
-            item.beneficios.forEach(beneficio => {
-              const benefitCard = document.createElement('div');
-              benefitCard.className = 'benefit-card';
-              
-              // Ajusta 'beneficio.nombre' o 'beneficio.descripcion' según tu BD
-              const textoBeneficio = typeof beneficio === 'string' ? beneficio : (beneficio.descripcion || beneficio.nombre);
-              
-              benefitCard.innerHTML = `<span><strong>Beneficio:</strong> ${textoBeneficio}</span>`;
-              group.appendChild(benefitCard);
-            });
-          }
+      compromisos.forEach(item => {
+        const compromiso_status = verificarVigencia(item.start_date, item.stop_date);
 
-          container.appendChild(group);
-        });
+        if ( compromiso_status === 'inactivo') 
+          return;
 
+        // 1. Creamos un grupo para el compromiso y sus beneficios
+        const group = document.createElement('div');
+        group.className = 'commitment-group';
+
+        // 2. Creamos la tarjeta principal del compromiso
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.borderLeft = "5px solid #4A90E2";
         
-        const response = await fetch('/api/estado_pago_cpa');
-        const pagos = await response.json();
-        console.log('/api/estado_pago_cpa: ', pagos);
-        //pagos_by_type = {};
+        const montoFormateado = new Intl.NumberFormat('es-CL', { 
+          style: 'currency', 
+          currency: 'CLP' 
+        }).format(item.monto);
 
-        const tbody = document.getElementById('tabla-pagos-body');
-        let pagadoAcumulado = 0;
-        let pendienteAcumulado = 0;
-        let lastPagoFecha = null;
+        const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
+        const mostrarCantidad = !unidades_maximas || unidades_maximas > 1;
+        const cantidadHtml = mostrarCantidad ? `
+          <div class="cantidad-control">
+            <span class="label-pago">Cantidad:</span>
+            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', -1)">-</button>
+            <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" readonly>
+            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${item.limite_maximo_por_cliente})">+</button>
+          </div>
+        ` : '';
 
-        pagos.forEach(pago => {
-          console.log('Procesando pago: ', pago);
-          const row = document.createElement('tr');
-          pago['estado'] = 'Pagado';
-          if ( pago.metodo_pago === undefined || !pago.metodo_pago )
-            pago['metodo_pago'] = '';
-          // Formatear moneda
-          const montoFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pago.monto);
+        if (unidades_maximas !== null && unidades_maximas > 1) {
+          card.style.borderLeft = "5px solid #f39c12"; // Cambia el color para compromisos con límite
+        }
 
-          //Ultimo pago
-          const pagoFecha = new Date(pago.fecha);
-          console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
-          if (pago.fecha && (!lastPagoFecha || pagoFecha > lastPagoFecha)) {
-            lastPagoFecha = pagoFecha;
-            console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
-            document.getElementById('fecha-ultimo-pago').textContent = lastPagoFecha.toLocaleDateString('es-CL');
-          }
-          
-          if(pago.estado === 'Pagado') pagadoAcumulado += pago.monto;
-          else pendienteAcumulado += pago.monto;
-
-          //beneficios = obtenerListaTodosLosBeneficios();
-          if ( pagos_by_type[pago.tipo] === undefined ) {
-            pagos_by_type[pago.tipo] = [pago.monto];
-          } else {
-            pagos_by_type[pago.tipo].push(pago.monto);
-          }
-          //console.log('Compromisos:', compromisos);
-          const compromiso_asociado = compromisos.find(c => c.nombre === pago.tipo);
-          //console.log(`Buscando descripción para tipo de pago '${pago.tipo}' en compromisos...`, compromiso_asociado);
-          tipo_pago_descripcion = compromiso_asociado ? compromiso_asociado.descripcion : pago.tipo;
-          //console.log(`Pago tipo: ${pago.tipo}, descripción encontrada: ${tipo_pago_descripcion}`);
-
-          row.innerHTML = `
-            <td>${tipo_pago_descripcion}</td>
-            <td>${pago.fecha}</td>
-            <td>${montoFormateado}</td>
-            <td>${pago.metodo_pago}</td>
-            <td><span class="status-pill ${pago.estado === 'Pagado' ? 'status-pagado' : 'status-pendiente'}">${pago.estado}</span></td>
+        if (compromiso_status === 'activo') {
+          card.innerHTML = `
+            <h3>${item.descripcion}</h3>
+            <div class="value">${montoFormateado}</div>
+            <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+            <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+              Iniciar Pago
+            </button-->
+            <!--td class="col-seleccion" style="text-align: left; padding-left: 20px;">
+              <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
+              Agregar para pagar
+            </td-->
+            <div style="margin-top: 10px;">
+              <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
+              <span class="label-pago">Agregar para pagar</span>
+            </div>
+            ${cantidadHtml}
           `;
-          tbody.appendChild(row);
-        });
+        } else {
+          card.innerHTML = `
+            <h3>${item.descripcion}</h3>
+            <div class="value">Terminado</div>
+            <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+            <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+              Iniciar Pago
+            </button-->
+          `;
+        }
+        group.appendChild(card);
 
+        // 3. Si el compromiso tiene beneficios, los agregamos debajo
+        if (item.beneficios && item.beneficios.length > 0) {
+          item.beneficios.forEach(beneficio => {
+            const benefitCard = document.createElement('div');
+            benefitCard.className = 'benefit-card';
+            
+            // Ajusta 'beneficio.nombre' o 'beneficio.descripcion' según tu BD
+            const textoBeneficio = typeof beneficio === 'string' ? beneficio : (beneficio.descripcion || beneficio.nombre);
+            
+            benefitCard.innerHTML = `<span><strong>Beneficio:</strong> ${textoBeneficio}</span>`;
+            group.appendChild(benefitCard);
+          });
+        }
+
+        container.appendChild(group);
+      });
+    }
+
+    async function paymentsUpdate(pagos, compromisos, pagos_by_type) {
+      const tbody = document.getElementById('tabla-pagos-body');
+      let pagadoAcumulado = 0;
+      let pendienteAcumulado = 0;
+      let lastPagoFecha = null;
+
+      pagos.forEach(pago => {
+        console.log('Procesando pago: ', pago);
+        const row = document.createElement('tr');
+        pago['estado'] = 'Pagado';
+        if ( pago.metodo_pago === undefined || !pago.metodo_pago )
+          pago['metodo_pago'] = '';
+        // Formatear moneda
+        const montoFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pago.monto);
+
+        //Ultimo pago
+        const pagoFecha = new Date(pago.fecha);
+        console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
+        if (pago.fecha && (!lastPagoFecha || pagoFecha > lastPagoFecha)) {
+          lastPagoFecha = pagoFecha;
+          console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
+          document.getElementById('fecha-ultimo-pago').textContent = lastPagoFecha.toLocaleDateString('es-CL');
+        }
+        
+        if(pago.estado === 'Pagado') pagadoAcumulado += pago.monto;
+        else pendienteAcumulado += pago.monto;
+
+        //console.log('Compromisos:', compromisos);
+        const compromiso_asociado = compromisos.find(c => c.nombre === pago.tipo);
+        //console.log(`Buscando descripción para tipo de pago '${pago.tipo}' en compromisos...`, compromiso_asociado);
+        tipo_pago_descripcion = compromiso_asociado ? compromiso_asociado.descripcion : pago.tipo;
+        //console.log(`Pago tipo: ${pago.tipo}, descripción encontrada: ${tipo_pago_descripcion}`);
+
+        row.innerHTML = `
+          <td>${tipo_pago_descripcion}</td>
+          <td>${pago.fecha}</td>
+          <td>${montoFormateado}</td>
+          <td>${pago.metodo_pago}</td>
+          <td><span class="status-pill ${pago.estado === 'Pagado' ? 'status-pagado' : 'status-pendiente'}">${pago.estado}</span></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function obtenerCompromisosSinBeneficiosPagados(compromisos_sin_beneficios, pagos_by_type) {
         // Compromisos pagados
-        const compromisos_sin_beneficios = obtenerCompromisosSinBeneficios(compromisos);
-        const compromisos_con_beneficios = obtenerCompromisosConBeneficios(compromisos);
-
+        compromisos_pagados = {};
         compromisos_sin_beneficios.forEach(compromiso => {
           const tipo_compromiso = compromiso.nombre;
           console.log(`Procesando compromisos sin beneficios para tipo '${tipo_compromiso}'...`);
-          if (pagos_by_type[tipo_compromiso] !== undefined) {
-            const total_por_tipo = pagos_by_type[tipo_compromiso].reduce((acc, monto) => acc + monto, 0);
+          const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
+          if (total_por_tipo > 0) {
             console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
-            //const compromiso_asociado = compromisos.find(c => c.nombre === tipo_compromiso);
             const qty = parseInt(total_por_tipo / compromiso.monto);
             if (qty > 0) {
               compromisos_pagados[tipo_compromiso] = {
@@ -598,16 +604,48 @@
             }
           }
         });
+        return compromisos_pagados;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // Adding Payments Commitments
+        // Obtener Compromisos de Pago desde BD
+        const res_compromisos = await fetch('/api/compromisos_pago');
+        compromisos_db = await res_compromisos.json();
+        const compromisos = compromisos_db;
+
+        // Obtener estado de pagos desde BD
+        const response = await fetch('/api/estado_pago_cpa');
+        const pagos = await response.json();
+        console.log('/api/estado_pago_cpa: ', pagos);
+
+        // Obtener pagos por tipo
+        pagos_by_type = obtenerPagosPorTipo(pagos);
+
+
+        // Separar compromisos con y sin beneficios para procesarlos de manera diferenciada al mostrar la información
+        const compromisos_sin_beneficios = obtenerCompromisosSinBeneficios(compromisos);
+        const compromisos_con_beneficios = obtenerCompromisosConBeneficios(compromisos);
+
+        compromisos_sin_beneficios_pagados = obtenerCompromisosSinBeneficiosPagados(compromisos_sin_beneficios, pagos_by_type);
+
+        //console.log('Compromisos: ', compromisos);
+        // Adding payments commitments cards
+        await paymentsCommitmentsUpdate(compromisos);
+
+        // Actualizar Cartas de Pago
+        await paymentsTableUpdate(pagos, compromisos, pagos_by_type);
+        
+
 
         compromisos_con_beneficios.forEach(compromiso => {
           const tipo_compromiso = compromiso.nombre;
           const beneficios_activos = compromiso.beneficios.filter(b => tipo_compromiso in b.condiciones);
           console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
           console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
-          if (pagos_by_type[tipo_compromiso] !== undefined) {
-            const total_por_tipo = pagos_by_type[tipo_compromiso].reduce((acc, monto) => acc + monto, 0);
-            console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
-            //const compromiso_asociado = compromisos.find(c => c.nombre === tipo_compromiso);
+          const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
+          if (total_por_tipo > 0) {
             const qty = parseInt(total_por_tipo / compromiso.monto);
             if (qty > 0) {
               compromisos_pagados[tipo_compromiso] = {

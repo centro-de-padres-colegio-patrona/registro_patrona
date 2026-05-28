@@ -288,8 +288,7 @@
     console.log('URL Search Params:', params.toString());
     console.log('Parámetros de URL:', Object.fromEntries(params.entries()));
     
-    const beneficios_activados = {};
-
+    // Información del usuario actual (puede venir de autenticación normal o manual)
     let {user_email = ''} = params;
     let currentUser = {
       hijos: [],
@@ -607,6 +606,61 @@
         return compromisos_pagados;
     }
 
+    function obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type) {
+      // Similar a la función anterior pero considerando beneficios
+      // Aquí puedes agregar la lógica específica para calcular beneficios asociados a compromisos pagados con beneficios
+      const compromisos_pagados = {};
+      compromisos_con_beneficios.forEach(compromiso => {
+        const tipo_compromiso = compromiso.nombre;
+        const beneficios_activos = compromiso.beneficios.filter(b => tipo_compromiso in b.condiciones);
+        console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
+        console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
+        const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
+        if (total_por_tipo > 0) {
+          const qty = parseInt(total_por_tipo / compromiso.monto);
+          if (qty > 0) {
+            compromisos_pagados[tipo_compromiso] = {
+              cantidad: qty,
+              monto_total: total_por_tipo,
+              beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
+            };
+            console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
+            // Deshabilitar checkbox y mostrar cantidad pagada
+            const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
+            checkboxes.forEach(checkbox => {
+              checkbox.checked = true;
+              checkbox.disabled = true;
+              // Ocultar el checkbox y mostrar un mensaje de "Pagado"
+              const label = checkbox.nextElementSibling; // Asumiendo que el label está justo después
+              if (label && label.classList.contains('label-pago')) {
+                label.textContent = 'Pagado';
+                label.style.color = '#2ecc71';
+              }
+              // Obtener el contenedor del checkbox (el div que creamos para agruparlo)
+              const contenedorCheck = checkbox.parentNode;
+              
+              if (contenedorCheck) {
+                // Reemplazamos todo el contenido interno del contenedor para estructurar el estado "Pagado" de manera vertical
+                contenedorCheck.innerHTML = `
+                  <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
+                    <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                      ✓ Pagado
+                    </span>
+                    <span style="font-size: 0.8rem; color: #2ecc71; font-weight: 500;">
+                      Cantidad Pagada: ${qty}
+                    </span>
+                  </div>
+                `;
+              }
+            });
+          } else {
+            console.log(`No se pudo calcular cantidad para tipo '${tipo_compromiso}' debido a monto total de 0.`);
+          }
+        }
+      });
+      return compromisos_pagados;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         // Adding Payments Commitments
@@ -638,55 +692,7 @@
         await paymentsTableUpdate(pagos, compromisos, pagos_by_type);
         
 
-
-        compromisos_con_beneficios.forEach(compromiso => {
-          const tipo_compromiso = compromiso.nombre;
-          const beneficios_activos = compromiso.beneficios.filter(b => tipo_compromiso in b.condiciones);
-          console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
-          console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
-          const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
-          if (total_por_tipo > 0) {
-            const qty = parseInt(total_por_tipo / compromiso.monto);
-            if (qty > 0) {
-              compromisos_pagados[tipo_compromiso] = {
-                cantidad: qty,
-                monto_total: total_por_tipo,
-                beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
-              };
-              console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
-              // Deshabilitar checkbox y mostrar cantidad pagada
-              const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
-              checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-                checkbox.disabled = true;
-                // Ocultar el checkbox y mostrar un mensaje de "Pagado"
-                const label = checkbox.nextElementSibling; // Asumiendo que el label está justo después
-                if (label && label.classList.contains('label-pago')) {
-                  label.textContent = 'Pagado';
-                  label.style.color = '#2ecc71';
-                }
-                // Obtener el contenedor del checkbox (el div que creamos para agruparlo)
-                const contenedorCheck = checkbox.parentNode;
-                
-                if (contenedorCheck) {
-                  // Reemplazamos todo el contenido interno del contenedor para estructurar el estado "Pagado" de manera vertical
-                  contenedorCheck.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
-                      <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                        ✓ Pagado
-                      </span>
-                      <span style="font-size: 0.8rem; color: #2ecc71; font-weight: 500;">
-                        Cantidad Pagada: ${qty}
-                      </span>
-                    </div>
-                  `;
-                }
-              });
-            } else {
-              console.log(`No se pudo calcular cantidad para tipo '${tipo_compromiso}' debido a monto total de 0.`);
-            }
-          }
-        });
+        const compromisos_pagados_con_beneficios = obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type);
 
         // Actualizar tarjetas
         document.getElementById('total-pagado').textContent = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pagadoAcumulado);

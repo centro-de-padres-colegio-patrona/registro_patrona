@@ -22,6 +22,29 @@ git branch -M main
 git push -uf origin main
 ```
 
+
+## Install yarn and update node
+
+```
+# 1. Instalar NVM (Node Version Manager)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# 2. Recargar la terminal para que reconozca NVM
+source ~/.bashrc
+
+# 3. Instalar y activar Node.js v20 (cumple con creces el requisito de >=14.20.1)
+nvm install 20
+nvm use 20
+
+# 4. Instalar Yarn globalmente usando el nuevo Node.js
+npm install --global yarn
+
+# 5. Volver a tu proyecto y lanzar la instalación
+cd ~/spd/registro_patrona
+yarn install
+```
+
+
 ## Integrate with your tools
 
 - [ ] [Set up project integrations](https://gitlab.com/l.herreramena/registro_patrona/-/settings/integrations)

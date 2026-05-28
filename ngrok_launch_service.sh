@@ -33,7 +33,7 @@ else
             # Copiar el archivo de servicio y el script de ejecución a la ubicación adecuada
             sudo cp $ROOT_PATH/ngrok.service $NGROK_SERVICE_PATH/
         fi
-        mkdir -p /etc/ngrok
+        sudo mkdir -p /etc/ngrok
         if [ ! -f "$/etc/ngrok/ngrok_exec.sh" ]; then
             sudo cp $ROOT_PATH/ngrok_exec.sh /etc/ngrok/
         fi

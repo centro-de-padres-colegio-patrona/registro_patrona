@@ -416,7 +416,7 @@
       // pagos_by_type = { folio: monto}
       if (pagos_by_type[tipo_compromiso] !== undefined) {
         const pagos_compromiso = pagos_by_type[tipo_compromiso];
-        const total_por_tipo = pagos_compromiso ? Object.values(pagos_compromiso).reduce((acc, pago) => acc + pago, 0) : 0;
+        const total_por_tipo = pagos_compromiso ? Object.values(pagos_compromiso).reduce((acc, pago) => acc + pago.monto, 0) : 0;
         //console.log(`Total pagado para compromiso '${tipo_compromiso}': ${total_por_tipo}`);
         return total_por_tipo;
       } else {
@@ -450,10 +450,10 @@
       pagos.forEach(pago => {
         if (!pagos_by_type[pago.tipo]) {
           pagos_by_type[pago.tipo] = {};
-          pagos_by_type[pago.tipo][pago.num_folio] = pago.monto;
+          pagos_by_type[pago.tipo][pago.num_folio] = { monto: pago.monto};
         } else {
           if (pagos_by_type[pago.tipo][pago.num_folio] === undefined) {
-            pagos_by_type[pago.tipo][pago.num_folio] = pago.monto;
+            pagos_by_type[pago.tipo][pago.num_folio] = { monto: pago.monto };
           }
         }
       });
@@ -733,7 +733,7 @@
         // Obtener estado de pagos desde BD
         const response = await fetch('/api/estado_pago_cpa');
         const pagos = await response.json();
-        //console.log('/api/estado_pago_cpa: ', pagos);
+        console.log('/api/estado_pago_cpa: ', pagos);
 
         // Obtener pagos por tipo
         pagos_by_type = obtenerPagosPorTipo(pagos);

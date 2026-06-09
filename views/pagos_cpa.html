@@ -383,6 +383,7 @@
       });
     }
 
+    // Obtiener compromisos de pago desde la base de datos
     async function fetchCompromisos() {
       try {
         const res = await fetch('/api/compromisos_pago');
@@ -395,16 +396,55 @@
       return [];
     }
 
+    // Función para calcular el total pagado por tipo de compromiso
+    // Argumentos:
+    // - tipo_compromiso: el nombre del compromiso que queremos calcular
+    // - pagos_by_type: un objeto que agrupa los pagos por tipo de compromiso, con la siguiente estructura:
+    //   {
+    //     "tipo1": {
+    //       "folio1": monto1,
+    //       "folio2": monto2
+    //     },
+    //     "tipo2": {
+    //       "folio3": monto3
+    //     }
+    //   }
+    // Devuelve el total pagado para el tipo de compromiso especificado, sumando los montos de todos los folios asociados a ese tipo. Si el tipo de compromiso no tiene pagos asociados, devuelve 0.
     function total_pagos_por_compromiso(tipo_compromiso, pagos_by_type) {
+      //console.log(`Calculando total pagado para compromiso '${tipo_compromiso}'... en base a pagos_by_type:`, pagos_by_type);
+      // pagos_by_type es un objeto que agrupa los pagos por tipo de compromiso, con la estructura mencionada en el comentario de la función obtenerPagosPorTipo. Para calcular el total pagado para un tipo de compromiso específico, verificamos si ese tipo existe en pagos_by_type. Si existe, sumamos los montos de todos los folios asociados a ese tipo. Si no existe, significa que no hay pagos registrados para ese compromiso, por lo que devolvemos 0.  
+      // pagos_by_type = { folio: monto}
       if (pagos_by_type[tipo_compromiso] !== undefined) {
         const pagos_compromiso = pagos_by_type[tipo_compromiso];
-        const total_por_tipo = pagos_compromiso ? Object.values(pagos_compromiso).reduce((acc, pago) => acc + pago.monto, 0) : 0;
+        const total_por_tipo = pagos_compromiso ? Object.values(pagos_compromiso).reduce((acc, pago) => acc + pago, 0) : 0;
+        //console.log(`Total pagado para compromiso '${tipo_compromiso}': ${total_por_tipo}`);
         return total_por_tipo;
       } else {
+        console.log(`No se encontraron pagos para compromiso '${tipo_compromiso}'. Total pagado: 0`);
         return 0;
       }
+      console.log(`Total pagado para compromiso '${tipo_compromiso}': Salida erronea debido a falta de datos. Total pagado: 0`);
     }
 
+    // Función para agrupar los pagos por tipo de compromiso, devolviendo un objeto con la estructura mencionada en el comentario de la función anterior
+    // Argumentos:
+    // - pagos: un array con los pagos obtenidos desde la base de datos, con la siguiente estructura:
+    //   {
+    //     "id": "1",
+    //     "tipo": "tipo1",
+    //     "num_folio": "folio1",
+    //     "monto": 1000
+    //   }
+    // Devuelve un objeto que agrupa los pagos por tipo de compromiso, con la siguiente estructura:
+    //   {
+    //     "tipo1": {
+    //       "folio1": monto1,
+    //       "folio2": monto2
+    //     },
+    //     "tipo2": {
+    //       "folio3": monto3
+    //     }
+    //   }
     function obtenerPagosPorTipo(pagos) {
       const pagos_by_type = {};
       pagos.forEach(pago => {
@@ -417,6 +457,7 @@
           }
         }
       });
+      console.log('Pagos agrupados por tipo de compromiso:', pagos_by_type);
       return pagos_by_type;
     }
 
@@ -516,7 +557,7 @@
       let lastPagoFecha = null;
 
       pagos.forEach(pago => {
-        console.log('Procesando pago: ', pago);
+        //console.log('Procesando pago: ', pago);
         const row = document.createElement('tr');
         pago['estado'] = 'Pagado';
         if ( pago.metodo_pago === undefined || !pago.metodo_pago )
@@ -526,10 +567,10 @@
 
         //Ultimo pago
         const pagoFecha = new Date(pago.fecha);
-        console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
+        //console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
         if (pago.fecha && (!lastPagoFecha || pagoFecha > lastPagoFecha)) {
           lastPagoFecha = pagoFecha;
-          console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
+          //console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
           document.getElementById('fecha-ultimo-pago').textContent = lastPagoFecha.toLocaleDateString('es-CL');
         }
         
@@ -551,6 +592,7 @@
         `;
         tbody.appendChild(row);
       });
+      return {pagadoAcumulado, pendienteAcumulado, lastPagoFecha};
     }
 
     function obtenerCompromisosSinBeneficiosPagados(compromisos_sin_beneficios, pagos_by_type) {
@@ -558,10 +600,11 @@
         compromisos_pagados = {};
         compromisos_sin_beneficios.forEach(compromiso => {
           const tipo_compromiso = compromiso.nombre;
-          console.log(`Procesando compromisos sin beneficios para tipo '${tipo_compromiso}'...`);
+          //console.log(`Procesando compromisos sin beneficios para tipo '${tipo_compromiso}'...`);
           const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
+          //console.log(`Total pagado para tipo '${tipo_compromiso}': ${total_por_tipo}`);
           if (total_por_tipo > 0) {
-            console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
+            //console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
             const qty = parseInt(total_por_tipo / compromiso.monto);
             if (qty > 0) {
               compromisos_pagados[tipo_compromiso] = {
@@ -569,9 +612,10 @@
                 monto_total: total_por_tipo,
                 //beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
               };
-              console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
+              //console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
               // Deshabilitar checkbox y mostrar cantidad pagada
               const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
+              //console.log(`Checkboxes encontrados para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, checkboxes.length);
               checkboxes.forEach(checkbox => {
                 checkbox.checked = true;
                 checkbox.disabled = true;
@@ -583,7 +627,7 @@
                 }
                 // Obtener el contenedor del checkbox (el div que creamos para agruparlo)
                 const contenedorCheck = checkbox.parentNode;
-                
+                //console.log(`Contenedor del checkbox para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, contenedorCheck);
                 if (contenedorCheck) {
                   // Reemplazamos todo el contenido interno del contenedor para estructurar el estado "Pagado" de manera vertical
                   contenedorCheck.innerHTML = `
@@ -606,16 +650,33 @@
         return compromisos_pagados;
     }
 
-    function obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type) {
+    function obtenerBeneficiosActivos(beneficios, compromisos_sin_beneficios_pagados) {
+      const beneficios_activos = beneficios.filter(beneficio => {
+        return beneficio.condiciones.some(condicion => condicion in compromisos_sin_beneficios_pagados);
+      });
+      return beneficios_activos;
+    }
+
+    function obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type, compromisos_sin_beneficios_pagados) {
       // Similar a la función anterior pero considerando beneficios
       // Aquí puedes agregar la lógica específica para calcular beneficios asociados a compromisos pagados con beneficios
       const compromisos_pagados = {};
       compromisos_con_beneficios.forEach(compromiso => {
         const tipo_compromiso = compromiso.nombre;
-        const beneficios_activos = compromiso.beneficios.filter(b => tipo_compromiso in b.condiciones);
-        console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
-        console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
+        const beneficios_activos = obtenerBeneficiosActivos(compromiso.beneficios, compromisos_sin_beneficios_pagados);
+        //console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
+        //console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
         const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
+        if (beneficios_activos.length > 0) {
+          console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
+          if ( tipo_compromiso in pagos_by_type) {
+            console.log(`Pagos encontrados para tipo '${tipo_compromiso}' en pagos_by_type:`, pagos_by_type[tipo_compromiso]);
+          } else {
+            console.log(`No se encontraron pagos para tipo '${tipo_compromiso}' en pagos_by_type.`);
+          }
+        } else {
+          console.log(`No hay beneficios activos para tipo '${tipo_compromiso}'.`);
+        }
         if (total_por_tipo > 0) {
           const qty = parseInt(total_por_tipo / compromiso.monto);
           if (qty > 0) {
@@ -672,32 +733,38 @@
         // Obtener estado de pagos desde BD
         const response = await fetch('/api/estado_pago_cpa');
         const pagos = await response.json();
-        console.log('/api/estado_pago_cpa: ', pagos);
+        //console.log('/api/estado_pago_cpa: ', pagos);
 
         // Obtener pagos por tipo
         pagos_by_type = obtenerPagosPorTipo(pagos);
 
+
+        // Adding payments commitments cards
+        await paymentsCommitmentsUpdate(compromisos);
 
         // Separar compromisos con y sin beneficios para procesarlos de manera diferenciada al mostrar la información
         const compromisos_sin_beneficios = obtenerCompromisosSinBeneficios(compromisos);
         const compromisos_con_beneficios = obtenerCompromisosConBeneficios(compromisos);
 
         compromisos_sin_beneficios_pagados = obtenerCompromisosSinBeneficiosPagados(compromisos_sin_beneficios, pagos_by_type);
+        //console.log('Compromisos sin beneficios pagados: ', compromisos_sin_beneficios_pagados);
 
         //console.log('Compromisos: ', compromisos);
-        // Adding payments commitments cards
-        await paymentsCommitmentsUpdate(compromisos);
-
         // Actualizar Cartas de Pago
-        await paymentsTableUpdate(pagos, compromisos, pagos_by_type);
+        //await paymentsTableUpdate(pagos, compromisos, pagos_by_type);
+
+        const { pagadoAcumulado, pendienteAcumulado } = await paymentsUpdate(pagos, compromisos, pagos_by_type);
         
 
-        const compromisos_pagados_con_beneficios = obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type);
+        const compromisos_pagados_con_beneficios = obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type, compromisos_sin_beneficios_pagados);
+        //console.log('Compromisos con beneficios pagados: ', compromisos_pagados_con_beneficios);
+        //console.log('Pagos por tipo: ', pagos_by_type);
 
         // Actualizar tarjetas
         document.getElementById('total-pagado').textContent = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pagadoAcumulado);
         document.getElementById('total-pendiente').textContent = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pendienteAcumulado);
-        
+        //document.getElementById('last-pago-fecha').textContent = lastPagoFecha;
+
       } catch (error) {
         console.error("Error cargando pagos:", error);
       }
@@ -752,7 +819,7 @@
         let status = iniciado? 'activo': 'inactivo'
         status = terminado? 'finalizado': status;
 
-        console.log({ahora, stopDate, 'stopDate > ahora': stopDate > ahora, terminado, status});
+        //console.log({ahora, stopDate, 'stopDate > ahora': stopDate > ahora, terminado, status});
 
         return status;
       } catch (error) {
@@ -836,13 +903,13 @@
       return [];
     }
 
-    async function obtenerBeneficiosActivos(compromiso_id) {
+    /*async function obtenerBeneficiosActivos(compromiso_id) {
       const beneficios = await obtenerTodosLosBeneficios();
       const compromisos_pagados = await getCompromisosPagados();
       const beneficions_activos = compromisos_pagados.flatMap(c => c.beneficios);
       const compromiso = compromisos.find(c => c.id === compromiso_id);
       return compromiso ? compromiso.beneficios : [];
-    }
+    }*/
 
     async function obtenerBeneficiosPorCompromiso(compromiso_id) {
       const beneficios = await calcularBeneficios();

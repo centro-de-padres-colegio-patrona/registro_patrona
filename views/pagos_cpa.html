@@ -507,7 +507,7 @@
             <h3>${item.descripcion}</h3>
             <div class="value">${montoFormateado}</div>
             <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
-            <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+            <!--button class="btn-pagar" onclick="iniciarPagoFlow('${item.id}')" style="width:100%; margin-top:10px;">
               Iniciar Pago
             </button-->
             <!--td class="col-seleccion" style="text-align: left; padding-left: 20px;">
@@ -525,7 +525,7 @@
             <h3>${item.descripcion}</h3>
             <div class="value">Terminado</div>
             <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
-            <!--button class="btn-pagar" onclick="iniciarPago('${item.id}')" style="width:100%; margin-top:10px;">
+            <!--button class="btn-pagar" onclick="iniciarPagoFlow('${item.id}')" style="width:100%; margin-top:10px;">
               Iniciar Pago
             </button-->
           `;
@@ -771,7 +771,7 @@
     });
 
     // Función de ejemplo para el botón de la tarjeta
-    async function iniciarPago(idCompromiso) {
+    async function iniciarPagoFlow(idCompromiso) {
       console.log('Iniciando proceso de pago para:', idCompromiso);
       // Aquí puedes redirigir a la pasarela o abrir un modal
 
@@ -969,6 +969,15 @@
       
       console.log(`Procesando pago vía ${pasarelaSeleccionada} para los IDs:`, ids);
 
+      if (pasarelaSeleccionada === 'flow') {
+        iniciarPagoFlow(ids); // Aquí podrías adaptar para enviar múltiples IDs si tu backend y Flow lo permiten
+        // Aquí puedes implementar la lógica específica para iniciar el proceso de pago múltiple con Flow
+        // Por ejemplo, podrías enviar una solicitud a tu backend para crear una orden de pago múltiple y luego redirigir al usuario a la página de pago de Flow con el token correspondiente.
+      } else if (pasarelaSeleccionada === 'webpay') {
+        // Aquí puedes implementar la lógica específica para iniciar el proceso de pago múltiple con Webpay
+        // Similar al caso de Flow, pero adaptado a la integración que tengas con Webpay.
+      }
+
       // Aquí modificas tu fetch para enviar también la 'pasarelaSeleccionada'
       // Ejemplo:
       // await fetch('/api/crear_orden', { 
@@ -976,7 +985,7 @@
       //   body: JSON.stringify({ ids, pasarela: pasarelaSeleccionada, ... }) 
       // });
       
-      alert(`Redirigiendo a ${pasarelaSeleccionada.toUpperCase()}...`);
+      //alert(`Redirigiendo a ${pasarelaSeleccionada.toUpperCase()}...`);
     }
 
     function cambiarCantidad(id, delta, max) {

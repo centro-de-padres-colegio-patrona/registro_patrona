@@ -891,8 +891,18 @@ app.get('/ingreso_manual.html', (req, res) => {
 app.post('/api/boton_pago_compromiso', async (req, res) => {
   try {
     let {compromiso_key, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
-    const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
-    const {monto} = compromiso_pago;
+    let monto_total = 0;
+    if (typeof compromiso_key === 'array') {
+      for (const key of compromiso_key) {
+        const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: key});
+        const {monto} = compromiso_pago;
+        monto_total += monto;
+      }
+    } else {
+      const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
+      const {monto} = compromiso_pago;
+      monto_total += monto;
+    }
     if ( user_email === undefined || user_email === null) 
       user_email = req.user.emails[0].value;
     console.log('email: ', user_email);
@@ -901,8 +911,8 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     console.log('rut: ', rut);
     console.log('telefono: ', telefono);
     console.log('nombres_hijos: ', nombres_hijos);
-    console.log('compromiso pago: ', compromiso_pago);
-    console.log('monto: ', monto);
+    //console.log('compromiso pago: ', compromiso_pago);
+    console.log('monto_total: ', monto_total);
 
     optional = {
       rut: rut || "9999999-9",
@@ -916,7 +926,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       commerceOrder: 1111,
       subject: compromiso_key,
       currency: 'CLP',
-      amount: String(monto),
+      amount: String(monto_total),
       email: user_email,
       urlConfirmation: BASEURL + '/api/payments/confirm',
       urlReturn: BASEURL + '/api/payments/return',
@@ -933,7 +943,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       })
     });
     const params = await params_post.json();*/
-    const params = await generatePaymentOrder(monto, compromiso_key, user_email, optional);
+    const params = await generatePaymentOrder(monto_total, compromiso_key, user_email, optional);
 
     const allParams = await flow.send("payment/create", params, "POST");
     //const {allParams} = response;
@@ -987,6 +997,10 @@ async function generatePaymentOrder(amount, subject, email, optional) {
   try {
     const commerceOrder = await getNextCorrelativeCommerceOrder();
     console.log(`[generatePaymentOrder] amount: ${amount}, subject: ${subject}, email: ${email}`);
+    if (typeof subject === 'array') {
+      // Manejar el caso donde subject es un array de IDs
+      subject = subject.join(','); // Convertir el array a una cadena separada por comas
+    }
     const paymentOrder = {
       commerceOrder: commerceOrder,
       subject: subject,

@@ -284,12 +284,14 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
+    const objParams = Object.fromEntries(params.entries());
     console.log('URL Params:', params);
     console.log('URL Search Params:', params.toString());
-    console.log('Parámetros de URL:', Object.fromEntries(params.entries()));
+    console.log('Parámetros de URL:', objParams);
     
     // Información del usuario actual (puede venir de autenticación normal o manual)
-    let {user_email = ''} = params;
+    let {user_email = ''} = objParams;
+    console.log(`Correo obtenido de URL params: ${user_email}`);
     let currentUser = {
       hijos: [],
       padres: []
@@ -963,6 +965,14 @@
         alert("Por favor, seleccione una pasarela de pago.");
         return;
       }
+      const boton_pagar_todo = document.getElementById('btn-pagar-todo');
+      boton_pagar_todo.disabled = true; // Deshabilitar el botón para evitar múltiples clics
+
+      // 1. Deshabilitar el botón y cambiar su aspecto visual
+      boton_pagar_todo.disabled = true;
+      boton_pagar_todo.style.backgroundColor = '#95a5a6'; // Color gris para estado deshabilitado
+      boton_pagar_todo.style.cursor = 'not-allowed';       // Cambia el puntero del mouse
+      boton_pagar_todo.textContent = 'Redirigiendo a pasarela de pago...'; // Cambia el texto informativo
 
       const checks = document.querySelectorAll('.pago-check:checked');
       const ids = Array.from(checks).map(c => c.dataset.id);

@@ -393,7 +393,7 @@
               //document.getElementById("correoUsuario").value =correoManual;
           });
         }
-        console.log('Finalizando init()...');
+        //console.log('Finalizando init()...');
         //resolve();
       });
     }
@@ -758,7 +758,7 @@
           console.log('Usuario no autenticado, obteniendo pagos desde /api/estado_pago_cpa_manual...');
           //const response = await fetch('/api/estado_pago_cpa_manual?email=' + encodeURIComponent(user_email));
           console.log('Intentando obtener pagos desde /api/estado_pago_cpa_manual con correo: ', currentUser);
-          const response = await fetch('/api/estado_pago_cpa?user=' + encodeURIComponent(currentUser));
+          const response = await fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(user_email));
           pagos = await response.json();
         }
         console.log('/api/estado_pago_cpa: ', pagos);

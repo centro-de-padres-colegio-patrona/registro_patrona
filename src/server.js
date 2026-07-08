@@ -276,7 +276,15 @@ app.use(express.static(__dirname + '/views'))
 app.use(express.static(path.join(__dirname, '../views')));
 
 app.use(express.urlencoded({ extended: true }));
-app.use(session({ secret: 'Peroconrespeto', resave: false, saveUninitialized: false }));
+app.use(session({ 
+  secret: 'Peroconrespeto', 
+  resave: false, 
+  saveUninitialized: false,
+  cookie: { 
+    secure: false, // Cambiar a true si estás usando HTTPS
+    sameSite: 'lax' // Cambiar según tus necesidades
+  }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -705,10 +713,13 @@ app.get('/api/compromisos_pago', async (req, res) => {
 
 app.get('/api/estado_pago_cpa', async (req, res) => {
   //console.log('req.user:', req.user);
-  //console.log('/api/estado_pago_cpa');
+  console.log('/api/estado_pago_cpa');
   try {
     const { user_email = null } = req.query;
     let user = null;
+    console.log(`[/api/estado_pago_cpa] user_email: ${user_email}`);
+    console.log(`[/api/estado_pago_cpa] req.user: ${JSON.stringify(req.user)}`);
+    console.log(`[/api/estado_pago_cpa] req.query: ${JSON.stringify(req.query)}`);
     if ( user_email === undefined || user_email === null )
       user = await db_support.usersDB.findOne({ googleId: req.user.id });
     else
@@ -1133,13 +1144,25 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
 
     console.log('[/api/payments/return] Resultado del pago:', result);
     console.log('[/api/payments/return] Mensaje para el usuario:', mensaje);
-    const forwarding = `${url_panel_usuario}?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
+
+    if (!req.session.user && result.payer) {
+      // Asumiendo que guardas al usuario en req.session.user o req.session.passport
+      req.session.user = { email: result.payer }; 
+    }
+
+    //const forwarding = `${url_panel_usuario}?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
     const webPath = "/pagos_cpa.html";
     const params = `?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
     console.log('[/api/payments/return] Redirigiendo al panel de usuario con mensaje...', webPath + params);
     // Opción A: Redirigir de vuelta al panel con parámetros
-    res.redirect(webPath + params);
-    //res.sendFile(forwarding);
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error guardando la sesión:", err);
+      }
+      console.log('[/api/payments/return] Redirigiendo al panel con sesión guardada...');
+      res.redirect(webPath + params);
+    });
+    //res.redirect(webPath + params);
     
   } catch (error) {
     console.error('[/api/payments/return] Error al verificar el estado del pago:', error);

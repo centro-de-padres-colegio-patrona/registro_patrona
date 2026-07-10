@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
   <title>Registro CPA: Mis Entradas - Fiesta Chilena</title>
   <style>
     * {
@@ -15,15 +16,12 @@
       background-color: #f4f6f9;
       color: #333;
     }
+    
+    /* MODIFICADO: Ahora tiene exactamente los mismos atributos que actividades_eventos.html */
     #barra-superior {
-      background-color: #b22222;
-      color: #ffffff;
-      padding: 15px 20px;
-      font-size: 18pt;
-      font-weight: bold;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      /* Al no tener propiedades extras aquí, heredará todo el diseño idéntico desde /styles.css */
     }
+
     .container {
       max-width: 1000px;
       margin: 30px auto;
@@ -41,10 +39,6 @@
       margin-top: 0;
       color: #b22222;
     }
-    .grid-entradas {
-      display: block;
-    }
-    /* Estructura de tabla limpia para asegurar compatibilidad y maquetación lineal */
     .tabla-entradas {
       width: 100%;
       border-collapse: separate;
@@ -71,7 +65,6 @@
       color: #666;
       margin-bottom: 15px;
     }
-    /* Contenedor de la miniatura del PDF */
     .preview-pdf {
       width: 100%;
       height: 250px;
@@ -81,7 +74,7 @@
       background-color: #eee;
       margin-bottom: 15px;
     }
-    .preview-pdf iframe, .preview-pdf object {
+    .preview-pdf iframe {
       width: 100%;
       height: 100%;
       border: none;
@@ -96,7 +89,6 @@
       font-weight: bold;
       border-radius: 4px;
       text-align: center;
-      transition: background-color 0.2s;
     }
     .btn-descargar:hover {
       background-color: #8b1c1c;
@@ -106,25 +98,23 @@
 <body>
 
   <div id="barra-superior">
-    Fiesta Chilena - Mis Invitaciones Disponibles
+    Fiesta a la Chilena - Mis Invitaciones disponibles
   </div>
 
   <div class="container">
-    <div class="descripcion-seccion">
+    <!--div class="descripcion-seccion">
       <h2>Mis Entradas Disponibles</h2>
       <p>A continuación se presentan las entradas cargadas y activas asociadas a tu cuenta para la Fiesta Chilena y eventos del colegio. Puedes visualizar la miniatura del documento PDF o proceder con su descarga directa.</p>
-    </div>
+    </div-->
 
     <table class="tabla-entradas">
       <tr>
         <td class="celda-entrada">
           <div class="titulo-entrada">10 Abonos y 6 Entradas</div>
           <div class="detalle-entrada">Archivo: 10 abonos y 6 entradas.pdf</div>
-          
           <div class="preview-pdf">
             <iframe src="https://drive.google.com/file/d/0B5aB_RxKu4htSHA5Q1pyb25uMFk/preview" allow="autoplay"></iframe>
           </div>
-          
           <a href="https://drive.google.com/open?id=0B5aB_RxKu4htSHA5Q1pyb25uMFk" target="_blank" class="btn-descargar">
             Abrir y Descargar PDF
           </a>
@@ -133,11 +123,9 @@
         <td class="celda-entrada">
           <div class="titulo-entrada">Entradas al Cine - Alonso y Vicente</div>
           <div class="detalle-entrada">Archivo: entradas al cine Alonso y Vicente.pdf</div>
-          
           <div class="preview-pdf">
             <iframe src="https://drive.google.com/file/d/1x_a5SbqUcdOmPG0HXqwpcaQIyQgEkT4K/preview" allow="autoplay"></iframe>
           </div>
-          
           <a href="https://drive.google.com/open?id=1x_a5SbqUcdOmPG0HXqwpcaQIyQgEkT4K" target="_blank" class="btn-descargar">
             Abrir y Descargar PDF
           </a>

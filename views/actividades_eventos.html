@@ -6,30 +6,37 @@
   <title>Registro CPA: Actividades y Eventos Centro de Padres Colegio Patrona</title>
 
   <style>
-    body {
+body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
       background: #f9f9f9;
     }
-    .actividad {
+    /* CORRECCIÓN: Convertimos el enlace en el contenedor de ancho completo */
+    .actividad-link {
+      display: block; /* Ocupa todo el ancho */
+      width: 100%;
       background: #fff;
-      margin: 20px auto;
+      margin: 100px 0 20px 0; 
       padding: 20px;
-      max-width: 800px;
-      border-radius: 8px;
+      box-sizing: border-box; 
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      text-align: left; 
+      text-decoration: none; /* Quita el subrayado azul típico de los enlaces */
+      color: inherit; /* Mantiene el color del texto original */
+      cursor: pointer; /* Fuerza a que aparezca la mano del cursor en toda la franja */
     }
-    .actividad h2 {
+    .actividad-link h2 {
       color: #b22222;
-      margin-bottom: 10px;
+      margin: 0; /* Limpiamos márgenes para evitar saltos extra */
     }
-    .actividad video {
+    .actividad-link video {
       width: 100%;
       border-radius: 6px;
+      margin-top: 15px;
       margin-bottom: 15px;
     }
-    .actividad p {
+    .actividad-link p {
       line-height: 1.6;
       color: #333;
     }
@@ -45,11 +52,10 @@
   <div id="barra-superior">
     Actividades y Eventos Centro de Padres Colegio Patrona
   </div>
-  <!--h2>Actividades y Eventos Centro de Padres Colegio Patrona</h2-->
-  <div class="actividad">
-    <h2>Fiesta a la Chilena</h2>
-  </div>
 
+  <a href="entradas_fiesta_chilena.html" class="actividad-link">
+    <h2>Fiesta a la Chilena</h2>
+  </a>
 
 </body>
 </html>

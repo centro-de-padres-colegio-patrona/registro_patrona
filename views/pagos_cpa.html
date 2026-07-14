@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Mis Pagos Individuales</title>
+  <style>
+    .dashboard-container {
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Contenedor de Tarjetas */
+    .summary-cards {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      flex: 1;
+      min-width: 200px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-left: 5px solid #4A90E2;
+      text-align: left;
+    }
+
+    .card h3 {
+      margin: 0;
+      color: #666;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+
+    .card .value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin: 10px 0;
+      color: #333;
+    }
+
+    /* Estilos de la Tabla */
+    .table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background-color: #f8f9fa;
+      border-bottom: 2px solid #dee2e6;
+    }
+
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      color: #495057;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background-color: #f1f4f9;
+    }
+
+    .status-pill {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .status-pagado { background: #e1f7e1; color: #2e7d32; }
+    .status-pendiente { background: #fff3cd; color: #856404; }
+
+    /* Contenedor individual para compromiso + sus beneficios */
+    .commitment-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 280px;
+      flex: 1;
+    }
+
+    /* Estilo para las tarjetas de beneficios */
+    .benefit-card {
+      background-color: #f0f7ff; /* Azul muy claro */
+      border: 1px dashed #4A90E2;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin-left: 20px; /* Indentación para mostrar jerarquía */
+      font-size: 0.85rem;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .benefit-card::before {
+      content: "🎁"; /* Icono de regalo para beneficios */
+    }
+
+    /* Alinea la primera columna (donde está el checkbox) a la izquierda */
+    #tabla-compromisos td:first-child, 
+    #tabla-compromisos th:first-child {
+        text-align: left;
+        /* padding-left: 20px; /* Un poco de margen para que no pegue al borde */
+    }
+
+    /* Opcional: Asegúrate de que el checkbox no tenga márgenes automáticos */
+    .pago-check {
+        margin: 10px 0 0 0;
+        display: inline-block;
+        vertical-align: middle;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    .label-pago {
+      font-size: 0.8rem;
+      color: #777;
+      vertical-align: bottom;
+    }
+    /* Contenedor de opciones de pago */
+    .metodos-pago {
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .btn-pasarela {
+      padding: 10px 20px;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-pasarela:hover {
+      border-color: #4A90E2;
+      background-color: #f0f7ff;
+    }
+
+    /* Estilo para resaltar la pasarela seleccionada */
+    .btn-pasarela.selected {
+      border-color: #2ecc71;
+      background-color: #eafaf1;
+      color: #27ae60;
+    }
+    .cantidad-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .btn-cantidad {
+        width: 25px;
+        height: 25px;
+        border: 1px solid #ccc;
+        background: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    .btn-cantidad:hover {
+        background: #e9ecef;
+    }
+
+    .input-cantidad {
+        width: 30px;
+        text-align: center;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+
+    <h2>Compromisos de Pagos</h2>
+    <div id="payments-commitment" class="summary-cards">
+    </div>
+
+    <!--thead>
+      <tr>
+        <th>Seleccionar</th> <th>Compromiso</th>
+        <th>Monto</th>
+        <th>Estado</th>
+      </tr>
+    </thead-->
+    <!--tbody id="tabla-compromisos">
+      </tbody-->
+
+    <div class="summary-cards">
+      <!--div class="card" id="card-pago" style="display: none;">
+        <h3>Total a Pagar</h3>
+        <div id="pago-multiple-container" style="text-align: left; margin-top: 20px; display: none;">
+          <span id="total-seleccionado" style="margin-right: 20px; font-weight: bold;">Total: $0</span>
+          <button id="btn-pagar-todo" class="btn-pago" onclick="procesarPagoMultiple()">Pagar Todo lo Seleccionado</button>
+        </div>
+      </div-->
+      <div class="card" id="card-pago" style="display: none;">
+        <h3>Resumen de Selección</h3>
+        <div id="pago-multiple-container" style="margin-top: 15px;">
+          <div class="value" id="total-seleccionado" style="font-size: 1.5rem; margin-bottom: 15px;">Total: $0</div>
+          
+          <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Seleccione su medio de pago:</p>
+          <div class="metodos-pago">
+            <button class="btn-pasarela" onclick="seleccionarPasarela('flow', this)">
+              💳 Flow (Webpay/Khipu)
+            </button>
+            <button class="btn-pasarela" onclick="seleccionarPasarela('mercadopago', this)">
+              🔵 Mercado Pago
+            </button>
+          </div>
+          <button id="btn-pagar-todo" class="btn-pago" 
+                  onclick="procesarPagoMultiple()" 
+                  style="width: 100%; margin-top: 20px; padding: 12px; background-color: #4A90E2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none;">
+            Pagar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <h2>Resumen de Pagos Individuales</h2>
+
+    <div class="summary-cards">
+      <div class="card">
+        <h3>Total Pagado</h3>
+        <div class="value" id="total-pagado">$0</div>
+      </div>
+      <div class="card" style="border-left-color: #f39c12;">
+        <h3>Pendiente</h3>
+        <div class="value" id="total-pendiente">$0</div>
+      </div>
+      <div class="card" style="border-left-color: #2ecc71;">
+        <h3>Último Pago</h3>
+        <div id="fecha-ultimo-pago" style="margin-top:10px; color:#555;">--/--/--</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Fecha</th>
+            <th>Monto</th>
+            <th>Método</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-pagos-body">
+          </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const objParams = Object.fromEntries(params.entries());
+    let sessionOpened = false;
+    let  {user_email = ''} = objParams;
+    let currentUser = {
+      hijos: [],
+      padres: []
+    };
+    let nombres_hijos = [];
+    let parentInfo = null;
+
+    async function return_to_home(show_alert = true) {
+      if ( show_alert)
+        alert('Usuario no autenticado')
+      window.location.replace = "/";
+    }
+
+    async function init() {
+      await new Promise((resolve, reject) => {
+        console.log('URL Params:', params);
+        console.log('URL Search Params:', params.toString());
+        console.log('Parámetros de URL:', objParams);
+        
+        // Información del usuario actual (puede venir de autenticación normal o manual)
+        sessionOpened = false;
+        console.log(`Correo obtenido de URL params: ${user_email}`);
+
+        if (user_email) {
+          //const raw_user = await fetch('/api/manualUser?email=' + encodeURIComponent(user_email));
+          //const user_data = await raw_user.json();
+          console.log(`Intentando obtener usuario manual con correo: ${user_email}`);
+          fetch('/api/manualUser?email=' + encodeURIComponent(user_email))
+            .then(response => {
+              console.log('Respuesta del servidor para manualUser:', response);
+              if (!response.ok) {
+                throw new Error('Usuario no autenticado');
+                return_to_home();
+              }
+              return response.json();
+            })
+            .then(user => {
+              currentUser = user.user;
+              console.log('Datos del usuario (manual):', currentUser); // Útil para debugging
+              nombres_hijos = currentUser.hijos ? currentUser.hijos.map(hijo => hijo.nombre) : [];
+              //VAlidar si el correo esta vacio, y dejar por defecto el correo:
+              user_email = currentUser.email && currentUser.email.trim() !== "" 
+                  ? currentUser.email 
+                  : "";
+              console.log(`[/api/manualUser] correo: ${user_email}`);
+              // Obtener información del padre
+              if (currentUser.padres && currentUser.padres.length > 0) {
+                // Buscar al padre que tenga un correo electrónico coincidente con user_email
+                parentInfo = currentUser.padres.find(padre => padre.correo && padre.correo.trim() === user_email);
+                console.log('Información del padre encontrada (manual):', parentInfo);
+              } else {
+                console.log('No se encontraron padres asociados al usuario (manual).');
+              }
+              resolve();
+            })
+            .catch(error => {
+              console.log('Error al obtener usuario manual:', error);
+              alert('Usuario no autenticado');
+              return_to_home(false);
+            });
+        } else {
+        fetch('/api/user')
+          .then(response => {
+            console.log('Respuesta del servidor:', response);
+            if (!response.ok) {
+              throw new Error('Usuario no autenticado');
+              return_to_home();
+            }
+            return response.json();
+          })
+          .then(user => {
+            currentUser = user.user;
+            console.log('Datos del usuario:', currentUser); // Útil para debugging
+            nombres_hijos = currentUser.hijos ? currentUser.hijos.map(hijo => hijo.nombre) : [];
+            //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
+            user_email = currentUser.email && currentUser.email.trim() !== "" 
+                ? currentUser.email 
+                : "";
+
+            console.log(`[/api/user] correo: ${user_email}`);
+            sessionOpened = true;
+            //document.getElementById("correoUsuario").value = correo;
+            // Obtener información del padre
+            if (currentUser.padres && currentUser.padres.length > 0) {
+              // Buscar al padre que tenga un correo electrónico coincidente con user_email
+              parentInfo = currentUser.padres.find(padre => padre.correo && padre.correo.trim() === user_email);
+              console.log('Información del padre encontrada:', parentInfo);
+            } else {
+              console.log('No se encontraron padres asociados al usuario.');
+            }
+            resolve();
+          })
+          .catch(error => {
+            console.log('Fue ingresado manual:', error);
+            
+              const params = new URLSearchParams(window.location.search);
+              const username = params.get('username');
+              const correoManual = params.get('correoManual');
+
+              const err_msg = String(error).toLowerCase();
+              if (err_msg.includes('no autenticado') || err_msg.includes('unauthorize')) {
+                return_to_home();
+              }
+              //document.getElementById("correoUsuario").value =correoManual;
+          });
+        }
+        //console.log('Finalizando init()...');
+        //resolve();
+      });
+    }
+    // Obtiener compromisos de pago desde la base de datos
+    async function fetchCompromisos() {
+      try {
+        const res = await fetch('/api/compromisos_pago');
+        const compromisos = await res.json();
+        console.log('Compromisos: ', compromisos);
+        return compromisos;
+      } catch (error) {
+        console.error('Error fetching compromisos:', error);
+      }
+      return [];
+    }
+
+    // Función para calcular el total pagado por tipo de compromiso
+    // Argumentos:
+    // - tipo_compromiso: el nombre del compromiso que queremos calcular
+    // - pagos_by_type: un objeto que agrupa los pagos por tipo de compromiso, con la siguiente estructura:
+    //   {
+    //     "tipo1": {
+    //       "folio1": monto1,
+    //       "folio2": monto2
+    //     },
+    //     "tipo2": {
+    //       "folio3": monto3
+    //     }
+    //   }
+    // Devuelve el total pagado para el tipo de compromiso especificado, sumando los montos de todos los folios asociados a ese tipo. Si el tipo de compromiso no tiene pagos asociados, devuelve 0.
+    function total_pagos_por_compromiso(tipo_compromiso, pagos_by_type) {
+      //console.log(`Calculando total pagado para compromiso '${tipo_compromiso}'... en base a pagos_by_type:`, pagos_by_type);
+      // pagos_by_type es un objeto que agrupa los pagos por tipo de compromiso, con la estructura mencionada en el comentario de la función obtenerPagosPorTipo. Para calcular el total pagado para un tipo de compromiso específico, verificamos si ese tipo existe en pagos_by_type. Si existe, sumamos los montos de todos los folios asociados a ese tipo. Si no existe, significa que no hay pagos registrados para ese compromiso, por lo que devolvemos 0.  
+      // pagos_by_type = { folio: monto}
+      if (pagos_by_type[tipo_compromiso] !== undefined) {
+        const pagos_compromiso = pagos_by_type[tipo_compromiso];
+        const total_por_tipo = pagos_compromiso ? Object.values(pagos_compromiso).reduce((acc, pago) => acc + pago.monto, 0) : 0;
+        //console.log(`Total pagado para compromiso '${tipo_compromiso}': ${total_por_tipo}`);
+        return total_por_tipo;
+      } else {
+        console.log(`No se encontraron pagos para compromiso '${tipo_compromiso}'. Total pagado: 0`);
+        return 0;
+      }
+      console.log(`Total pagado para compromiso '${tipo_compromiso}': Salida erronea debido a falta de datos. Total pagado: 0`);
+    }
+
+    // Función para agrupar los pagos por tipo de compromiso, devolviendo un objeto con la estructura mencionada en el comentario de la función anterior
+    // Argumentos:
+    // - pagos: un array con los pagos obtenidos desde la base de datos, con la siguiente estructura:
+    //   {
+    //     "id": "1",
+    //     "tipo": "tipo1",
+    //     "num_folio": "folio1",
+    //     "monto": 1000
+    //   }
+    // Devuelve un objeto que agrupa los pagos por tipo de compromiso, con la siguiente estructura:
+    //   {
+    //     "tipo1": {
+    //       "folio1": monto1,
+    //       "folio2": monto2
+    //     },
+    //     "tipo2": {
+    //       "folio3": monto3
+    //     }
+    //   }
+    function obtenerPagosPorTipo(pagos) {
+      const pagos_by_type = {};
+      pagos.forEach(pago => {
+        if (!pagos_by_type[pago.tipo]) {
+          pagos_by_type[pago.tipo] = {};
+          pagos_by_type[pago.tipo][pago.num_folio] = { monto: pago.monto};
+        } else {
+          if (pagos_by_type[pago.tipo][pago.num_folio] === undefined) {
+            pagos_by_type[pago.tipo][pago.num_folio] = { monto: pago.monto };
+          }
+        }
+      });
+      console.log('Pagos agrupados por tipo de compromiso:', pagos_by_type);
+      return pagos_by_type;
+    }
+
+    async function paymentsCommitmentsUpdate(compromisos) {
+      const container = document.getElementById('payments-commitment');
+      //console.log(' logging: ', container);
+      // Limpiamos el contenedor por si tiene contenido estático previo
+      container.innerHTML = '';
+
+      compromisos.forEach(item => {
+        const compromiso_status = verificarVigencia(item.start_date, item.stop_date);
+
+        if ( compromiso_status === 'inactivo') 
+          return;
+
+        // 1. Creamos un grupo para el compromiso y sus beneficios
+        const group = document.createElement('div');
+        group.className = 'commitment-group';
+
+        // 2. Creamos la tarjeta principal del compromiso
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.borderLeft = "5px solid #4A90E2";
+        
+        const montoFormateado = new Intl.NumberFormat('es-CL', { 
+          style: 'currency', 
+          currency: 'CLP' 
+        }).format(item.monto);
+
+        const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
+        const mostrarCantidad = !unidades_maximas || unidades_maximas > 1;
+        const cantidadHtml = mostrarCantidad ? `
+          <div class="cantidad-control">
+            <span class="label-pago">Cantidad:</span>
+            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', -1)">-</button>
+            <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" readonly>
+            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${item.limite_maximo_por_cliente})">+</button>
+          </div>
+        ` : '';
+
+        if (unidades_maximas !== null && unidades_maximas > 1) {
+          card.style.borderLeft = "5px solid #f39c12"; // Cambia el color para compromisos con límite
+        }
+
+        if (compromiso_status === 'activo') {
+          card.innerHTML = `
+            <h3>${item.descripcion}</h3>
+            <div class="value">${montoFormateado}</div>
+            <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+            <!--button class="btn-pagar" onclick="iniciarPagoFlow('${item.id}')" style="width:100%; margin-top:10px;">
+              Iniciar Pago
+            </button-->
+            <!--td class="col-seleccion" style="text-align: left; padding-left: 20px;">
+              <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
+              Agregar para pagar
+            </td-->
+            <div style="margin-top: 10px;">
+              <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
+              <span class="label-pago">Agregar para pagar</span>
+            </div>
+            ${cantidadHtml}
+          `;
+        } else {
+          card.innerHTML = `
+            <h3>${item.descripcion}</h3>
+            <div class="value">Terminado</div>
+            <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+            <!--button class="btn-pagar" onclick="iniciarPagoFlow('${item.id}')" style="width:100%; margin-top:10px;">
+              Iniciar Pago
+            </button-->
+          `;
+        }
+        group.appendChild(card);
+
+        // 3. Si el compromiso tiene beneficios, los agregamos debajo
+        if (item.beneficios && item.beneficios.length > 0) {
+          item.beneficios.forEach(beneficio => {
+            const benefitCard = document.createElement('div');
+            benefitCard.className = 'benefit-card';
+            
+            // Ajusta 'beneficio.nombre' o 'beneficio.descripcion' según tu BD
+            const textoBeneficio = typeof beneficio === 'string' ? beneficio : (beneficio.descripcion || beneficio.nombre);
+            
+            benefitCard.innerHTML = `<span><strong>Beneficio:</strong> ${textoBeneficio}</span>`;
+            group.appendChild(benefitCard);
+          });
+        }
+
+        container.appendChild(group);
+      });
+    }
+
+    async function paymentsUpdate(pagos, compromisos, pagos_by_type) {
+      const tbody = document.getElementById('tabla-pagos-body');
+      let pagadoAcumulado = 0;
+      let pendienteAcumulado = 0;
+      let lastPagoFecha = null;
+
+      pagos.forEach(pago => {
+        //console.log('Procesando pago: ', pago);
+        const row = document.createElement('tr');
+        pago['estado'] = 'Pagado';
+        if ( pago.metodo_pago === undefined || !pago.metodo_pago )
+          pago['metodo_pago'] = '';
+        // Formatear moneda
+        const montoFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pago.monto);
+
+        //Ultimo pago
+        const pagoFecha = new Date(pago.fecha);
+        //console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
+        if (pago.fecha && (!lastPagoFecha || pagoFecha > lastPagoFecha)) {
+          lastPagoFecha = pagoFecha;
+          //console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
+          document.getElementById('fecha-ultimo-pago').textContent = lastPagoFecha.toLocaleDateString('es-CL');
+        }
+        
+        if(pago.estado === 'Pagado') pagadoAcumulado += pago.monto;
+        else pendienteAcumulado += pago.monto;
+
+        //console.log('Compromisos:', compromisos);
+        const compromiso_asociado = compromisos.find(c => c.nombre === pago.tipo);
+        //console.log(`Buscando descripción para tipo de pago '${pago.tipo}' en compromisos...`, compromiso_asociado);
+        tipo_pago_descripcion = compromiso_asociado ? compromiso_asociado.descripcion : pago.tipo;
+        //console.log(`Pago tipo: ${pago.tipo}, descripción encontrada: ${tipo_pago_descripcion}`);
+
+        row.innerHTML = `
+          <td>${tipo_pago_descripcion}</td>
+          <td>${pago.fecha}</td>
+          <td>${montoFormateado}</td>
+          <td>${pago.metodo_pago}</td>
+          <td><span class="status-pill ${pago.estado === 'Pagado' ? 'status-pagado' : 'status-pendiente'}">${pago.estado}</span></td>
+        `;
+        tbody.appendChild(row);
+      });
+      return {pagadoAcumulado, pendienteAcumulado, lastPagoFecha};
+    }
+
+    function obtenerCompromisosSinBeneficiosPagados(compromisos_sin_beneficios, pagos_by_type) {
+        // Compromisos pagados
+        compromisos_pagados = {};
+        compromisos_sin_beneficios.forEach(compromiso => {
+          const tipo_compromiso = compromiso.nombre;
+          //console.log(`Procesando compromisos sin beneficios para tipo '${tipo_compromiso}'...`);
+          const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
+          //console.log(`Total pagado para tipo '${tipo_compromiso}': ${total_por_tipo}`);
+          if (total_por_tipo > 0) {
+            //console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
+            const qty = parseInt(total_por_tipo / compromiso.monto);
+            if (qty > 0) {
+              compromisos_pagados[tipo_compromiso] = {
+                cantidad: qty,
+                monto_total: total_por_tipo,
+                //beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
+              };
+              //console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
+              // Deshabilitar checkbox y mostrar cantidad pagada
+              const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
+              //console.log(`Checkboxes encontrados para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, checkboxes.length);
+              checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                checkbox.disabled = true;
+                // Ocultar el checkbox y mostrar un mensaje de "Pagado"
+                const label = checkbox.nextElementSibling; // Asumiendo que el label está justo después
+                if (label && label.classList.contains('label-pago')) {
+                  label.textContent = 'Pagado';
+                  label.style.color = '#2ecc71';
+                }
+                // Obtener el contenedor del checkbox (el div que creamos para agruparlo)
+                const contenedorCheck = checkbox.parentNode;
+                //console.log(`Contenedor del checkbox para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, contenedorCheck);
+                if (contenedorCheck) {
+                  // Reemplazamos todo el contenido interno del contenedor para estructurar el estado "Pagado" de manera vertical
+                  contenedorCheck.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
+                      <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                        ✓ Pagado
+                      </span>
+                      <span style="font-size: 0.8rem; color: #2ecc71; font-weight: 500;">
+                        Cantidad Pagada: ${qty}
+                      </span>
+                    </div>
+                  `;
+                }              
+              });
+            } else {
+              console.log(`No se pudo calcular cantidad para tipo '${tipo_compromiso}' debido a monto total de 0.`);
+            }
+          }
+        });
+        return compromisos_pagados;
+    }
+
+    function obtenerBeneficiosActivos(beneficios, compromisos_sin_beneficios_pagados) {
+      const beneficios_activos = beneficios.filter(beneficio => {
+        return beneficio.condiciones.some(condicion => condicion in compromisos_sin_beneficios_pagados);
+      });
+      return beneficios_activos;
+    }
+
+    function obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type, compromisos_sin_beneficios_pagados) {
+      // Similar a la función anterior pero considerando beneficios
+      // Aquí puedes agregar la lógica específica para calcular beneficios asociados a compromisos pagados con beneficios
+      const compromisos_pagados = {};
+      compromisos_con_beneficios.forEach(compromiso => {
+        const tipo_compromiso = compromiso.nombre;
+        const beneficios_activos = obtenerBeneficiosActivos(compromiso.beneficios, compromisos_sin_beneficios_pagados);
+        //console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
+        //console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
+        const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
+        if (beneficios_activos.length > 0) {
+          console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
+          if ( tipo_compromiso in pagos_by_type) {
+            console.log(`Pagos encontrados para tipo '${tipo_compromiso}' en pagos_by_type:`, pagos_by_type[tipo_compromiso]);
+          } else {
+            console.log(`No se encontraron pagos para tipo '${tipo_compromiso}' en pagos_by_type.`);
+          }
+        } else {
+          console.log(`No hay beneficios activos para tipo '${tipo_compromiso}'.`);
+        }
+        if (total_por_tipo > 0) {
+          const qty = parseInt(total_por_tipo / compromiso.monto);
+          if (qty > 0) {
+            compromisos_pagados[tipo_compromiso] = {
+              cantidad: qty,
+              monto_total: total_por_tipo,
+              beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
+            };
+            console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
+            // Deshabilitar checkbox y mostrar cantidad pagada
+            const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
+            checkboxes.forEach(checkbox => {
+              checkbox.checked = true;
+              checkbox.disabled = true;
+              // Ocultar el checkbox y mostrar un mensaje de "Pagado"
+              const label = checkbox.nextElementSibling; // Asumiendo que el label está justo después
+              if (label && label.classList.contains('label-pago')) {
+                label.textContent = 'Pagado';
+                label.style.color = '#2ecc71';
+              }
+              // Obtener el contenedor del checkbox (el div que creamos para agruparlo)
+              const contenedorCheck = checkbox.parentNode;
+              
+              if (contenedorCheck) {
+                // Reemplazamos todo el contenido interno del contenedor para estructurar el estado "Pagado" de manera vertical
+                contenedorCheck.innerHTML = `
+                  <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
+                    <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                      ✓ Pagado
+                    </span>
+                    <span style="font-size: 0.8rem; color: #2ecc71; font-weight: 500;">
+                      Cantidad Pagada: ${qty}
+                    </span>
+                  </div>
+                `;
+              }
+            });
+          } else {
+            console.log(`No se pudo calcular cantidad para tipo '${tipo_compromiso}' debido a monto total de 0.`);
+          }
+        }
+      });
+      return compromisos_pagados;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await init();
+        // Adding Payments Commitments
+        // Obtener Compromisos de Pago desde BD
+        console.log('Obteniendo compromisos de pago desde /api/compromisos_pago...');
+        const res_compromisos = await fetch('/api/compromisos_pago');
+        compromisos_db = await res_compromisos.json();
+        const compromisos = compromisos_db;
+        console.log('/api/compromisos_pago: ', compromisos);
+
+        // Obtener estado de pagos desde BD
+        console.log('Obteniendo estado de pagos desde /api/estado_pago_cpa...');
+        let pagos = null;
+        if (sessionOpened) {
+          console.log('Usuario autenticado, obteniendo pagos desde /api/estado_pago_cpa...');
+          const response = await fetch('/api/estado_pago_cpa');
+          pagos = await response.json();
+        } else {
+          console.log('Usuario no autenticado, obteniendo pagos desde /api/estado_pago_cpa_manual...');
+          //const response = await fetch('/api/estado_pago_cpa_manual?email=' + encodeURIComponent(user_email));
+          console.log('Intentando obtener pagos desde /api/estado_pago_cpa_manual con correo: ', currentUser);
+          const response = await fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(user_email));
+          pagos = await response.json();
+        }
+        console.log('/api/estado_pago_cpa: ', pagos);
+
+        // Obtener pagos por tipo
+        pagos_by_type = obtenerPagosPorTipo(pagos);
+
+
+        // Adding payments commitments cards
+        console.log('Actualizando compromisos de pago en la interfaz...');
+        await paymentsCommitmentsUpdate(compromisos);
+
+        // Separar compromisos con y sin beneficios para procesarlos de manera diferenciada al mostrar la información
+        const compromisos_sin_beneficios = obtenerCompromisosSinBeneficios(compromisos);
+        const compromisos_con_beneficios = obtenerCompromisosConBeneficios(compromisos);
+
+        compromisos_sin_beneficios_pagados = obtenerCompromisosSinBeneficiosPagados(compromisos_sin_beneficios, pagos_by_type);
+        //console.log('Compromisos sin beneficios pagados: ', compromisos_sin_beneficios_pagados);
+
+        //console.log('Compromisos: ', compromisos);
+        // Actualizar Cartas de Pago
+        //await paymentsTableUpdate(pagos, compromisos, pagos_by_type);
+
+        const { pagadoAcumulado, pendienteAcumulado } = await paymentsUpdate(pagos, compromisos, pagos_by_type);
+        
+
+        const compromisos_pagados_con_beneficios = obtenerCompromisosConBeneficiosPagados(compromisos_con_beneficios, pagos_by_type, compromisos_sin_beneficios_pagados);
+        //console.log('Compromisos con beneficios pagados: ', compromisos_pagados_con_beneficios);
+        //console.log('Pagos por tipo: ', pagos_by_type);
+
+        // Actualizar tarjetas
+        document.getElementById('total-pagado').textContent = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pagadoAcumulado);
+        document.getElementById('total-pendiente').textContent = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(pendienteAcumulado);
+        //document.getElementById('last-pago-fecha').textContent = lastPagoFecha;
+
+      } catch (error) {
+        console.error("Error cargando pagos:", error);
+      }
+    });
+
+    // Función de ejemplo para el botón de la tarjeta
+    async function iniciarPagoFlow(idCompromiso) {
+      console.log('Iniciando proceso de pago para:', idCompromiso);
+      // Aquí puedes redirigir a la pasarela o abrir un modal
+
+      const key = 'compromiso_key';
+      const compromiso_key = idCompromiso;
+      //const user_email = 'l.herreramena@gmail.com';
+      const parent_name = parentInfo ? parentInfo.nombre + ' ' + parentInfo.apellido : 'unknown';
+      try{
+        const response_raw = await fetch('/api/boton_pago_compromiso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ compromiso_key, user_email, nombre: parent_name, rut: parentInfo ? parentInfo.rut : 'unknown', telefono: parentInfo ? parentInfo.telefono : '', nombres_hijos })
+        });
+        allParams = await response_raw.json();
+        const  {token, url, flowOrder, code, message} = allParams;
+        console.log('Retorno de Flow: ', allParams);
+        if (code === undefined && url !== undefined && token !== undefined && flowOrder) {
+          // Redirecionar a url + "?token=" + token
+          console.log('Redireccionando hacia la página de pago de Flow ', url + "?token=" + token);
+          // Redirección a la página de pago de Flow
+          window.location.href = `${url}?token=${token}`;          
+        } else {
+          console.error('Error from /api/boton_pago_compromiso: ', message)
+        }
+      } catch(err){
+        console.error('Botón inicio pago: Error:', err);
+      };
+      
+    }
+
+    function verificarVigencia(startDateStr, stopDateStr) {
+      try {
+        const ahora = new Date(); // Fecha y hora actual
+        
+        // Convertir strings a objetos Date
+        const startDate = startDateStr ? new Date(startDateStr) : undefined;
+        const stopDate = stopDateStr ? new Date(stopDateStr) : undefined;
+
+        // Verificación 1: start_date <= ahora
+        const iniciado = startDate === undefined ? true : startDate <= ahora;
+        
+        // Verificación 2: stop_date > ahora (mayor estricto)
+        const terminado = stopDate === undefined ? false : stopDate < ahora;
+
+        let status = iniciado? 'activo': 'inactivo'
+        status = terminado? 'finalizado': status;
+
+        //console.log({ahora, stopDate, 'stopDate > ahora': stopDate > ahora, terminado, status});
+
+        return status;
+      } catch (error) {
+        console.error('Error in verificarVigencia: ', error)
+        throw (error);
+      }
+    }
+
+    /*async function obtenerListaTodosLosBeneficios() {
+      const compromisos = await fetchCompromisos();
+      // Crear un objeto para mapear beneficios por compromiso
+      const beneficios = {};
+      compromisos.forEach(item => {
+        beneficios[`${item.id}`] = item.beneficios || [];
+      });
+      condicionBeneficiosMap = {};
+      beneficios.forEach(item => {
+        condicionBeneficiosMap[`${item.id}`] = item.condicion_beneficio || null;
+      });
+      return beneficios;
+    }*/
+
+    async function getCompromisosPagados() {
+      try {
+        const response = await fetch('/api/compromisos_pago');
+        const compromisos = await response.json();
+        // Filtrar solo los compromisos que estén pagados
+        const compromisos_pagados = compromisos.filter(c => verificarVigencia(c.start_date, c.stop_date) === 'finalizado');
+        return compromisos_pagados;
+      } catch (error) {
+        console.error('Error fetching compromisos pagados:', error);
+        return [];
+      }
+    }
+
+    function obtenerCompromisosSinBeneficios(array_compromisos) {
+      return array_compromisos.filter(c => !c.beneficios || c.beneficios.length === 0);
+    }
+
+    function obtenerCompromisosConBeneficios(array_compromisos) {
+      return array_compromisos.filter(c => c.beneficios && c.beneficios.length > 0);
+    }
+
+    function obtenerBeneficios(array_compromisos_con_beneficios) {
+      const mapa_compromisos = array_compromisos_con_beneficios.map(c => ({ nombre: c.nombre, beneficios: c.beneficios }));
+      return mapa_compromisos;
+    }
+
+    function obtenerBeneficiosPorCompromisoPagado(array_compromisos, tipo_compromiso_pagado, cantidad_pagada) {
+      const compromisos_con_beneficios = array_compromisos.filter(c => c.beneficios && c.beneficios.length > 0);
+      //const mapa_compromisos = compromisos_con_beneficios.map(c => ({ nombre: c.nombre, beneficios: c.beneficios }));
+      compromisos_con_beneficios.forEach(c => {
+        console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}, Cantidad pagada: ${cantidad_pagada}`);
+        c.beneficios_activados = c.beneficios.filter(b => {
+          console.log(`Evaluando beneficio: ${b} para compromiso ${c.nombre}`);
+          // Aquí puedes agregar la lógica de condición específica para cada beneficio
+          // Por ejemplo, si el beneficio solo se activa para ciertos tipos o cantidades:
+          if (c.nombre === tipo_compromiso_pagado && cantidad_pagada >= 1) {
+            console.log(`Activando beneficio: ${b} para compromiso ${c.nombre}`);
+            return true; // Activa este beneficio
+          }
+          return false; // No activa este beneficio
+        });
+      });
+
+      mapa_compromisos.forEach(compromiso => {
+        console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}`)
+
+      });
+      const compromiso = mapa_compromisos.find(c => c.nombre === tipo);
+      if (!compromiso) return [];
+      
+      // Si el compromiso tiene beneficios, calcular cuántos corresponden según la cantidad pagada
+      if (compromiso.beneficios && compromiso.beneficios.length > 0) {
+        const beneficiosCorrespondientes = [];
+        for (let i = 0; i < cantidad; i++) {
+          beneficiosCorrespondientes.push(...compromiso.beneficios);
+        }
+        return beneficiosCorrespondientes;
+      }
+      return [];
+    }
+
+    /*async function obtenerBeneficiosActivos(compromiso_id) {
+      const beneficios = await obtenerTodosLosBeneficios();
+      const compromisos_pagados = await getCompromisosPagados();
+      const beneficions_activos = compromisos_pagados.flatMap(c => c.beneficios);
+      const compromiso = compromisos.find(c => c.id === compromiso_id);
+      return compromiso ? compromiso.beneficios : [];
+    }*/
+
+    async function obtenerBeneficiosPorCompromiso(compromiso_id) {
+      const beneficios = await calcularBeneficios();
+      return beneficios[compromiso_id] || [];
+    }
+
+    async function obtenerBeneficios(compromiso_id) {
+      const compromisos = await fetchCompromisos();
+      const compromiso = compromisos.find(c => c.id === compromiso_id);
+      return compromiso ? compromiso.beneficios : [];
+    }
+
+    async function listaCompromisosSeleccionadosParaPagar() {
+      const checks = document.querySelectorAll('.pago-check:checked');
+      const compromisos_seleccionados = checks.map(c => c.dataset.id);
+      return compromisos_seleccionados;
+    }
+
+    
+
+    function actualizarTotal() {
+      let total = 0;
+      const checks = document.querySelectorAll('.pago-check:checked');
+      checks.forEach(c => total += parseInt(c.dataset.monto));
+      
+      document.getElementById('total-seleccionado').textContent = `Total: $${total.toLocaleString()}`;
+      document.getElementById('pago-multiple-container').style.display = checks.length > 0 ? 'block' : 'none';
+
+      const cardPago = document.getElementById('card-pago');
+      cardPago.style.display = checks.length > 0 ? 'block' : 'none';
+    }
+
+    let pasarelaSeleccionada = null;
+
+    function seleccionarPasarela(metodo, elemento) {
+      // Guardar la elección
+      pasarelaSeleccionada = metodo;
+      console.log("Pasarela elegida:", pasarelaSeleccionada);
+
+      // Cambiar estado visual de los botones
+      const botones = document.querySelectorAll('.btn-pasarela');
+      botones.forEach(btn => btn.classList.remove('selected'));
+      elemento.classList.add('selected');
+
+      // Mostrar el botón final de pago
+      document.getElementById('btn-pagar-todo').style.display = 'block';
+    }
+
+    async function procesarPagoMultiple() {
+      if (!pasarelaSeleccionada) {
+        alert("Por favor, seleccione una pasarela de pago.");
+        return;
+      }
+      const boton_pagar_todo = document.getElementById('btn-pagar-todo');
+      boton_pagar_todo.disabled = true; // Deshabilitar el botón para evitar múltiples clics
+
+      // 1. Deshabilitar el botón y cambiar su aspecto visual
+      boton_pagar_todo.disabled = true;
+      boton_pagar_todo.style.backgroundColor = '#95a5a6'; // Color gris para estado deshabilitado
+      boton_pagar_todo.style.cursor = 'not-allowed';       // Cambia el puntero del mouse
+      boton_pagar_todo.textContent = 'Redirigiendo a pasarela de pago...'; // Cambia el texto informativo
+
+      const checks = document.querySelectorAll('.pago-check:checked');
+      const ids = Array.from(checks).map(c => c.dataset.id);
+      
+      console.log(`Procesando pago vía ${pasarelaSeleccionada} para los IDs:`, ids);
+
+      if (pasarelaSeleccionada === 'flow') {
+        iniciarPagoFlow(ids); // Aquí podrías adaptar para enviar múltiples IDs si tu backend y Flow lo permiten
+        // Aquí puedes implementar la lógica específica para iniciar el proceso de pago múltiple con Flow
+        // Por ejemplo, podrías enviar una solicitud a tu backend para crear una orden de pago múltiple y luego redirigir al usuario a la página de pago de Flow con el token correspondiente.
+      } else if (pasarelaSeleccionada === 'webpay') {
+        // Aquí puedes implementar la lógica específica para iniciar el proceso de pago múltiple con Webpay
+        // Similar al caso de Flow, pero adaptado a la integración que tengas con Webpay.
+      }
+
+      // Aquí modificas tu fetch para enviar también la 'pasarelaSeleccionada'
+      // Ejemplo:
+      // await fetch('/api/crear_orden', { 
+      //   method: 'POST', 
+      //   body: JSON.stringify({ ids, pasarela: pasarelaSeleccionada, ... }) 
+      // });
+      
+      //alert(`Redirigiendo a ${pasarelaSeleccionada.toUpperCase()}...`);
+    }
+
+    function cambiarCantidad(id, delta, max) {
+        const input = document.getElementById(`cant-${id}`);
+        const checkbox = document.getElementById(`check-${id}`);
+        let nuevaCantidad = parseInt(input.value) + delta;
+
+        // Validar límites (mínimo 1, máximo según el campo de la BD)
+        if (nuevaCantidad < 1) nuevaCantidad = 1;
+        if (max && nuevaCantidad > max) nuevaCantidad = max;
+
+        input.value = nuevaCantidad;
+
+        // Actualizar el monto total de este item específico en el data-attribute
+        const montoBase = parseInt(checkbox.dataset.montoBase);
+        checkbox.dataset.monto = montoBase * nuevaCantidad;
+
+        // Si el item está seleccionado, actualizar el total general de la pantalla
+        if (checkbox.checked) {
+            actualizarTotal();
+        }
+    }
+
+  </script>
+</body>
+</html>

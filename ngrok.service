@@ -1,0 +1,13 @@
+[Unit]
+Description=ngrok
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/etc/ngrok/ngrok_exec.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

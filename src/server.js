@@ -2,9 +2,20 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const { genEntrada, genEntradaCanvas } = require('./generateTicket');
-const { send_fiesta_chilena_email, send_email_registro_success } = require('../api-correo/send_fiesta_chilena_email.js');
+const bcrypt = require('bcrypt');
+const CryptoJS = require("crypto-js");
 
+const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
+const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
+
+const FlowApi = require('./flow_api');
+const flow = new FlowApi();
+
+const { genEntrada, genEntradaCanvas } = require('./generateTicket');
+const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
+
+//const BASEURL = 'http://localhost:5001';
+const BASEURL = 'https://unloving-cusp-canning.ngrok-free.dev';
 
 const nodemailer = require('nodemailer');
 const cors = require('cors');
@@ -197,6 +208,7 @@ let cursoToBloque = {
 };
 
 const passport = require('passport');
+const { name } = require('ejs');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const urlRender = 'https://registro-patrona.onrender.com'
@@ -210,9 +222,11 @@ passport.use(new GoogleStrategy({
     try {
       // Buscar usuario por ID de Google
       let user = await db_support.usersDB.findOne({ googleId: profile.id });
-
-      if (user === undefined) {
+      if (user === undefined || user === null) {
         console.log('User undefined');
+      } else {
+        console.log('User:', user);
+        console.log(`email: ${user.email}, correo_validado: ${user.correo_validado}`);
       }
       // Si no existe, podés crearlo o manejarlo como desees
       if (!user || user === undefined) {
@@ -227,7 +241,9 @@ passport.use(new GoogleStrategy({
           listaPadres: null,
           listaOtros: null,
           listaAsistentes: null,
-          pagos: null
+          pagos: null,
+          fecha_registro: Date.now,
+          correo_validado: false,
         });
         //console.log('User:', user);
       } /*else {
@@ -256,8 +272,19 @@ app.use(express.static(__dirname + '/public'))
 app.use(express.static(__dirname + '/src'))
 app.use(express.static(__dirname + '/views'))
 
+// Servir archivos estáticos desde la carpeta views
+app.use(express.static(path.join(__dirname, '../views')));
+
 app.use(express.urlencoded({ extended: true }));
-app.use(session({ secret: 'Peroconrespeto', resave: false, saveUninitialized: false }));
+app.use(session({ 
+  secret: 'Peroconrespeto', 
+  resave: false, 
+  saveUninitialized: false,
+  cookie: { 
+    secure: false, // Cambiar a true si estás usando HTTPS
+    sameSite: 'lax' // Cambiar según tus necesidades
+  }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -306,6 +333,21 @@ app.get('/signup', (req, res) => {
   
 });
 
+app.get('/logout', (req, res, next) => {
+  req.logout(function (err) {
+    if (err) return next(err);
+
+    req.session.destroy(function (err) {
+      if (err) {
+        console.error('Error al destruir la sesión:', err);
+      }
+
+      res.clearCookie('connect.sid'); // limpia la cookie de sesión
+      res.redirect('/'); // redirige al inicio o login
+    });
+  });
+});
+
 app.get('/register_success', (req, res) => {
   res.sendFile(path.join(__dirname, '../views', 'register_success.html'));
 });
@@ -317,8 +359,70 @@ app.get('/pagoEntrada', (req, res) => {
   res.sendFile(path.join(__dirname, 'login', 'pagoEntradas.html'));
 });
 
+app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
+  const { brothers_list, email } = req.body;
+  const resultArray = {};
+  for (const full_name of brothers_list) {
+    const searchName = full_name.trim().toLowerCase();
+    //console.log(`[/api/update_apoderado_email] Buscando: ${searchName}`);
+    const query = {id: searchName };
+    const estudianteInfo = await db_support.hermanosMapDB.findOne(query);
+    //console.log('estudianteInfo: ', estudianteInfo);
+    //console.log('apoderado_email: ', estudianteInfo.apoderado_email);
+    const email_already_exists = estudianteInfo.apoderado_email.includes(email);
+    if (!email_already_exists) {
+      // Agregar Email.
+      estudianteInfo.apoderado_email.push(email);
+      result = await db_support.hermanosMapDB.updateOne(
+        query,
+        { $set: { apoderado_email: estudianteInfo.apoderado_email } }
+      );
+      //console.log(`/api/update_apoderado_email ${full_name}, emails: `, estudianteInfo.apoderado_email);
+      resultArray[full_name] = result;
+      //console.log(`[/api/update_apoderado_email] result for ${full_name}: `, resultArray[full_name]);
+    }
+  };
+  res.json(resultArray);
+});
 
+app.post('/api/hermanos', express.json(), async(req, res) => {
+  const { brothers_list } = req.body;
+  console.log('[/api/hermanos] brother list: ', brothers_list);
+  if (brothers_list === undefined || brothers_list === null || brothers_list.length == 0) {
+    res.json({brotherInfoMap: {}});
+  }
 
+  const brotherInfoMap = {};
+  for (const full_name of brothers_list) {
+    const searchName = full_name.trim().toLowerCase();
+    // Usamos $regex y $options para una búsqueda insensible a mayúsculas
+    // Esto evita el problema de que el log muestre un objeto vacío
+    console.log(`[/api/hermanos] Buscando: ${searchName}`);
+
+    //const result = await db_support.hermanosMapDB.find({id: searchName});
+
+    // EXPLICACIÓN: Usamos findOne para obtener el objeto y $regex para ignorar mayúsculas
+    const result = await db_support.hermanosMapDB.findOne({
+      id: { $regex: `^${searchName}$`, $options: 'i' }
+    });
+
+    brotherInfoMap[full_name] = result;
+    console.log(`[/api/hermanos] brotherInfoMap[${full_name}]: `, brotherInfoMap[full_name])
+  };
+  console.log('brother info map: ', brotherInfoMap);
+  res.json(brotherInfoMap);
+});
+
+app.get('/api/curso', async (req, res) => {
+  const {nombre} = req.query;
+  //console.log('/api/curso: ', nombre);
+  const query = { id: nombre };
+  const result = await db_support.nombreCursoMapDB.findOne(query);
+  //console.log('result: ', result);
+  let curso = result.value.slice(0,-1);
+  let seccion = result.value.slice(-1);
+  res.json({curso, seccion});
+});
 
 app.get('/api/user', async (req, res) => {
   if (!req.isAuthenticated()) {
@@ -348,12 +452,175 @@ app.get('/api/user', async (req, res) => {
       padres: null,
       invitados: null,
       pagos: null,
-      fecha_registro: Date.now
+      fecha_registro: Date.now,
+      correo_validado: false
     });
   }
+  console.log(`email: ${user.email}, correo validado: ${user.correo_validado}`)
   res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
 });
 
+app.get('/api/manualUser', async (req, res) => {
+  const { email } = req.query
+  console.log(`/api/manualUser: req: ${JSON.stringify(email)}`);
+  let user = await db_support.usersDB.findOne({ email: email });
+  if (user === undefined) {
+    console.log('User undefined');
+  }
+  if (!user || user === undefined) {
+    console.log(`Usuario ${email} no encontrado`)
+    return res.status(404).json({ error: 'No encontrado' });
+  }
+  console.log(`email: ${user.email}, user info: ${JSON.stringify(user)}`)
+  res.json({ user }); // Aquí envías los datos del usuario al frontend
+});
+
+app.post('/api/add_user', express.json(), async (req, res) => {
+  const { email } = req.body;
+  let user = await db_support.usersDB.findOne({ email });
+
+  if (user === undefined || user === null) {
+    console.log(`Creating user with email: ${email}`)
+    user = await db_support.usersDB.create({
+      email: email,
+      hijos: null,
+      padres: null,
+      invitados: null,
+      pagos: null,
+      fecha_registro: Date.now,
+      correo_validado: false
+    });
+  }
+  console.log(`email: ${user.email}, correo validado: ${user.correo_validado}`)
+  res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
+});
+
+
+app.post('/api/verificarPassword', express.json(), async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Faltan datos' });
+
+  const user = await db_support.usersDB.findOne({ email });
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  const ahora = Date.now();
+  const bloqueado = user.bloqueadoHasta && ahora < user.bloqueadoHasta;
+
+  if (bloqueado) {
+    //return res.status(403).json({ error: 'Cuenta bloqueada. Intenta en unos minutos.' });
+    return res.status(403).json({
+      error: 'Cuenta bloqueada',
+      bloqueadoHasta: user.bloqueadoHasta
+    });
+  }
+
+  const coincide = await bcrypt.compare(password, user.passwordHash);
+  if (coincide) {
+    await db_support.usersDB.updateOne(
+      { email },
+      { $set: { intentosFallidos: 0, bloqueadoHasta: null } }
+    );
+    return res.json({ status: 'ok' });
+  } else {
+    let nuevosIntentos = (user.intentosFallidos || 0) + 1;
+    let bloqueo = null;
+
+    if (nuevosIntentos >= 3) {
+      const minutos = Math.min(15 * nuevosIntentos, 60); // bloqueo progresivo
+      bloqueo = ahora + minutos * 60 * 1000;
+      const mensaje = `
+        Se han detectado múltiples intentos fallidos de ingreso a tu cuenta.
+        Si no fuiste tú, considera cambiar tu contraseña.
+      `;
+      await send_email_from_cpa_account({
+        email_destinatario: email,
+        asuntoCorreo: "Intentos fallidos de acceso",
+        mensajeCorreo: mensaje
+      });
+    }
+
+    await db_support.usersDB.updateOne(
+      { email },
+      { $set: { intentosFallidos: nuevosIntentos, bloqueadoHasta: bloqueo } }
+    );
+
+    return res.status(401).json({ error: 'Contraseña incorrecta' });
+  }
+});
+
+app.post('/api/resetPassword', express.json(), async (req, res) => {
+  const { token, nuevaPassword } = req.body;
+  const user = await db_support.usersDB.findOne({ tokenRecuperacion: token });
+
+  if (!user || Date.now() > user.tokenExpira) {
+    return res.status(400).json({ error: 'Token inválido o expirado' });
+  }
+
+  const passwordHash = await bcrypt.hash(nuevaPassword, 10);
+
+  await db_support.usersDB.updateOne(
+    { email: user.email },
+    { $set: { passwordHash }, $unset: { tokenRecuperacion: "", tokenExpira: "" } }
+  );
+
+  res.json({ status: 'ok', mensaje: 'Contraseña actualizada' });
+});
+
+app.get('/api/correo_validado', async (req, res) => {
+  if (!req.isAuthenticated()) {
+    console.log('/api/correo_validado[490]: No autenticado');
+    try {
+      const correoManual = sessionStorage.getItem('correoManual');
+      const result = await db_support.usersDB.findOneAndUpdate(
+        { email: correoManual },
+        { $set: { correo_validado: true } },
+        { returnDocument: 'after' }
+      );
+      if (result === undefined || !result) {
+        console.log('/api/correo_validado:[499] Usuario no encontrado para correo manual:', correoManual);
+        const create_result = await db_support.usersDB.create({
+          email: correoManual,
+          hijos: null,
+          padres: null,
+          invitados: null,
+          pagos: null,
+          fecha_registro: Date.now,
+          correo_validado: true
+        });
+        if (!create_result) {
+          return res.status(404).json({ error: 'Usuario no creado' });
+        }
+      }
+      return res.status(401).json({ error: 'No autenticado' });
+    } catch (err) {
+      console.error('/api/correo_validado:[515] Error al actualizar usuario para correo manual:', err);
+      return res.status(500).json({ error: 'Error al validar el correo' });
+    }
+  }
+  // Aquí puedes enviar los datos del usuario autenticado
+  console.log('/api/correo_validado:[520] Autenticado e Email validado: ', req.user.emails[0].value);
+  //console.log('/api/correo_validado:[521] req.user:', req);
+  console.log('/api/correo_validado:[521] req.user:', req.user);
+
+  try {
+    const result = await db_support.usersDB.findOneAndUpdate(
+      { email: req.user.emails[0].value },
+      { $set: { correo_validado: true } },
+      { returnDocument: 'after' }
+    );
+    if (result === undefined || !result) {
+      console.log('/api/correo_validado:[530] Usuario no encontrado:', req.user.email);
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    console.log('/api/correo_validado: Usuario actualizado:', result);
+    //const user
+    res.json({ status: 'ok', mensaje: 'Correo validado correctamente' });
+
+  } catch (err) {
+    console.error('/api/correo_validado: Error al actualizar usuario:', err);
+    res.status(500).json({ error: 'Error al validar el correo' });
+  }
+});
 
 app.post('/api/registro', express.json(), (req, res) => {
   // Aquí puedes guardar los datos, enviarlos por correo, etc.
@@ -361,83 +628,21 @@ app.post('/api/registro', express.json(), (req, res) => {
   const registro = req.body;
   console.log('Datos recibidos:', registro);
 
-  //VALIDAR JSON PAGO CP
-  /*let validaPagoCP = false;
+    db_support.usersDB.findOneAndUpdate(
+      { _id: registro._id },       // Filtro para encontrar el usuario
+      { $set: registro },          // Actualización: sobrescribe los campos con los de `registro`
+      { returnDocument: 'after' }  // Opcional: retorna el documento actualizado
+    )
+    .then(userActualizado => {
+      console.log('Usuario actualizado:', userActualizado);
+      let findone = db_support.registroEntradasDB.findOne({id:'estudiantes'});
+      console.log(`registros: ${JSON.stringify(findone.registros)}`);
+    })
+    .catch(err => {
+      console.error('Error al actualizar usuario:', err);
+    });
 
-  const filePathCP = path.join(__dirname, 'pagos.json');
-  const nombreHijo = registro.hijos[0].nombre;
- 
-  fs.readFile(filePathCP, 'utf8', (err, data) => {
-
-        const registrosPrevios = !err && data ? JSON.parse(data) : [];
-
-        // Accede a los datos dentro de la estructura del JSON
-        const filas = registrosPrevios["pago cuota cgpa"]["ws_rowsData"];
-        const columnas = registrosPrevios["pago cuota cgpa"]["ws_colTags"];
-
-        const idxNombre = columnas.indexOf("nombre completo");
-        const idxSiNo = columnas.indexOf("si/no");
-
-        if (idxNombre !== -1 && idxSiNo !== -1) {
-            for (const fila of filas) {
-                const nombre = fila[idxNombre];
-                const siNo = fila[idxSiNo];
-
-                    console.log ('NOMBRE HIJO JSON: ' + nombre);
-                    console.log ('PAGADO JSON: [' + siNo + ']');
-                    console.log ('PAGADO JSON: [' + siNo.trim() + ']');
-                if (nombre === nombreHijo  && (siNo === "si")) {
-                    console.log ('NOMBRE HIJO VALIDADO: ' + nombreHijo);
-                   validaPagoCP = true;
-                    break;
-                }
-            }
-          }   
-
-  });*/
-
-  //console.log('VERDADERO o FALSO:  '+ validaPagoCP);
-
-      //const filePath = path.join(__dirname, 'registros.json');
-
-      db_support.usersDB.findOneAndUpdate(
-        { _id: registro._id },       // Filtro para encontrar el usuario
-        { $set: registro },          // Actualización: sobrescribe los campos con los de `registro`
-        { returnDocument: 'after' }  // Opcional: retorna el documento actualizado
-      )
-      .then(userActualizado => {
-        console.log('Usuario actualizado:', userActualizado);
-        let findone = db_support.registroEntradasDB.findOne({id:'estudiantes'});
-        console.log(`registros: ${JSON.stringify(findone.registros)}`);
-        /*fetch('/api/send_notify_mail', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({userActualizado})
-        })
-        .then(res => res.json());*/
-      })
-      .catch(err => {
-        console.error('Error al actualizar usuario:', err);
-      });
-      // Leer archivo existente y agregar nueva entrada
-      /*fs.readFile(filePath, 'utf8', (err, data) => {
-        const registrosPrevios = !err && data ? JSON.parse(data) : [];
-
-        registrosPrevios.push(registro);
-
-        fs.writeFile(filePath, JSON.stringify(registrosPrevios, null, 2), (err) => {
-          if (err) {
-            console.error('Error al guardar en archivo:', err);
-            return res.status(500).json({ error: 'No se pudo guardar en archivo' });
-          }
-
-          // Continúa con MongoDB...
-        });
-      });*/
-
-      res.json({ status: 'ok', mensaje: 'Registro recibido'});
+    res.json({ status: 'ok', mensaje: 'Registro recibido'});
 
 });
 
@@ -491,11 +696,34 @@ app.get('/api/max_invitados', async (req, res) => {
   }
 });
 
+app.get('/api/compromisos_pago', async (req, res) => {
+  try {
+    //console.log('[/api/compromisos_pago] Quering info to database...');
+    const compromisos_pago = await db_support.compromisosPagoDB.find({});
+    //console.log('[/api/compromisos_pago] returned info: ', compromisos_pago);
+    res.json(compromisos_pago);
+  } catch (error) {
+    console.error(`[/api/compromisos_pago] Error al procesar la solicitud:`, error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      detalle: error.message,
+    });
+  }
+});
+
 app.get('/api/estado_pago_cpa', async (req, res) => {
   //console.log('req.user:', req.user);
   console.log('/api/estado_pago_cpa');
   try {
-    let user = await db_support.usersDB.findOne({ googleId: req.user.id });
+    const { user_email = null } = req.query;
+    let user = null;
+    console.log(`[/api/estado_pago_cpa] user_email: ${user_email}`);
+    console.log(`[/api/estado_pago_cpa] req.user: ${JSON.stringify(req.user)}`);
+    console.log(`[/api/estado_pago_cpa] req.query: ${JSON.stringify(req.query)}`);
+    if ( user_email === undefined || user_email === null )
+      user = await db_support.usersDB.findOne({ googleId: req.user.id });
+    else
+      user = await db_support.usersDB.findOne({ email: user_email });
 
     if (user === undefined) {
       console.log('User undefined');
@@ -508,15 +736,22 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
       console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
       res.status(500).json({ error: 'Error user not found' });
     } else {
-      console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
-      console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
-      let pago;
+      //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
+      //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
+      const pagos = [];
       if (user.hijos !== undefined && user.hijos.length > 0) {
         //console.log(JSON.stringify(req));
-        estudiante = user.hijos[0]['nombre'];
+        for ( let childInfo of user.hijos ) {
+          const estudiante = childInfo['nombre'];
+          //console.log(estudiante);
+          const pagos_estudantes = await db_support.pagosDB.find({id: estudiante});
+          //console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
+          pagos.push(...pagos_estudantes);
+        }
+        /*estudiante = user.hijos[0]['nombre'];
         console.log(estudiante);
         pago = await db_support.pagosDB.findOne({id: estudiante});
-        console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);
+        console.log(`[/api/estado_pago_cpa] pago user: ${JSON.stringify(pago)}`);*/
       } else {
         console.log(`[/api/estado_pago_cpa] req.query: ${JSON.stringify(req.query)}`);
         //console.log(JSON.stringify(user.hijos));
@@ -526,10 +761,12 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
         pago = await db_support.pagosDB.findOne({id: estudiante});
         console.log(`[/api/estado_pago_cpa] pago estudiante: ${JSON.stringify(pago)}`);
       }
-      console.log(JSON.stringify(pago));
+      /*console.log(JSON.stringify(pago));
       const cuota_cpa_pagada = pago.cuota_cpa === true;
       const entradas_pagadas = pago.entradas_pagadas
-      res.json({cuota_cpa_pagada, entradas_pagadas});
+      res.json({cuota_cpa_pagada, entradas_pagadas});*/
+      //console.log(`[/api/estado_pago_cpa] pagos: ${JSON.stringify(pagos)}`);
+      res.json(pagos);  
     }
   } catch (error) {
     console.error(`[/api/estado_pago_cpa] Error al procesar la solicitud:`, error);
@@ -616,7 +853,8 @@ app.get('/oauth/github/redirect', (req, res) => {
 })
 
 app.get('/auth/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
+  scope: ['profile', 'email'],
+  prompt: 'select_account' // <--- ESTO obliga a Google a preguntar qué cuenta usar
 }));
 
 app.get('/auth/google/callback',
@@ -633,14 +871,303 @@ app.get('/auth/google/callback',
   res.sendFile(path.join(__dirname, 'src', 'dashboard', 'dashboard.html'));
 });*/
 
-app.get('/authenticated', (req, res) => {
+app.get('/authenticated', async (req, res) => {
   if (!req.isAuthenticated()) return res.redirect('/');
-  //console.log('req.user: ', JSON.stringify(req.user))
+
+  console.log(`--> req.user.id: ${req.user.id}`)
+  let user = await db_support.usersDB.findOne({ googleId: req.user.id });
+  console.log(`--> req.user.email: ${user.email}, correo validado: ${user.correo_validado}`)
+
+  //console.log('--> req.user: ', JSON.stringify(req.user))
   //console.log(JSON.stringify(req))
   //res.render('dashboard', { user: req.user });
   // Send the dashboard.html file as a response
-  const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
-  res.sendFile(dashboardPath);
+  if (typeof user.correo_validado === 'undefined' || !user.correo_validado) {
+    console.log('Validando correo');
+    const validarCorreoPath = path.join(__dirname, '../views', 'validar_correo.html');
+    res.sendFile(validarCorreoPath);
+  } else {
+    console.log('Correo validado');
+    const entradasBingoPath = path.join(__dirname, '../views', 'panel_usuario.html');
+    res.sendFile(entradasBingoPath);
+  }
+  //const dashboardPath = path.join(__dirname, '../views', 'dashboard.html');
+  //res.sendFile(dashboardPath);
+});
+
+app.get('/ingreso_manual.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'ingreso_manual.html'));
+});
+
+app.post('/api/boton_pago_compromiso', async (req, res) => {
+  try {
+    let {compromiso_key, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
+    let monto_total = 0;
+    if (typeof compromiso_key === 'array') {
+      for (const key of compromiso_key) {
+        const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: key});
+        const {monto} = compromiso_pago;
+        monto_total += monto;
+      }
+    } else {
+      const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
+      const {monto} = compromiso_pago;
+      monto_total += monto;
+    }
+    if ( user_email === undefined || user_email === null) 
+      user_email = req.user.emails[0].value;
+    console.log('email: ', user_email);
+    console.log('compromiso_key: ', compromiso_key);
+    console.log('nombre: ', nombre);
+    console.log('rut: ', rut);
+    console.log('telefono: ', telefono);
+    console.log('nombres_hijos: ', nombres_hijos);
+    //console.log('compromiso pago: ', compromiso_pago);
+    console.log('monto_total: ', monto_total);
+
+    optional = {
+      rut: rut || "9999999-9",
+      nombre: nombre || "Unknown",
+      telefono: telefono || "",
+      nombres_hijos: nombres_hijos.join(','),
+      otroDato: "sin datos adicionales"
+    };
+
+    /*const params = {
+      commerceOrder: 1111,
+      subject: compromiso_key,
+      currency: 'CLP',
+      amount: String(monto_total),
+      email: user_email,
+      urlConfirmation: BASEURL + '/api/payments/confirm',
+      urlReturn: BASEURL + '/api/payments/return',
+      optional: JSON.stringify(optional)
+    };*/
+    /*const params_post = await fetch('/api/generate_payment_order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: compromiso_key,
+        email: user_email,
+        amount: monto,
+        optional: optional
+      })
+    });
+    const params = await params_post.json();*/
+    const params = await generatePaymentOrder(monto_total, compromiso_key, user_email, optional);
+
+    const allParams = await flow.send("payment/create", params, "POST");
+    //const {allParams} = response;
+    commerceOrderUpdateResult = await db_support.paymentOrdersDB.findOneAndUpdate(
+      { commerceOrder: allParams.commerceOrder },
+      { $set: allParams },
+      { returnDocument: 'after' }
+    );
+    console.log('Commerce Order Update Result: ', commerceOrderUpdateResult);
+    console.log('Flow Response: ', allParams);
+    //const {code} = allParams;
+    if ( allParams.code === undefined && allParams.token !== undefined && allParams.url !== undefined && allParams.flowOrder !== undefined)
+      return res.status(200).json(allParams);
+    else
+      return res.status(400).json({ error: 'Error al efectuar el pago: ' + allParams.message });
+  } catch (error) {
+    console.error("Error al enviar:", error);
+    return res.status(400).json({ error: 'Error al efectuar el pago: ' + error });
+  }
+
+});
+
+/*async function generarSiguienteCommerceOrder() {
+  // Buscamos el último registro ordenado por commerceOrder de forma descendente[cite: 4]
+  const lastOrder = await db_support.pagosDB.findOne({}, { sort: { commerceOrder: -1 } });
+  
+  let siguienteNumero = 1;
+  
+  if (lastOrder && lastOrder.commerceOrder) {
+    // Asumiendo que commerceOrder es un número. 
+    // Si es un string como "CPA-100", necesitarías usar regex para extraer el número.
+    siguienteNumero = parseInt(lastOrder.commerceOrder) + 1;
+  }
+  
+  return siguienteNumero;
+}*/
+async function getNextCorrelativeCommerceOrder() {
+  const commerceOrder = await db_support.commerceOrderDB.findOneAndUpdate(
+    { id: "pagos_flow" }, 
+    { $inc: { secuencia: 1 } }, 
+    { 
+      upsert: true,     // Si no existe el documento, lo crea
+      new: true,        // Retorna el documento actualizado
+      returnDocument: 'after' 
+    }
+  );
+  return commerceOrder.secuencia;
+}
+
+async function generatePaymentOrder(amount, subject, email, optional) {
+  try {
+    const commerceOrder = await getNextCorrelativeCommerceOrder();
+    console.log(`[generatePaymentOrder] amount: ${amount}, subject: ${subject}, email: ${email}`);
+    if (typeof subject === 'array') {
+      // Manejar el caso donde subject es un array de IDs
+      subject = subject.join(','); // Convertir el array a una cadena separada por comas
+    }
+    const paymentOrder = {
+      commerceOrder: commerceOrder,
+      subject: subject,
+      currency: 'CLP',
+      amount: parseInt(amount),
+      email: email,
+      urlConfirmation: BASEURL + '/api/payments/confirm',
+      urlReturn: BASEURL + '/api/payments/return',
+      optional: JSON.stringify(optional)
+    };
+    const resp = await db_support.paymentOrdersDB.create(paymentOrder);
+    if (!resp) {
+      console.error(`[generatePaymentOrder] Error al guardar la orden de pago en la base de datos. No se puede generar la orden de pago.`);
+      //return res.status(500).json({ error: 'Error al generar la orden de pago' });
+      throw new Error({ message: 'Error al generar la orden de pago', status: 500 });
+    }
+    console.log(`[generatePaymentOrder] order: ${JSON.stringify(paymentOrder)}`);
+    return paymentOrder;
+  } catch (error) {
+    console.error(`[generatePaymentOrder] Error al generar la orden de pago:`, error);
+    throw new Error({
+      error: 'Error interno del servidor',
+      detalle: error.message,
+    });
+  }
+}
+app.post('/api/generate_payment_order', async (req, res) => {
+  try {
+    const { amount, subject, email, optional } = req.body;
+    console.log(`[/api/generate_payment_order] amount: ${amount}, subject: ${subject}, email: ${email}`);
+    const paymentOrder = await generatePaymentOrder(amount, subject, email, optional);
+    res.json(paymentOrder);
+  } catch (error) {
+    console.error(`[/api/generate_payment_order] Error al generar la orden de pago:`, error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      detalle: error.message,
+    });
+  }
+}
+);
+
+app.get('/api/payments/confirm', async (req, res) => {
+  console.log('[/api/payments/confirm] GET - Esto es una prueba');
+  res.status(200).send('Test Request');
+});
+
+// Flow enviará un POST a esta ruta con el token del pago
+app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async (req, res) => {
+  try {
+    const { token } = req.body;
+    console.log('[/api/payments/confirm] Recibida confirmación de Flow para el token:', token);
+
+    // 1. Consultar el estado real del pago en Flow
+    console.log('[/api/payments/confirm] Consultando estado del pago en Flow...');
+    const result = await flow.send("payment/getStatus", { token }, "GET");
+    console.log('[/api/payments/confirm] Resultado:', result);
+    if (result.status === 200) { // Estado 2 es "Pagado" en Flow
+      console.log('[/api/payments/confirm] Pago confirmado exitosamente:', result.commerceOrder);
+      const nombres_hijos = result.optional.nombres_hijos.split(',');
+      const optional = {...result.optional};
+      result.optional = JSON.stringify(optional);
+      // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
+      //const resultDbCreate = await db_support.paymentOrdersDB.create(result);
+      const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
+        { commerceOrder: result.commerceOrder },
+        { $set: result },
+        { returnDocument: 'after' }
+      );
+      console.log('[/api/payments/confirm] Resultado guardado en DB:', resultDbUpdate);
+
+      const pago = {
+        id: nombres_hijos[0],
+        num_folio: result.commerceOrder,
+        tipo: 'flow',
+        cuota_cpa: result.subject === 'cuota_cpa',
+        monto: result.amount,
+        cantidad_agendas: 0,
+        entrega_agendas: 0,
+        fecha: result.requestDate,
+        comentarios: '',
+        entradas_pagadas: 0,
+        payment_method: 'flow',
+        commerce_order: result.commerceOrder,
+      }
+      const resultPagoCreate = await db_support.pagosDB.create(pago);
+      console.log('[/api/payments/confirm] Pago guardado en DB:', resultPagoCreate);
+      // Ejemplo: buscar al usuario/estudiante y marcar el compromiso como pagado
+      /*const emailPagador = result.payer;
+      const concepto = result.subject; // 'cuota_cpa' por ejemplo
+      
+      await db_support.pagosDB.updateOne(
+        { email: emailPagador, 'pagos.id': concepto },
+        { $set: { 'pagos.$.estado': 'Pagado', 'pagos.$.fecha': new Date().toLocaleDateString() } }
+      );*/
+    } else {
+      console.error('[/api/payments/confirm] Hubo un problema con el pago: ', result);
+    }
+
+    // SIEMPRE responder con un 200 para que Flow sepa que recibiste la notificación
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('[/api/payments/confirm] Error en confirmación de pago:', error);
+    res.status(500).send('Error');
+  }
+});
+
+// Flow redirige al usuario aquí mediante POST
+app.post('/api/payments/return', express.urlencoded({ extended: true }), async (req, res) => {
+  const url_panel_usuario = path.join(__dirname, '../views', 'pagos_cpa.html');
+  try {
+    const { token } = req.body;
+    
+    // Consultamos el estado para mostrar un mensaje personalizado
+    const result = await flow.send("payment/getStatus", { token }, "GET");
+    
+    // Renderizamos una vista con el resultado
+    // Puedes crear un 'resultado_pago.ejs' o redirigir al panel con un mensaje
+    let mensaje = "";
+    let exito = false;
+
+    if (result.status === 200) {
+      mensaje = "¡Tu pago ha sido procesado con éxito!";
+      exito = true;
+    } else if (result.status === 1) {
+      mensaje = "Tu pago aún está pendiente de confirmación.";
+    } else {
+      mensaje = "El pago no pudo ser procesado o fue cancelado.";
+    }
+
+    console.log('[/api/payments/return] Resultado del pago:', result);
+    console.log('[/api/payments/return] Mensaje para el usuario:', mensaje);
+
+    if (!req.session.user && result.payer) {
+      // Asumiendo que guardas al usuario en req.session.user o req.session.passport
+      req.session.user = { email: result.payer }; 
+    }
+
+    //const forwarding = `${url_panel_usuario}?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
+    const webPath = "/pagos_cpa.html";
+    const params = `?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
+    console.log('[/api/payments/return] Redirigiendo al panel de usuario con mensaje...', webPath + params);
+    // Opción A: Redirigir de vuelta al panel con parámetros
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error guardando la sesión:", err);
+      }
+      console.log('[/api/payments/return] Redirigiendo al panel con sesión guardada...');
+      res.redirect(webPath + params);
+    });
+    //res.redirect(webPath + params);
+    
+  } catch (error) {
+    console.error('[/api/payments/return] Error al verificar el estado del pago:', error);
+    res.redirect(`${url_panel_usuario}?status=error&msg=Error al verificar el estado del pago`);
+  }
 });
 
 app.post('/api/send_email_entradas', async (req, res) => {
@@ -718,6 +1245,39 @@ app.post('/api/generar_entrada_canvas', async (req, res) => {
       res.status(500).json({ error: 'Error generando entrada' });
     }
   });
+
+
+app.post('/api/enviarCodigo', express.json(), async (req, res) => {
+
+  function mensaje_codigo_validacion(codigo) {
+    return `
+      <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
+        <p>Estimado/a apoderado/a,</p>
+        <p>Gracias por utilizar el <strong>Sistema de Registro</strong> del Centro de Padres del Colegio Patrona.</p>
+        <p>Para validar su correo electrónico, por favor ingrese el siguiente código en el formulario:</p>
+        <p style="font-size: 24px; font-weight: bold; color: #4A90E2; text-align: center;">${codigo}</p>
+        <p>Este código es válido por unos minutos. Si no solicitó esta validación, puede ignorar este mensaje.</p>
+        <br>
+        <p>Saludos cordiales,<br>
+        Centro de Padres Colegio Patrona</p>
+      </div>
+    `;
+  }
+
+  const { email_destinatario, codigo } = req.body;
+  console.log(`Código enviado al correo: ${codigo}`);
+  const asuntoCorreo = "Registro Centro Padres Colegio Patrona: Validación Correo";
+  const mensajeCorreo = mensaje_codigo_validacion(codigo);
+  body = {email_destinatario, asuntoCorreo, mensajeCorreo};
+  result = await send_email_from_cpa_account(body);
+  if (result.status === 'ok') {
+    res.json({ status: 'ok' });
+  } else {
+    console.log(`/api/enviarCodigo: error sending email to ${email_destinatario}. Error: ${result.message}`);
+    res.status(500).json({ error: result.message });
+  }
+});
+
 
 // Start the server on port 8080
 app.listen(PORT, () => {

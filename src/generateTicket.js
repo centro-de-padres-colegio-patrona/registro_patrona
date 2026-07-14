@@ -114,4 +114,27 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
   return canvas.toBuffer('image/png');
 }
 
+/*async function test_brother() {
+  console.log('Running test_brother');
+
+  const childrenList = [
+  'herrera messina florencia isidora',
+  'herrera messina cristobal nicolas'
+  ]
+  try {
+    const response = await fetch('http://localhost:5001/api/hermanos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brothers_list: childrenList })
+    });
+    const brotherInfoMap = await response.json();
+    console.log('brothers info: ', brotherInfoMap);
+  } catch(error) {
+    console.error('test brother: ', error);
+  }
+  //setTimeout(test2, 1000);
+}
+
+setTimeout(test_brother, 2000);*/
+
 module.exports = { genEntrada, genEntradaCanvas };

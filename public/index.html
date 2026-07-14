@@ -6,8 +6,12 @@
 	<!--script src="graph.js"></script-->
 	<!--script src="api_rest_client.js"></script-->
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-  <link rel="shortcut icon" href="#" />
-
+  <!--link rel="shortcut icon" href="#" /-->
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
+  <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico" />
+  <link rel="manifest" href="img/site.webmanifest">
 	<style type="text/css" media="screen">
 		body, html, svg { width: 100%; height: 100%; overflow: hidden; }
 	</style>
@@ -414,6 +418,20 @@ form button {
     max-height: 100vh;
   }
 
+  #botonIngresar {
+    background-color: grey;
+    color: white;
+    cursor: not-allowed;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+
+  #botonIngresar.enabled {
+    background-color: #007bff;
+    cursor: pointer;
+  }
+
 </style>
 </head>
 <body onload = "startUp()" >
@@ -469,7 +487,8 @@ form button {
 </div>
 <div class="tab-contents" id="tab-contents">
 
-  <title>Registro Patrona</title>
+  <!--title>Registro Patrona</title-->
+  <title>Registro CPA</title>
 
 <div class="grid-container">
 </div>
@@ -477,21 +496,36 @@ form button {
 </div>
 
   <div class="login-box">
-    <h2>Registro Patrona</h2>
+    <h2>Registro Centro de Padres 2026</h2>
+    <h2>Colegio Patrona</h2>
     
     <img src="img/logo.png" alt="Logo CGPA" style="width: 100%; max-width: 200px; margin: 20px auto; display: block;">
     <form action="/login" method="post" id="formularioLogin">
       <!--input type="text" name="username" placeholder="Nombre"-->
         <!-- Campo de contraseña con toggle -->
-        <!--div style="position: relative; width: 100%; margin: 0 auto 15px;">
+        <div style="position: relative; width: 100%; margin: 0 auto 15px;">
           <input
+            type="email"
             name="correoManual"
             id="correoManual"
             placeholder="ejemplo@correo.com"
             >
         </div>
+        <p id="googleAuthAdvertencia" style="color: red; display: none; margin-top: 5px;">
+          Este correo debe ingresar con Google.
+        </p>
 
-      <button type="button" onclick="validarYEnviar()">Ingresar</button-->
+        <div id="passwordManualContainer" style="display:none; position: relative; width: 100%; margin: 0 auto 15px;">
+          <input
+            type="password"
+            name="passwordManual"
+            id="passwordManual"
+            placeholder="Contraseña"
+            disabled
+          >
+        </div>
+
+      <button type="button" id="botonIngresar" onclick="validarYEnviar()" disabled>Ingresar</button>
     </form>
 
     
@@ -499,16 +533,293 @@ form button {
 
 <script>
 
-function validarYEnviar() {
-    const correo = document.getElementById("correoManual").value.trim();
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    // Asegura que el correo no tenga texto adicional después
-    if (regex.test(correo) && correo === correo.match(regex)[0]) {
-        document.getElementById("formularioLogin").submit();
-    } else {
-        alert("Correo inválido. Por favor ingresa un correo válido.");
+  const correoManual = document.getElementById('correoManual');
+  const passwordInput = document.getElementById('passwordManual');
+  const passwordContainer = document.getElementById('passwordManualContainer');
+  const advertencia = document.getElementById('googleAuthAdvertencia');
+  const botonIngresar = document.getElementById('botonIngresar');
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  console.log("¿Está habilitado el campo de contraseña?", !passwordInput.disabled);
+
+  botonIngresar.style.display = 'none'
+  correoManual.style.display = 'none'
+
+  //let correoValido = false;
+  //let requierePassword = false;
+
+  console.log(`Very Beginning Current State: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+
+  async function update_controles() {
+    console.log("update_controles() called");
+    const correo = correoManual.value.trim().toLowerCase();
+    try {
+      correo_match = correo.match(regex);
+      if (!regex.test(correo) || !Array.isArray(correo_match) || correo !== correo_match[0]) {
+        advertencia.style.display = 'none';
+        deshabilitarBotonIngresar();
+        deshabilitarPasswordInput();
+        return;
+      }
+      console.log("Es formato válido de Correo");
+
+      if (correo.endsWith('@gmail.com')) {
+        advertencia.style.display = 'block';
+        deshabilitarBotonIngresar();
+        deshabilitarPasswordInput();
+        return;
+      }
+    } catch (err) {
+        console.error('Error al verificar correo:', err);
+        deshabilitarBotonIngresar();
+        deshabilitarPasswordInput();
+        return;
     }
+    // Consulta al backend para verificar si el correo existe y tiene password
+    try {
+      console.log("Consultando si existe Correo: ", correo);
+      const res = await fetch(`/manualUser?email=${encodeURIComponent(correo)}`);
+      const data = await res.json();
+
+      if (data.password !== undefined && data.password) {
+        habilitarPasswordInput();
+        deshabilitarBotonIngresar();
+      } else {
+        deshabilitarPasswordInput();
+        habilitarBotonIngresar();
+      }
+    } catch (err) {
+      advertencia.style.display = 'none';
+      passwordContainer.style.display = 'none';
+      passwordInput.disabled = true;
+      habilitarBotonIngresar();
+      console.error('Error al verificar correo:', err);
+    }  
+  }
+
+  update_controles();
+
+  function validarYEnviar() {
+      const correo = correoManual.value.trim();
+
+      console.log('Starting validarYEnviar()...');
+      console.log(`Current State: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+
+      // Asegura que el correo no tenga texto adicional después
+      if (regex.test(correo) && correo === correo.match(regex)[0]) {
+        fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)
+          .then(res => {
+            if (!res.ok) throw new Error("Usuario no encontrado");
+            return res.json();
+          })
+          .then(data => {
+            const user = data.user;
+            console.log("Usuario encontrado:", user);
+            const esGmail = correo.toLowerCase().endsWith("@gmail.com");
+            const usaGoogleAuth = user.googleId || esGmail;
+
+            if (usaGoogleAuth) {
+              console.log("El usuario debe ingresar con Google Auth.");
+              advertencia.style.display = "block";
+              passwordInput.disabled = true;
+              //botonIngresar.disabled = true;
+              //botonIngresar.classList.remove('enabled');
+              deshabilitarBotonIngresar();
+            } else {
+              console.log("El usuario puede ingresar con contraseña.");
+              const password = passwordInput.value.trim();
+              const has_password = user.passwordHash !== undefined && user.passwordHash;
+              console.log(`Usuario tiene contraseña: ${has_password}`);
+              fetch('/api/verificarPassword', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: correo, password })
+              })
+              .then(res => res.json())
+              .then(result => {
+                if (result.status === 'ok') {
+                  formulario.submit(); // solo si la contraseña es válida
+                } else {
+                  alert("Contraseña incorrecta.");
+                }
+              }).catch(err => {
+                if (err.bloqueadoHasta) {
+                  mostrarTiempoBloqueo(err.bloqueadoHasta);
+                } else {
+                  alert("Error al verificar contraseña");
+                }
+              });
+
+            }
+          })
+          .catch(err => {
+            console.warn("No se encontró el usuario:", err);
+            //passwordInput.disabled = true;
+            deshabilitarPasswordInput();
+            //window.location.href = "/ingreso_manual.html";
+            fetch('/logout', {
+              method: 'GET',
+              credentials: 'include'
+            }).then(() => {
+              sessionStorage.setItem('correoManual', correo);
+              window.location.href = "/validar_correo.html";
+            });
+          });
+      } else {
+          alert("Correo inválido. Por favor ingresa un correo válido.");
+      }
+  }
+
+  passwordInput.addEventListener("input", async () => {
+    const password = passwordInput.value.trim();
+    if (!passwordInput.disabled) {
+      console.log("Password input changed:", password);
+      if ( password.length === 0 ) {
+        //botonIngresar.disabled = true;
+        //botonIngresar.classList.remove('enabled');
+        deshabilitarBotonIngresar();
+      } else {
+        //botonIngresar.disabled = false;
+        //botonIngresar.classList.add('enabled');
+        habilitarBotonIngresar();
+      }
+    }
+  });
+
+  correoManual.addEventListener("input", async () => {
+    const correo = correoManual.value.trim().toLowerCase();
+    try {
+      correo_match = correo.match(regex);
+      if (!regex.test(correo) || !Array.isArray(correo_match) || correo !== correo_match[0]) {
+        advertencia.style.display = 'none';
+        passwordContainer.style.display = 'none';
+        //botonIngresar.disabled = true;
+        //botonIngresar.classList.remove('enabled');
+        deshabilitarBotonIngresar();
+        passwordInput.disabled = true;
+        return;
+      }
+      console.log("Es formato válido de Correo");
+
+      if (correo.endsWith('@gmail.com')) {
+        advertencia.style.display = 'block';
+        return;
+      }
+    } catch (err) {
+        console.error('Error al verificar correo:', err);
+    }
+    // Consulta al backend para verificar si el correo existe y tiene password
+    try {
+      console.log("Consultando si existe Correo: ", correo);
+      const res = await fetch(`/manualUser?email=${encodeURIComponent(correo)}`);
+      const data = await res.json();
+
+      if (data.password !== undefined && data.password) {
+        passwordContainer.style.display = 'block';
+        passwordInput.disabled = false;
+        //botonIngresar.disabled = true;
+        //botonIngresar.classList.remove('enabled');
+        deshabilitarBotonIngresar();
+        //requierePassword = true;
+      } else {
+        passwordContainer.style.display = 'none';
+        passwordInput.disabled = true;
+        //botonIngresar.disabled = false;
+        //botonIngresar.classList.add('enabled');
+        habilitarBotonIngresar();
+      }
+    } catch (err) {
+      advertencia.style.display = 'none';
+      passwordContainer.style.display = 'none';
+      passwordInput.disabled = true;
+      //botonIngresar.disabled = false;
+      //botonIngresar.classList.remove('enabled');
+      habilitarBotonIngresar();
+      console.error('Error al verificar correo:', err);
+    }  
+  });
+
+  function habilitarBotonIngresar() {
+    botonIngresar.disabled = false;
+    botonIngresar.classList.add('enabled');
+    console.log(`Habilitado Boton Ingresar: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
+
+  function deshabilitarBotonIngresar() {
+    botonIngresar.disabled = true;
+    botonIngresar.classList.remove('enabled');
+    console.log(`Deshabilitado Boton Ingresar: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
+
+  function habilitarPasswordInput() {
+    passwordInput.disabled = false;
+    passwordContainer.style.display = 'block';
+    console.log(`Habilitado Password Input: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
+
+  function deshabilitarPasswordInput() {
+    passwordInput.disabled = true;
+    passwordContainer.style.display = 'none';
+    console.log(`Deshabilitado Password Input: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  };
+
+/*document.getElementById("correoManual").addEventListener("blur", () => {
+  const correo = correoManual.value.trim();
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const passwordInput = document.getElementById("passwordManual");
+  const advertencia = document.getElementById("googleAuthAdvertencia");
+  const botonIngresar = document.getElementById("botonIngresar");
+
+  console.log(`Current State: ${JSON.stringify({passwordManual: passwordInput.disabled, googleAuthAdvertencia: advertencia.style.display, botonIngresar: botonIngresar.disabled})}`);
+  // Ocultar advertencia por defecto
+  advertencia.style.display = "none";
+  passwordInput.disabled = true;
+
+  if (!regex.test(correo)) {
+    botonIngresar.disabled = true;
+    botonIngresar.classList.remove('enabled');
+    passwordInput.disabled = true;
+    return;
+  }
+
+  fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)
+    .then(res => {
+      if (!res.ok) throw new Error("Usuario no encontrado");
+      return res.json();
+    })
+    .then(data => {
+      console.log("Usuario encontrado:", data);
+      const esGmail = correo.toLowerCase().endsWith("@gmail.com");
+      const usaGoogleAuth = data.googleId || esGmail;
+
+      if (usaGoogleAuth) {
+        advertencia.style.display = "block";
+        passwordInput.disabled = true;
+        botonIngresar.disabled = true;
+        botonIngresar.classList.remove('enabled');
+      } else {
+        passwordInput.disabled = false;
+        botonIngresar.disabled = false;
+        botonIngresar.classList.add('enabled');
+        //passwordInput.focus();
+      }
+    })
+    .catch(err => {
+      console.warn("No se encontró el usuario:", err);
+      passwordInput.disabled = true;
+    });
+});*/
+
+function mostrarTiempoBloqueo(bloqueadoHasta) {
+  const ahora = Date.now();
+  const restante = bloqueadoHasta - ahora;
+
+  if (restante > 0) {
+    const minutos = Math.floor(restante / 60000);
+    const segundos = Math.floor((restante % 60000) / 1000);
+    alert(`Cuenta bloqueada. Intenta en ${minutos}m ${segundos}s`);
+  }
 }
+
 </script>
 
 
@@ -536,7 +847,7 @@ function validarYEnviar() {
     Ingresar con Google
   </button>
 
-<label class="credit-label">by Patricio Alarcon, Italo Morales, Johnathan Díez, Leo Herrera</label>
+<label class="credit-label">by registro-online</label>
 </div>
 
 </body>

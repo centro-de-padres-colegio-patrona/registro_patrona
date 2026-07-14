@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Registro CPA: Actividades y Eventos Centro de Padres Colegio Patrona</title>
+
+  <style>
+body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+    /* CORRECCIÓN: Convertimos el enlace en el contenedor de ancho completo */
+    .actividad-link {
+      display: block; /* Ocupa todo el ancho */
+      width: 100%;
+      background: #fff;
+      margin: 100px 0 20px 0; 
+      padding: 20px;
+      box-sizing: border-box; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      text-align: left; 
+      text-decoration: none; /* Quita el subrayado azul típico de los enlaces */
+      color: inherit; /* Mantiene el color del texto original */
+      cursor: pointer; /* Fuerza a que aparezca la mano del cursor en toda la franja */
+    }
+    .actividad-link h2 {
+      color: #b22222;
+      margin: 0; /* Limpiamos márgenes para evitar saltos extra */
+    }
+    .actividad-link video {
+      width: 100%;
+      border-radius: 6px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+    .actividad-link p {
+      line-height: 1.6;
+      color: #333;
+    }
+  </style>
+
+</head>
+<body>
+<script>
+  const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+  document.body.classList.add(isMobile ? 'mobile' : 'desktop');
+</script>
+
+  <div id="barra-superior">
+    Actividades y Eventos Centro de Padres Colegio Patrona
+  </div>
+
+  <a href="entradas_fiesta_chilena.html" class="actividad-link">
+    <h2>Fiesta a la Chilena</h2>
+  </a>
+
+</body>
+</html>

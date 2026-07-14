@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Registro CPA: Mis Entradas - Fiesta Chilena</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f9;
+      color: #333;
+    }
+    
+    #barra-superior {
+      /* Hereda todo el diseño idéntico desde /styles.css */
+    }
+
+    /* MODIFICADO: Cambiado el margen superior a 100px para empujar las entradas hacia abajo */
+    .container {
+      max-width: 1000px;
+      margin: 100px auto 30px auto; 
+      padding: 0 20px;
+    }
+    .descripcion-seccion {
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-left: 5px solid #b22222;
+    }
+    .descripcion-seccion h2 {
+      margin-top: 0;
+      color: #b22222;
+    }
+    .tabla-entradas {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 20px;
+      margin-top: 10px;
+    }
+    .celda-entrada {
+      width: 50%;
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      vertical-align: top;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      border: 1px solid #e1e4e8;
+    }
+    .titulo-entrada {
+      font-size: 13pt;
+      font-weight: bold;
+      color: #222;
+      margin-bottom: 5px;
+    }
+    .detalle-entrada {
+      font-size: 10pt;
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .preview-pdf {
+      width: 100%;
+      height: 250px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      background-color: #eee;
+      margin-bottom: 15px;
+    }
+    .preview-pdf iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .btn-descargar {
+      display: inline-block;
+      background-color: #b22222;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 10px 15px;
+      font-size: 10pt;
+      font-weight: bold;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .btn-descargar:hover {
+      background-color: #8b1c1c;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="barra-superior">
+    Fiesta a la Chilena - Mis Invitaciones disponibles
+  </div>
+
+  <div class="container">
+    <!--div class="descripcion-seccion">
+      <h2>Mis Entradas Disponibles</h2>
+      <p>A continuación se presentan las entradas cargadas y activas asociadas a tu cuenta para la Fiesta Chilena y eventos del colegio. Puedes visualizar la miniatura del documento PDF o proceder con su descarga directa.</p>
+    </div-->
+
+    <table class="tabla-entradas">
+      <tr>
+        <td class="celda-entrada">
+          <div class="titulo-entrada">10 Abonos y 6 Entradas</div>
+          <div class="detalle-entrada">Archivo: 10 abonos y 6 entradas.pdf</div>
+          <div class="preview-pdf">
+            <iframe src="https://drive.google.com/file/d/0B5aB_RxKu4htSHA5Q1pyb25uMFk/preview" allow="autoplay"></iframe>
+          </div>
+          <a href="https://drive.google.com/open?id=0B5aB_RxKu4htSHA5Q1pyb25uMFk" target="_blank" class="btn-descargar">
+            Abrir y Descargar PDF
+          </a>
+        </td>
+
+        <td class="celda-entrada">
+          <div class="titulo-entrada">Entradas al Cine - Alonso y Vicente</div>
+          <div class="detalle-entrada">Archivo: entradas al cine Alonso y Vicente.pdf</div>
+          <div class="preview-pdf">
+            <iframe src="https://drive.google.com/file/d/1x_a5SbqUcdOmPG0HXqwpcaQIyQgEkT4K/preview" allow="autoplay"></iframe>
+          </div>
+          <a href="https://drive.google.com/open?id=1x_a5SbqUcdOmPG0HXqwpcaQIyQgEkT4K" target="_blank" class="btn-descargar">
+            Abrir y Descargar PDF
+          </a>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</body>
+</html>

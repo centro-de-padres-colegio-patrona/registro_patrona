@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
 
+const test_api = require('./test_api');
+
+
 const hijoSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
-  run: { type: String, required: true },
+  rut: { type: String, required: true },
   curso: { type: String, required: true },
   seccion: { type: String, required: true }
 });
@@ -10,16 +13,17 @@ const hijoSchema = new mongoose.Schema({
 const padreSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   apellido: { type: String, required: true },
-  run: { type: String, required: true },
+  rut: { type: String, required: true },
   correo: { type: String, required: true },
   telefono: String,
-  parentesco: { type: String, required: true }
+  parentesco: { type: String, required: true },
+  es_usuario_cuenta: { type: Boolean, default: false }
 });
 
 const invitadoSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   apellido: { type: String, required: true },
-  run: { type: String, required: true },
+  rut: { type: String, required: true },
   correo: { type: String, required: true },
   telefono: String,
   parentesco: { type: String, required: true }
@@ -48,10 +52,43 @@ const userSchema = new mongoose.Schema({
   entradas_enviadas: Boolean,
   notificacion_enviada: Boolean,
   fecha_notificacion: Date,
-  fecha_envio_entradas: Date
+  fecha_envio_entradas: Date,
+  correo_validado: Boolean,
+  password: String,
+  intentosFallidos: Number,
+  bloqueadoHasta: Date,
+  passwordHash: String,
 });
 
-const deliverySchema = new mongoose.Schema({
+  const nombreCursoSchema = new mongoose.Schema({
+    id: String,
+    value: String,
+  });
+
+  const compromisosPagoSchema = new mongoose.Schema({
+    id: String,
+    nombre: String,
+    descripcion: String,
+    monto: Number,
+    tipo: String,
+    limite_maximo_por_cliente: String,
+    clientes: Array,
+    beneficios: Array
+  });
+
+  const hermanosMapSchema = new mongoose.Schema({
+    id: String,
+    nombre_familia: String,
+    hermanos: Array,
+    serial: Number,
+    apoderado_email: Array,
+  });
+
+const bingo_solidario = new mongoose.Schema({ 
+  email: String,
+  });
+
+  const deliverySchema = new mongoose.Schema({
   familia: String,
   nombre_completo: String, 
   bloques: Array, 
@@ -83,10 +120,40 @@ const cursoSchema = new mongoose.Schema({
   bloque: Object,
 });
 
+const commerceSchema = new mongoose.Schema({
+  apiKey: String,
+  commerceOrder: String,
+  currency: String,
+  amount: Number,
+  email: String,
+  paymentMethod: Number,
+  urlConfirmation: String,
+  urlReturn: String,
+  optional: String,
+  timeout: Number,
+  checkout_timeout: Number,
+  merchantId: String,
+  payment_currency: String,
+  timestamp: String,
+  timeout: Number,
+  merchantId: String,
+  sign: String,
+  token: String,
+  url: String,
+  flowOrder: String,
+  pending_info: Object,
+  paymentData: Object,
+  status: String,
+  statusText: String,
+  requestDate: String,
+  
+});
+
 const pagosSchema = new mongoose.Schema({
   id: String,
   num_folio: Number,
   tipo: String,
+  subtipo: String,
   cuota_cpa: Boolean,
   monto: Number,
   cantidad_agendas: Number,
@@ -94,12 +161,14 @@ const pagosSchema = new mongoose.Schema({
   fecha: String,
   comentarios: String,
   entradas_pagadas: Number,
+  payment_method: String,
+  commerce_order: String,
 });
 
 /// --------------------------------------
 const registradosSchema = new mongoose.Schema({
   nombre: String,
-  run: String,
+  rut: String,
   curso: String,
   seccion: String,
   tipo: String,
@@ -118,13 +187,35 @@ const registroEntradasSchema = new mongoose.Schema({
   registros: Object,
 });
 
-const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
+const commerceOrderSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true }, // Ejemplo: 'pagos_flow'
+  secuencia: { type: Number, default: 0 }
+});
 
-mongoose.connect(uri, {
+/*const CommerceOrders = mongoose.model('CommerceOrders', commerceOrderSchema);
+
+module.exports = {
+  // ... tus otros modelos (pagosDB, compromisosPagoDB, etc.)
+  paymentOrdersDB: mongoose.model('PaymentOrders', paymentOrderSchema), 
+  commerceOrderDB: CommerceOrders 
+};*/
+
+//const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
+const db_password = 'tPyw2Cvb2Hco8HM3'
+const db_user = 'lherreramena_db_user'
+//const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data`
+const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
+//const uri  = "mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data";
+// const db_msg = "old_data cluster"
+
+mongoose.connect(db_uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('Conexión exitosa a MongoDB Atlas'))
+.then(() => {
+    console.log('Conexión exitosa a MongoDB Atlas');
+    test_api.lauch_test_api();
+  })
 .catch(err => console.error('Error de conexión:', err));
 
 //module.exports = mongoose.model('users', userSchema);
@@ -135,4 +226,8 @@ module.exports.pagosDB = mongoose.model('pagos', pagosSchema);
 module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapSchema);
 module.exports.registroEntradasDB = mongoose.model('registro_entradas', registroEntradasSchema);
 module.exports.deliveryDB = mongoose.model('delivery_entradas', deliverySchema);
-
+module.exports.hermanosMapDB = mongoose.model('nombreHermanosMap', hermanosMapSchema, 'nombreHermanosMap');
+module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSchema, 'nombreCursoMap');
+module.exports.compromisosPagoDB = mongoose.model('compromisosPagoApoderados', compromisosPagoSchema, 'compromisosPagoApoderados');
+module.exports.paymentOrdersDB = mongoose.model('paymentOrders', commerceSchema, 'paymentOrders');
+module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderSchema, 'CommerceOrders');

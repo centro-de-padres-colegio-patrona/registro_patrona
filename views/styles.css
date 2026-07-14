@@ -1,0 +1,273 @@
+    label { display: block; margin-top: 10px; }
+    input, select { width: 300px; padding: 5px; }
+
+    .child-form,
+    .parent-form,
+    .guest-form {
+      border: 2px solid #4A90E2;     /* Borde azul */
+      border-radius: 10px;           /* Esquinas redondeadas */
+      padding: 15px;
+      margin-bottom: 20px;
+      background-color: #f9f9f9;
+      box-sizing: border-box;        /* Evita que el padding afecte el ancho */
+      display: inline-block;         /* Mantiene el ancho natural */
+      width: auto;                   /* No fuerza ancho completo */
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select {
+      padding: 6px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      max-width: 100%;               /* Se adapta sin exceder el contenedor */
+    }
+    .form-row {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .form-row label {
+      min-width: 160px; /* Ajusta según el largo del texto */
+      font-weight: bold;
+    }
+
+    .form-row input {
+      flex: 1;
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .login-box {
+      margin: 60px 0 10px 0; /* elimina el centrado horizontal */
+      background-color: rgb(246, 241, 241);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 350px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    #jornadas-container {
+      /*display: flex;
+      flex-direction: row;*/
+      display: block;
+      justify-content: flex-start; /* o 'flex-end' si quieres alinearlos a la derecha del contenedor */
+      gap: 16px; /* espacio entre cajas */
+      flex-wrap: wrap; /* permite que se ajusten si hay muchas */
+    }
+    #jornadas-container::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+  .form-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 10px;
+  }
+form input,
+form select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  font-size: 16px;
+  padding: 10px;
+}
+@media screen and (max-width: 600px) {
+  .login-box {
+    width: 100%;
+    padding: 20px;
+    margin: 10px auto;
+  }
+
+  .login-box input,
+  .login-box select,
+  .login-box button {
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  .grid-container {
+    grid-template-columns: 1fr; /* una sola columna en móviles */
+    grid-template-areas:
+      'header'
+      'menu'
+      'main'
+      'footerA'
+      'footerB';
+  }
+}
+form button {
+  margin-top: 10px;
+}
+@media screen and (max-width: 600px) {
+  .form-container {
+    padding: 20px;
+    font-size: 16px;
+    flex-direction: column;
+  }
+
+  .form-container input,
+  .form-container button {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+}
+body.mobile .form-container,
+body.mobile .child-form,
+body.mobile .parent-form,
+body.mobile .guest-form {
+  width: 100%;
+  display: block;
+  padding: 16px;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+body.mobile input,
+body.mobile select,
+body.mobile button {
+  width: 100%;
+  font-size: 18px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+body.mobile h3 {
+  font-size: 20px;
+  margin-top: 24px;
+}
+
+body.mobile #jornadas-container {
+  flex-direction: column;
+  gap: 12px;
+}
+.enviar-btn {
+  font-size: 18px;
+  padding: 12px 24px;
+  background-color: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.enviar-btn:hover {
+  background-color: #357ABD;
+}
+
+#botonIngresar {
+  background-color: grey;
+  color: white;
+  cursor: not-allowed;
+}
+
+#botonIngresar.enabled {
+  background-color: #007bff; /* o el color que prefieras */
+  cursor: pointer;
+}
+
+/* Estilos generales */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: block;
+  height: 100vh;
+}
+
+body.panel-usuario {
+  display: flex;
+  height: 100vh;
+}
+
+/* Controles laterales */
+#sidebar {
+  width: 200px;
+  background-color: #2c3e50;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+#sidebar button {
+  background: none;
+  border: none;
+  color: white;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+#sidebar button:hover {
+  background-color: #34495e;
+}
+
+/* Área de contenido */
+#content {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+#sidebar button.activo {
+  background-color: #1abc9c; /* Color destacado para el botón activo */
+  font-weight: bold;
+}
+/* Estilos específicos para panel_usuario.html */
+
+#barra-superior {
+  width: 100%;
+  height: 60px; /* ajusta según el tamaño de tu logo */
+  background-color: #2c3e50;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+#usuario-info {
+  color: #ffffff;
+  font-size: 14px;
+  margin: 10px 0;
+  text-align: center;
+  font-weight: bold;
+}
+
+#statusLabel {
+    transition: opacity 0.5s ease-in-out;
+    font-size: 0.9em;
+}
+
+#payments-commitment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px; /* Cambia de 20px a 40px para duplicar la separación */
+  padding: 20px;
+}
+
+/*body.panel-usuario {
+  padding-top: 60px; / espacio para que el contenido no quede debajo de la barra /
+}*/

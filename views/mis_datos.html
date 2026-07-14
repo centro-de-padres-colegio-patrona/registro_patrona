@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Mis Datos</title>
+
+
+</head>
+<body>
+<script>
+  const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+  document.body.classList.add(isMobile ? 'mobile' : 'desktop');
+</script>
+
+  <script>
+    let max_invitados = 2;
+    let currentUser = {
+      hijos: [],
+      padres: []
+    };
+    let rut_status = {};
+
+    // update_entradas
+
+    let estado_pago = null;
+
+    async function return_to_home(show_alert = true) {
+      if ( show_alert)
+        alert('Usuario no autenticado')
+      window.location.replace = "/";
+    }
+
+    fetch('/api/user')
+      .then(response => {
+        console.log('Respuesta del servidor:', response);
+        if (!response.ok) {
+          throw new Error('Usuario no autenticado');
+          return_to_home();
+        }
+        return response.json();
+      })
+      .then(user => {
+        currentUser = user.user;
+        fillUserInfo(currentUser);
+        console.log('Datos del usuario:', user); // Útil para debugging
+        actualizarLabelCompletitud();
+        mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
+        addBrothers();
+        
+        //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
+        const correo = currentUser.email && currentUser.email.trim() !== "" 
+            ? currentUser.email 
+            : "ejemplo@correo.com";
+
+        console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
+        //document.getElementById("correoUsuario").value = correo;
+      })
+      .catch(error => {
+        console.log('Fue ingresado manual:', error);
+        
+          const params = new URLSearchParams(window.location.search);
+          const username = params.get('username');
+          const correoManual = params.get('correoManual');
+
+          const err_msg = String(error).toLowerCase();
+          if (err_msg.includes('no autenticado') || err_msg.includes('unauthorize')) {
+            return_to_home();
+          }
+          //document.getElementById("correoUsuario").value =correoManual;
+
+
+      });
+  </script>
+
+  <h2>Mis Datos</h2>
+
+  <div id="completitudLabel" style="display: none; color: #dc3545; font-weight: bold; margin-bottom: 15px; text-align: center; background-color: #f8d7da; padding: 8px; border-radius: 5px; border: 1px solid #f5c6cb;">
+      ⚠️ Faltan datos por completar
+  </div>
+
+  <form id="registro-form">
+  <!-- Sección Reporte -->
+
+  <div id="jornadas-container"></div>
+
+    <!-- Sección hijos -->
+    <div id="children-section">
+      <h3>Hijos/as en el colegio</h3>
+      <div class="child-form">
+        <label>Curso:</label>
+        <select name="childCourse[]" required>
+          <option value="" disabled selected>Seleccione curso</option>
+          <option value="Prekínder">Prekínder</option>
+          <option value="Kínder">Kínder</option>
+          <option value="1° Básico">1° Básico</option>
+          <option value="2° Básico">2° Básico</option>
+          <option value="3° Básico">3° Básico</option>
+          <option value="4° Básico">4° Básico</option>
+          <option value="5° Básico">5° Básico</option>
+          <option value="6° Básico">6° Básico</option>
+          <option value="7° Básico">7° Básico</option>
+          <option value="8° Básico">8° Básico</option>
+          <option value="I° Medio">I° Medio</option>
+          <option value="II° Medio">II° Medio</option>
+          <option value="III° Medio">III° Medio</option>
+          <option value="IV° Medio">IV° Medio</option>
+        </select>
+        <label>Sección:</label>
+        <select name="childSeccion[]">
+          <option value="A">A</option>
+          <option value="B">B</option>
+        </select>
+        <label>Nombres:</label>
+        <select name="childName[]" required>
+        </select>
+        <label>Rut:</label>
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="text" name="childRut[]" required>
+          <span name="childIconRut[]" class="rut-icon" style="position: absolute; right: 10px; font-size: 1.2em;"></span>
+        </div>
+        <button type="button" class="btn-eliminar-child" 
+                style="background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+            Eliminar
+        </button>
+        <!--label>Bloque:</label>
+        <input type="text" name="childBloque[]" id="childBloque" readonly-->
+      </div>
+    </div>
+    <button type="button" onclick="addChild()">+ Agregar otro hijo/a</button>
+
+    <!-- Sección padres -->
+    <div id="parent-section">
+      <h3>Padres/Madres/Apoderados</h3>
+      <div class="parent-form">
+      <div class="usuario-cuenta-group">
+          <label>
+              <input type="checkbox" class="usuario-cuenta-check" name="account_owner[]"> 
+              Usuaria/o de la cuenta
+          </label>
+        </div>
+        <label>Apellidos:</label><input type="text" name="parentSurname[]" required>
+        <label>Nombres:</label><input type="text" name="parentName[]" required>
+        <label>Correo:</label><input type="email" name="parentEmail[]" required>
+        <label>Rut:</label><!--input type="text" name="parentRut[]" required-->
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="text" name="parentRut[]" required>
+          <span name="parentIconRut[]" class="rut-icon" style="position: absolute; right: 10px; font-size: 1.2em;"></span>
+        </div>
+        <label>Teléfono (opcional):</label><input type="tel" name="parentPhone[]">
+        <label>Parentesco:</label>
+        <select name="relationship[]" required>
+          <option value="Padre">Padre</option>
+          <option value="Madre">Madre</option>
+          <option value="Apoderado">Apoderado</option>
+        </select>
+        <button type="button" class="btn-eliminar-parent"
+                style="background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+            Eliminar
+        </button>
+      </div>
+    </div>
+    <button type="button" onclick="addParent()">+ Agregar otro padre/madre/apoderado</button>
+
+    <br><br>
+    <!--button type="submit">Enviar</button-->
+
+    <div style="text-align: center; margin-top: 20px;">
+  <!--label>Correo para recibir próximamente las entradas:</label><br-->
+  <!--input type="email" id="correoUsuario" name="correoPrincipal" placeholder="ejemplo@correo.com" style="width: 300px; padding: 10px; margin-bottom: 15px;"><br-->
+  <!--input type="email" id="correoUsuario"  style="width: 300px; padding: 10px; margin-bottom: 15px;" ><br-->
+  <div id="statusLabel" style="margin-bottom: 10px; font-weight: bold; min-height: 1.2em;"></div>
+  <!--button type="submit" style="font-size: 18px; padding: 12px 24px;">Enviar</button-->
+  <button type="submit" class="enviar-btn">Enviar</button>
+
+</div>
+
+  </form>
+
+  <script>
+    //import { validateRut } from '@fdograph/rut-utilities';
+    const reverse_curso_map = {
+      "PK": "Prekínder",
+      "K": "Kínder",
+      "1": "1° Básico",
+      "2": "2° Básico",
+      "3": "3° Básico",
+      "4": "4° Básico",
+      "5": "5° Básico",
+      "6": "6° Básico",
+      "7": "7° Básico",
+      "8": "8° Básico",
+      "1M": "I° Medio",
+      "2M": "II° Medio",
+      "3M": "III° Medio",
+      "4M": "IV° Medio"
+    }
+
+    function isRutValidFormat(value) {
+      const regex = /^(\d{8}|\d{1}\.\d{7}|\d{1}\.\d{3}\.\d{4}|\d{7}-\d{1}|\d{1}\.\d{6}-\d{1}|\d{1}\.\d{3}\.\d{3}-\d{1}|\d{9}|\d{2}\.\d{7}|\d{2}\.\d{3}\.\d{4}|\d{8}-\d{1}|\d{2}\.\d{6}-\d{1}|\d{2}\.\d{3}\.\d{3}-\d{1})$/;
+
+      return regex.test(value);
+    }
+
+    // ✅ Tests
+    /*const tests = [
+      "12345678", "1.2345678", "1.234.5678",
+      "1234567-8", "1.234567-8", "1.234.567-8",
+      "123456789", "12.3456789", "12.345.6789",
+      "12345678-9", "12.345678-9", "12.345.678-9",
+      "1.2.345678" // ❌ invalid
+    ];
+
+    tests.forEach(t => console.log(t, "->", isRutValidFormat(t)));*/
+
+    function validarRutChile(rutCompleto) {
+        let is_valid = false;
+        let rut = rutCompleto;
+        //if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto)) return {rut, is_valid};
+        if (!isRutValidFormat(rutCompleto)) return {rut, is_valid};
+
+        const splitted = rutCompleto.split('-');
+        rut = splitted[0];
+        let dv = '';
+        //console.log(`Validando RUT: ${JSON.stringify({rut, dv, splitted})}`);
+        if (splitted.length > 2) return {rut, is_valid};
+        if (splitted.length === 1) {
+            dv = rut.slice(-1);
+            rut = rut.slice(0, -1);
+        } else {
+          dv = splitted[1];
+        }
+        rut = rut.replace(/\./g, ''); // Elimina puntos si los hay
+        if (dv.length > 1) return {rut, is_valid};
+        if (dv.length === 0) {
+            dv = rut.slice(-1);
+            rut = rut.slice(0, -1);
+        };
+        if (rut.length < 7 || rut.length > 8) return {rut, is_valid};
+        //let cuerpo = rut.toString();
+        let dvEsperado = calcularDV(rut);
+        
+        is_valid = dv.toLowerCase() === dvEsperado.toString();
+        // Formatea el RUT con puntos y guion
+        rut = rut.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv;
+        //rut_status[rut] = is_valid;
+        return { rut, is_valid };
+    }
+
+    function calcularDV(cuerpo) {
+        let suma = 0;
+        let multiplo = 2;
+        for (let i = 1; i <= cuerpo.length; i++) {
+            let index = multiplo * cuerpo.charAt(cuerpo.length - i);
+            suma = suma + index;
+            if (multiplo < 7) { multiplo = multiplo + 1; } else { multiplo = 2; }
+        }
+        let res = 11 - (suma % 11);
+        if (res === 11) return 0;
+        if (res === 10) return 'k';
+        return res;
+    }
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const childrenSection = document.getElementById('children-section');
+      const parentSection = document.getElementById('parent-section');
+
+      childrenSection.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-eliminar-child')) {
+          const childForms = childrenSection.querySelectorAll('.child-form');
+          childForm = e.target.closest('.child-form');
+          const name = childForm.querySelector("select[name='childName[]']").value;
+          if (confirm(`¿Está seguro de que desea eliminar el registro ${name}?`)) {
+            if (childForms.length > 1) {
+              e.target.closest('.child-form').remove();
+            } else {
+              alert('Debe haber al menos un hijo registrado.');
+              childForm.querySelector("select[name='childCourse[]']").value = '';
+              childForm.querySelector("select[name='childSeccion[]']").value = 'A';
+              childForm.querySelector("select[name='childName[]']").value = '';
+            }
+          }
+          actualizarLabelCompletitud();
+        }
+      });
+      childrenSection.addEventListener('input', (e) => {
+        const target = e.target;
+        console.log('Input event en childrenSection:', {name: target.name, value: target.value, id: target.id});
+        if (target.name === 'childRut[]') {
+          childForm = e.target.closest('.child-form');
+          const iconRut = childForm.querySelector("span[name='childIconRut[]']");
+          const {rut, is_valid} = validarRutChile(target.value);
+          const childName = childForm.querySelector("select[name='childName[]']").value || '';
+          console.log(`Validación RUT: ${JSON.stringify({rut, is_valid})}`);
+          rut_status[childName] = {rut, is_valid};
+          if (is_valid) {
+            target.setCustomValidity('');
+            target.value = rut; // Actualiza el campo con el formato corregido
+            iconRut.textContent = '✅';
+            iconRut.style.color = 'green';
+          } else {
+            target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+            iconRut.textContent = '⚠️';
+            iconRut.style.color = "#dc3545"; //'orange';
+          }
+        }
+        actualizarLabelCompletitud();
+      });
+      parentSection.addEventListener('input', (e) => {
+        const target = e.target;
+        if (target.name === 'parentRut[]') {
+          const {rut, is_valid} = validarRutChile(target.value);
+          const parentName = target.closest('.parent-form').querySelector("input[name='parentName[]']").value || '';
+          const parentSurName = target.closest('.parent-form').querySelector("input[name='parentSurname[]']").value || '';
+          rut_status[parentSurName + ' ' + parentName] = {rut, is_valid};
+          const iconRut = target.parentElement.querySelector("span[name='parentIconRut[]']");
+          if (is_valid) {
+            target.setCustomValidity('');
+            target.value = rut; // Actualiza el campo con el formato corregido
+            iconRut.textContent = '✅';
+            iconRut.style.color = 'green';
+          } else {
+            target.setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+            iconRut.textContent = '⚠️';
+            iconRut.style.color = "#dc3545"; //'orange';
+          }
+        }
+        actualizarLabelCompletitud();
+      });
+      parentSection.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-eliminar-parent')) {
+          const parentForms = parentSection.querySelectorAll('.parent-form');
+          const parentForm = e.target.closest('.parent-form');
+          const name = parentForm.querySelector("input[name='parentName[]']").value;
+          const surname = parentForm.querySelector("input[name='parentSurname[]']").value;
+          const full_name = name + ' ' + surname;
+          if (confirm(`¿Está seguro de que desea eliminar el registro de ${full_name}?`)) {
+            if (parentForms.length > 1) {
+              e.target.closest('.parent-form').remove();
+            } else {
+              alert('Debe haber al menos un padre/madre/apoderado registrado.');
+              parentForm.querySelector("input[name='parentEmail[]']").value = '';
+              parentForm.querySelector("input[name='account_owner[]']").checked = false;
+              parentForm.querySelector("input[name='parentName[]']").value = '';
+              parentForm.querySelector("input[name='parentSurname[]']").value = '';
+              parentForm.querySelector("input[name='parentPhone[]']").value = '';
+              parentForm.querySelector("input[name='parentRut[]']").value = '';
+            }
+          }
+        }
+        actualizarLabelCompletitud();
+      });
+
+      parentSection.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.classList.contains('usuario-cuenta-check')) {
+          const parentForm = target.closest('.parent-form');
+          const emailInput = parentForm.querySelector("input[name='parentEmail[]']");
+
+          if (target.checked) {
+            // Deseleccionar los demás
+            Array.from(document.querySelectorAll(".parent-form")).map(parent => {
+              const cb = parent.querySelector("input[name='account_owner[]']");
+              if (cb && cb !== target && cb.checked) {
+                cb.checked = false;
+                email = parent.querySelector("input[name='parentEmail[]']");
+                console.log('Deseleccionando checkbox y limpiando correo:', {
+                  emailExists: !!email,
+                  emailValue: email ? email.value : null,
+                  currentUserEmail: currentUser ? currentUser.email : null
+                });
+                if (email && email.value === currentUser.email) {
+                  email.value = '';
+                }
+              } 
+            });
+
+            // Copiar el correo al campo respectivo
+            if (currentUser && currentUser.email && emailInput && emailInput.value !== currentUser.email) {
+              emailInput.value = currentUser.email || '';
+            }
+          } else {
+            // Si se desmarca, opcionalmente podrías limpiar el campo
+            if (currentUser && emailInput && emailInput.value === currentUser.email) {
+              emailInput.value = '';
+              emailInput.classList.remove('highlight-input'); // Quitar resaltado
+            }
+          }
+        }
+        actualizarLabelCompletitud();
+      });
+
+      childrenSection.addEventListener('change', (e) => {
+        const target = e.target;
+
+        if (target.name === 'childCourse[]' || target.name === 'childSeccion[]') {
+          const childForm = target.closest('.child-form');
+          const curso = childForm.querySelector("select[name='childCourse[]']").value;
+          const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
+          const nombreSelect = childForm.querySelector("select[name='childName[]']");
+          const rutInput = childForm.querySelector("input[name='childRut[]']");
+
+          if (curso && seccion) {
+            fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
+              .then(res => res.json())
+              .then(async alumnos => {
+                nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+                alumnos.forEach(nombre => {
+                  const option = document.createElement('option');
+                  option.value = nombre;
+                  option.textContent = nombre;
+                  nombreSelect.appendChild(option);
+                });
+              })
+              .catch(err => console.error('Error al obtener nombres:', err));
+          }
+        } else if (target.name === 'childName[]') {
+          try {
+            const name_value = target.value;
+            const childForm = target.closest('.child-form');
+            const curso = childForm.querySelector("select[name='childCourse[]']").value;
+            const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
+            const rutInput = childForm.querySelector("input[name='childRut[]']");
+            addBrothers();
+          } catch (error) {
+            console.error(`[childName[] handler] Error al actualizar entradas: ${error.message}`, {
+              targetName: target.name,
+              stack: error.stack
+            });
+          }
+        }
+      });
+      actualizarLabelCompletitud();
+    });
+  //</script>
+
+  //<script>
+    /// ----------------------- Verificar Máximo Entradas
+    function verificarCursos() {
+      const selects = document.querySelectorAll('select[name="childCourse[]"]');
+      let contieneIVMedio = false;
+
+      selects.forEach(select => {
+        if (select.value === "IV° Medio") {
+          contieneIVMedio = true;
+        }
+      });
+
+      return contieneIVMedio ? 6 : 2;
+    }
+
+    // Escucha cambios en todos los selects
+    document.querySelectorAll('select[name="childCourse[]"]').forEach(select => {
+      select.addEventListener('change', () => {
+        const resultado = verificarCursos();
+        console.log("Maximo Invitados:", resultado);
+        max_invitados = resultado;
+        // Aquí puedes usar el resultado como necesites
+      });
+    });
+
+    function verificarDatosCompletos() {
+      try {
+        const childData = retrieve_hijos();
+        const parentData = retrieve_parents();
+        const datosCompletos = childData.every(child => child.curso && child.seccion && child.nombre && child.rut && rut_status && rut_status[child.nombre] && rut_status[child.nombre].is_valid) &&
+                              parentData.every(parent => parent.apellido && parent.name && parent.correo && parent.rut && parent.parentesco && rut_status[parent.nombre].is_valid);
+        return datosCompletos;
+      } catch (error) {
+        console.error('Error on verificarDatosCompletos: ', error);
+      }
+      return false;
+    }
+
+    function actualizarLabelCompletitud() {
+        const label = document.getElementById('completitudLabel');
+        if (verificarDatosCompletos()) {
+            label.style.display = 'none';
+        } else {
+            label.style.display = 'block';
+        }
+    }
+
+    function addChild() {
+      const section = document.getElementById('children-section');
+      const clone = section.querySelector('.child-form').cloneNode(true);
+      clone.querySelector("select[name='childCourse[]']").disabled = false;
+      clone.querySelector("select[name='childSeccion[]']").disabled = false;
+      clone.querySelector("select[name='childName[]']").disabled = false;
+      clone.querySelector("input[name='childRut[]']").value = '';
+
+      section.appendChild(clone);
+
+      return clone;
+    }
+
+    function addParent() {
+      const section = document.getElementById('parent-section');
+      const form = section.querySelector('.parent-form');
+      const button = document.querySelector("button[onclick='addParent()']");
+
+      console.log('form.length: ', form.length);
+
+      if (form.length >= 2) {
+        button.disabled = true;
+        button.textContent = 'Máximo alcanzado';
+        return;
+      }
+
+      const clone = form.cloneNode(true);
+
+      // Limpia los campos del nuevo formulario
+      clone.querySelectorAll('input').forEach(input => input.value = '');
+      clone.querySelector("select[name='relationship[]']").value = '';
+      clone.querySelector("input[name='account_owner[]']").checked = false;
+
+      section.appendChild(clone);
+
+      // Desactiva si ya se llegó al máximo
+      if (section.querySelectorAll('.parent-form').length >= 2) {
+        button.disabled = true;
+        button.textContent = 'Máximo alcanzado';
+      }
+    }
+
+    function deshabilitarControles(form) {
+      const elementos = form.querySelectorAll('input, select, textarea, button');
+      elementos.forEach(el => el.disabled = true);
+    }
+
+    function fillChild(childForm, childInfo) {
+      const { curso, seccion, nombre} = childInfo;
+      const selectCurso = reverse_curso_map[curso];
+      childForm.querySelector("select[name='childCourse[]']").value = selectCurso;
+      childForm.querySelector("select[name='childSeccion[]']").value = seccion;
+      console.log(childInfo);
+      if (curso && seccion) {
+        fetch(`/api/alumnos?curso=${encodeURIComponent(selectCurso)}&seccion=${encodeURIComponent(seccion)}`)
+          .then(res => res.json())
+          .then(alumnos => {
+            const nombreSelect = childForm.querySelector("select[name='childName[]']");
+            nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+            console.log(alumnos);
+            alumnos.forEach(nombre => {
+              const option = document.createElement('option');
+              option.value = nombre;
+              option.textContent = nombre;
+              nombreSelect.appendChild(option);
+            });
+            // Selecciona el nombre si está en la lista
+            nombreSelect.value = nombre;
+          })
+          .catch(err => console.error('Error al cargar nombres:', err));
+      }
+
+    }
+
+
+    function fillChildrenSection(user) {
+      const hijos = user.hijos || [];
+      const section = document.getElementById('children-section');
+
+      // Elimina formularios existentes excepto el primero
+      const baseForm = section.querySelector('.child-form');
+      section.querySelectorAll('.child-form').forEach((form, index) => {
+        if (index > 0) form.remove();
+      });
+
+      if (hijos.length === 0) {
+        return;
+      }
+
+      hijos.forEach(async (hijo, index) => {
+        // Clona si no es el primero
+        const form = index === 0 ? baseForm : baseForm.cloneNode(true);
+        if (index > 0) section.appendChild(form);
+
+        // Asigna valores
+        form.querySelector("select[name='childCourse[]']").value = hijo.curso;
+        form.querySelector("select[name='childSeccion[]']").value = hijo.seccion;
+        const {rut, is_valid} = validarRutChile(hijo.rut || '');
+        form.querySelector("input[name='childRut[]']").value = rut || '';
+        const iconRut = form.querySelector("span[name='childIconRut[]']");
+        if (!is_valid) {
+          form.querySelector("input[name='childRut[]']").setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+          iconRut.textContent = '⚠️';
+          iconRut.style.color = "#dc3545"; //'orange';
+        } else {
+          form.querySelector("input[name='childRut[]']").setCustomValidity('');
+          iconRut.textContent = '✅';
+          iconRut.style.color = 'green';
+        }
+        rut_status[hijo.nombre] = {rut, is_valid};
+
+        // Simula llamada a API para cargar nombres válidos
+        if (hijo.curso && hijo.seccion) {
+          fetch(`/api/alumnos?curso=${encodeURIComponent(hijo.curso)}&seccion=${encodeURIComponent(hijo.seccion)}`)
+            .then(res => res.json())
+            .then(alumnos => {
+              const nombreSelect = form.querySelector("select[name='childName[]']");
+              nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+              alumnos.forEach(nombre => {
+                const option = document.createElement('option');
+                option.value = nombre;
+                option.textContent = nombre;
+                nombreSelect.appendChild(option);
+              });
+
+              // Selecciona el nombre si está en la lista
+              nombreSelect.value = hijo.nombre;
+            })
+            .catch(err => console.error('Error al cargar nombres:', err));
+        }
+        const nombreSelect = form.querySelector("select[name='childName[]']");
+        nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+        const option = document.createElement('option');
+        option.value = hijo.nombre;
+        option.textContent = hijo.nombre;
+        nombreSelect.appendChild(option);
+        nombreSelect.value = hijo.nombre;
+
+        if (hijo.nombre && hijo.curso && hijo.seccion) {
+          form.querySelector("select[name='childCourse[]']").disabled = true;
+          form.querySelector("select[name='childSeccion[]']").disabled = true;
+        }
+      });
+    }
+
+    function fillParentSection(currentUser) {
+      const padres = currentUser.padres || [];
+      const section = document.getElementById('parent-section');
+      const baseForm = section.querySelector('.parent-form');
+
+      // Elimina formularios extra si ya hay más de uno
+      section.querySelectorAll('.parent-form').forEach((form, index) => {
+        if (index > 0) form.remove();
+      });
+
+      padres.forEach((padre, index) => {
+        const form = index === 0 ? baseForm : baseForm.cloneNode(true);
+        if (index > 0) section.appendChild(form);
+
+        form.querySelector("input[name='parentSurname[]']").value = padre.apellido || '';
+        form.querySelector("input[name='parentName[]']").value = padre.nombre || '';
+        form.querySelector("input[name='parentEmail[]']").value = padre.correo || '';
+        form.querySelector("input[name='parentPhone[]']").value = padre.telefono || '';
+        form.querySelector("select[name='relationship[]']").value = padre.parentesco || '';
+        form.querySelector("input[name='account_owner[]']").checked = padre.es_usuario_cuenta || false;
+        const {rut, is_valid} = validarRutChile(padre.rut || '');
+        form.querySelector("input[name='parentRut[]']").value = rut || '';
+        const iconRut = form.querySelector("span[name='parentIconRut[]']");
+        if (!is_valid) {
+          form.querySelector("input[name='parentRut[]']").setCustomValidity('RUT inválido. Formato esperado: 12345678-9');
+          iconRut.textContent = '⚠️';
+          iconRut.style.color = "#dc3545"; //'orange';
+        } else {
+          form.querySelector("input[name='parentRut[]']").setCustomValidity('');
+          iconRut.textContent = '✅';
+          iconRut.style.color = 'green';
+        }
+        rut_status[padre.apellido + ' ' + padre.nombre] = {rut, is_valid};
+      });
+    }
+
+
+    function fillUserInfo(user) {
+      fillChildrenSection(user);
+      fillParentSection(user);
+    }
+
+
+    function crearLoginBox(jornadaNombre, valores = {}) {
+      const original = document.querySelector('.login-box');
+      const clon = original.cloneNode(true);
+      const index = document.querySelectorAll('.login-box').length + 1;
+      const nuevoId = `login-box-${index}`;
+      clon.id = nuevoId;
+
+      // Actualiza el label
+      const jornadaLabel = clon.querySelector('#jornadaLabel');
+      if (jornadaLabel) {
+        jornadaLabel.textContent = `Jornada ${jornadaNombre}`;
+      }
+
+      // Actualiza los inputs con IDs únicos y valores personalizados
+      clon.querySelectorAll('input').forEach((input, i) => {
+        const baseName = input.name || input.id || `input-${i}`;
+        const uniqueName = `${baseName}-${index}`;
+        input.name = uniqueName;
+        input.id = uniqueName;
+        input.value = valores[baseName] || '';
+      });
+
+      // Inserta el clon
+      original.parentNode.appendChild(clon);
+    }
+
+    function actualizarInput(clonId, inputBaseName, nuevoValor) {
+      const input = document.querySelector(`#${clonId} input[name="${inputBaseName}-${clonId.split('-').pop()}"]`);
+      if (input) {
+        input.value = nuevoValor;
+      }
+    }
+
+    function retrieve_cursos() {
+      return retrieve_hijos()
+    }
+    function retrieve_hijos() {
+      // Recopila hijos
+      const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
+        nombre: child.querySelector("select[name='childName[]']").value,
+        curso: child.querySelector("select[name='childCourse[]']").value,
+        seccion: child.querySelector("select[name='childSeccion[]']").value,
+        rut: child.querySelector("input[name='childRut[]']").value
+      }));
+      return hijos;
+    }
+
+    function retrieve_parents() {
+      // Recopila padres
+      try {
+      const padres = Array.from(document.querySelectorAll(".parent-form")).map(parent => ({
+        apellido: parent.querySelector("input[name='parentSurname[]']").value,
+        correo: parent.querySelector("input[name='parentEmail[]']").value,
+        telefono: parent.querySelector("input[name='parentPhone[]']").value,
+        parentesco: parent.querySelector("select[name='relationship[]']").value,
+        name: parent.querySelector("input[name='parentName[]']").value,
+        nombre: parent.querySelector("input[name='parentSurname[]']").value + ' ' + parent.querySelector("input[name='parentName[]']").value,
+        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false,
+        rut: parent.querySelector("input[name='parentRut[]']").value
+      }));
+      return padres;
+    } catch (error) {
+      return [];
+    }
+    }
+
+    function compareArrays(arr1, arr2) {
+      if (arr1.length !== arr2.length) return false;
+      for (let i = 0; i < arr1.length; i++) {
+        const obj1 = arr1[i];
+        const obj2 = arr2[i];
+        if (JSON.stringify(obj1) !== JSON.stringify(obj2)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function disableSubmitButton() {
+      const submitButton = document.querySelector('button[type="submit"]');
+      console.log('disableSubmitButton: ', submitButton);
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Datos actualizados';
+      }
+    }
+
+    function enableSubmitButton() {
+      const submitButton = document.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Enviar';
+      }
+    }
+    // Función para mostrar el estado
+    function mostrarEstado(mensaje, status) {
+        const label = document.getElementById('statusLabel');
+        //console.log(`Mostrando estado: ${mensaje} (status: ${status})`);
+        label.textContent = mensaje;
+        if (status == 0) {
+            label.style.color = "#28a745"; // Verde para éxito
+            disableSubmitButton();
+        } if (status == 1) {
+            label.style.color = "#dc3545"; // Rojo para error
+            enableSubmitButton();
+        } else {
+          statusLabel.style.color = "#e67e22"; // Color naranja de advertencia
+          enableSubmitButton();
+        }
+    }
+
+    // Escuchar cualquier cambio en el contenedor principal
+    document.addEventListener('input', detectarCambios);
+    document.addEventListener('change', detectarCambios);
+
+    function detectarCambios() {
+        const statusLabel = document.getElementById('statusLabel');
+        hijos = retrieve_hijos();
+        padres = retrieve_parents();
+
+        if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
+            mostrarEstado("✅ Los datos están actualizados", 0);
+        } else {
+            mostrarEstado("⚠️ Tienes cambios sin guardar", 2);
+        }
+    }
+
+    document.getElementById('registro-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Recopila hijos
+      const hijos = Array.from(document.querySelectorAll(".child-form")).map(child => ({
+        nombre: child.querySelector("select[name='childName[]']").value,
+        curso: child.querySelector("select[name='childCourse[]']").value,
+        seccion: child.querySelector("select[name='childSeccion[]']").value,
+        rut: child.querySelector("input[name='childRut[]']").value
+      }));
+
+      // Recopila padres
+      const padres = Array.from(document.querySelectorAll(".parent-form")).map(parent => ({
+        nombre: parent.querySelector("input[name='parentName[]']").value,
+        apellido: parent.querySelector("input[name='parentSurname[]']").value,
+        correo: parent.querySelector("input[name='parentEmail[]']").value,
+        telefono: parent.querySelector("input[name='parentPhone[]']").value,
+        parentesco: parent.querySelector("select[name='relationship[]']").value,
+        es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false,
+        rut: parent.querySelector("input[name='parentRut[]']").value
+      }));
+
+      if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
+        return;
+      }
+      currentUser.hijos = hijos;
+      currentUser.padres = padres;
+
+            fetch('/api/registro', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({...currentUser, hijos, padres})
+            })
+            .then(res => res.json())
+            .then(response => {
+              updateUserEmail();
+              mostrarEstado("✅ Datos actualizados correctamente", 0);
+              console.debug('Datos del usuario guardados ');
+            })
+            .catch(error => {
+              mostrarEstado("❌ Error al actualizar los datos", 1);
+              console.error('Error al registrar:', error);
+            });
+          });
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('account_owner')) {
+            const checkboxes = document.querySelectorAll('.account_owner');
+            const currentIndex = e.target.getAttribute('data-index');
+            const emailInput = document.getElementById(`email_apoderado_${currentIndex}`);
+
+            console.log('Checkbox cambiado:', {
+                checked: e.target.checked,
+                currentIndex,
+                emailInputExists: !!emailInput,
+                currentUserEmail: currentUser ? currentUser.email : null
+            });
+            if (e.target.checked) {
+                // 1. Deseleccionar los demás
+                checkboxes.forEach(cb => {
+                    if (cb !== e.target) cb.checked = false;
+                });
+
+                // 2. Copiar el correo al campo respectivo
+                if (emailInput) {
+                    emailInput.value = currentUser.email || '';
+                    emailInput.classList.add('highlight-input'); // Opcional: resaltar el campo
+                }
+            } else {
+                // Si se desmarca, opcionalmente podrías limpiar el campo
+                if (emailInput && emailInput.value === currentUser.email) {
+                    emailInput.value = '';
+                    emailInput.classList.remove('highlight-input'); // Quitar resaltado
+                }
+            }
+        }
+    });          
+
+    function getBrothersList(brotherInfoMap) {
+      if (!brotherInfoMap)
+        return [];
+      // 1. Extraemos todos los arreglos de 'hermanos' y los aplanamos
+      console.log('getBrothersList: brotherInfoMap: ', brotherInfoMap);
+      const listaHermanosDuplicados = Object.values(brotherInfoMap)
+        .map(info => info.hermanos)
+        .flat();
+      // 2. Usamos Set para eliminar los nombres duplicados
+      const listaHermanosUnicos = [...new Set(listaHermanosDuplicados)];
+      listaHermanosUnicos.sort((a, b) => a.localeCompare(b));
+      return listaHermanosUnicos;
+    }
+
+    async function updateUserEmail() {
+      const childrenData = retrieve_hijos();
+      const childrenListNoFiltered = Array.from(childrenData).map(child => (child.nombre));
+      const childrenList = childrenListNoFiltered.filter(name => name !== '');
+      const result = await fetch('/api/update_apoderado_email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brothers_list: childrenList, email: currentUser.email })
+      });
+      console.log('updateUserEmail result; ', result);
+    }
+    
+    function retriveEmptyChildForm() {
+      const childForms = document.querySelectorAll(".child-form")
+      childForms.forEach(childForm => {
+        const hijos = {
+          nombre: child.querySelector("select[name='childName[]']").value,
+          curso: child.querySelector("select[name='childCourse[]']").value,
+          seccion: child.querySelector("select[name='childSeccion[]']").value,
+          rut: child.querySelector("input[name='childRut[]']").value
+        };
+        if (nombre === "" && curso === "" && seccion === "") 
+          return childForm;
+      });
+      return null;
+    }
+
+    function verifyEmptyChildForm() {
+      const childrenList = Array.from(retrieve_hijos()).map(child => child.nombre);
+      const cleanChildrenList = retrieveCleanChildrenList();
+      const result = compareArrays(childrenList, cleanChildrenList);
+      console.log('verifyEmptyChildForm: childrenList', childrenList);
+      console.log('verifyEmptyChildForm: cleanChildrenList: ', cleanChildrenList);
+      console.log('verifyEmptyChildForm: compareArrays: ', result);
+      return !result;
+    }
+
+    function retrieveCleanChildrenList() {
+      const childrenData = retrieve_hijos();
+      const childrenList = Array.from(childrenData).map(child => (child.nombre)).filter(name => name !== '');
+      return childrenList;
+    }
+
+    async function addBrothers() {
+      const childrenData = retrieve_hijos();
+      console.log('childrenData: ', childrenData);
+      //const childrenListNoFiltered = Array.from(childrenData).map(child => (child.nombre));
+      //const childrenList = childrenListNoFiltered.filter(name => name !== '');
+      const childrenList = Array.from(childrenData).map(child => (child.nombre)).filter(name => name !== '');
+      console.log('childrenList: ', childrenList);
+      if (childrenList.length === 0)
+        return;
+      childrenList.sort((a, b) => a.localeCompare(b));
+      const response = await fetch('/api/hermanos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brothers_list: childrenList })
+      });
+      const brotherInfoMap = await response.json();
+      console.log('brotherInfoMap: ', brotherInfoMap);
+      const brothersList = getBrothersList(brotherInfoMap);
+      console.log('brothers info: ', brotherInfoMap);
+      console.log('brothersList: ', brothersList);
+      isEqual = compareArrays(childrenList, brothersList);
+      console.log('compareArrays: ', isEqual);
+      if (!isEqual) {
+        const childrenSet = new Set(childrenList);
+        const newBrothersList = brothersList.filter(brother => !childrenSet.has(brother));
+        console.log('newBrothersList: ', newBrothersList);
+        newBrothersList.forEach(childName => {
+          console.log('fetching name ', childName);
+          fetch(`/api/curso?nombre=${encodeURIComponent(childName)}`)
+            .then(res => res.json())
+            .then(async curso_section => {
+              console.log('/api/curso: ', curso_section);
+              const {curso, seccion} = curso_section;
+              const is_there_empty_child_form = verifyEmptyChildForm();
+              let childForm;
+              if (!is_there_empty_child_form) {
+                console.log('calling addChild()');
+                childForm = addChild();
+              } else {
+                console.log('calling retriveEmptyChildForm()');
+                childForm = retriveEmptyChildForm();
+              }
+              console.log('childForm: ', childForm);
+              const childInfo = {curso, seccion, nombre: childName};
+              fillChild(childForm, childInfo);
+            })
+            .catch(err => console.error('Error al obtener nombres:', err));
+        });
+      }
+    }
+
+  </script>
+</body>
+</html>

@@ -12,9 +12,9 @@ app.post('/enviarCorreo', async (req, res) => {
 
   
 
-  console.info('PARA: ' + para);
-  console.info('ASUNTO: ' + asunto);
-  console.info('MENSAJE: ' + mensaje);
+  console.info('PARA:' + para);
+  console.info('ASUNTO:' + asunto);
+  console.info('MENSAJE:' + mensaje);
 
     if (!para || !asunto || !mensaje) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });

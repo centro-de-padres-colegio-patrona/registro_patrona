@@ -200,23 +200,31 @@ module.exports = {
   commerceOrderDB: CommerceOrders 
 };*/
 
-//const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
-const db_password = 'tPyw2Cvb2Hco8HM3'
-const db_user = 'lherreramena_db_user'
-//const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data`
-const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
-//const uri  = "mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data";
-// const db_msg = "old_data cluster"
+async function connectToDatabase(year='') {
+  //const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
+  const db_password = 'tPyw2Cvb2Hco8HM3'
+  const db_user = 'lherreramena_db_user'
+  //const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data`
 
-mongoose.connect(db_uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
+  const db_year = year? `_${year}` : '';
+
+  const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona${db_year}?retryWrites=true&w=majority&appName=old-data`
+  //const uri  = "mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data";
+  // const db_msg = "old_data cluster"
+
+  try {
+    await mongoose.connect(db_uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
     console.log('Conexión exitosa a MongoDB Atlas');
     test_api.lauch_test_api();
-  })
-.catch(err => console.error('Error de conexión:', err));
+  } catch (err) {
+    console.error('Error de conexión:', err.message);
+  }
+}
+
+module.exports.connectToDatabase = connectToDatabase;
 
 //module.exports = mongoose.model('users', userSchema);
 

@@ -24,6 +24,7 @@ const LOCAL_PORT = 5001;
 const PORT = process.env.PORT || LOCAL_PORT;
 
 const db_support = require('../backend/db_support');
+await db_support.connectToDatabase();
 //const listado_cursos = require('./backend/listadoCurso');
 
 const path = require('path'); 

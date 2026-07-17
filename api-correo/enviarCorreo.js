@@ -10,8 +10,6 @@ app.use(express.json());
 app.post('/enviarCorreo', async (req, res) => {
   const { para, asunto, mensaje } = req.body;
 
-  
-
   console.info('PARA :' + para);
   console.info('ASUNTO :' + asunto);
   console.info('MENSAJE :' + mensaje);

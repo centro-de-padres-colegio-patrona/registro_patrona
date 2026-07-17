@@ -213,6 +213,7 @@ async function connectToDatabase(year='') {
   // const db_msg = "old_data cluster"
 
   try {
+    console.log(`Conectando a MongoDB Atlas ...`);
     await mongoose.connect(db_uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true

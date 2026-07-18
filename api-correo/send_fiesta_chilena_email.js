@@ -199,41 +199,43 @@ async function send_email_from_cpa_account(body) {
     const {email_destinatario, asuntoCorreo, mensajeCorreo, attachments = []} = body;
 
     if (!email_destinatario || !asuntoCorreo || !mensajeCorreo) {
-      return res.status(400).json({ error: 'Faltan campos requeridos' });
-      console.info ('Faltan campos requeridos..');
+      return { status: 'error', message: 'Faltan campos requeridos' };
     }
 
-// 1. Cargar configuración desde el JSON
+    // Cargar configuración desde el JSON
     const configPath = path.join(__dirname, '..', 'config', 'admin_config.json');
     const configRaw = fs.readFileSync(configPath, 'utf8');
     const cpaConfig = JSON.parse(configRaw);
 
-    /*const transporter = nodemailer.createTransport({
-     service: 'gmail',
-      auth: {
-        //type: 'OAuth2',
+    // Usar App Password (SMTP) si está disponible, si no usar OAuth2
+    let authConfig;
+    if (cpaConfig.pass && cpaConfig.pass.trim() !== '') {
+      authConfig = {
         user: cpaConfig.user,
-        pass: cpaConfig.pass,
-        //clientId: cpaConfig.clientId,
-        //clientSecret: cpaConfig.clientSecret,
-        //refreshToken: cpaConfig.refreshToken
-      },
-      tls: {
-        rejectUnauthorized: false  // evita problemas con certificados autofirmados
-      }
-    });*/
+        pass: cpaConfig.pass
+      };
+    } else {
+      authConfig = {
+        type: 'OAuth2',
+        user: cpaConfig.user,
+        clientId: cpaConfig.clientId,
+        clientSecret: cpaConfig.clientSecret,
+        refreshToken: cpaConfig.refreshToken
+      };
+    }
+
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
-      auth: {
-        user: cpaConfig.user,
-        pass: cpaConfig.pass // App Password
+      auth: authConfig,
+      tls: {
+        rejectUnauthorized: false
       }
     });
 
     const mailOptions = {
-      from: `CPA Account <${cpaConfig.user}>`,
+      from: `Centro de Padres Patrona <${cpaConfig.user}>`,
       to: email_destinatario,
       subject: asuntoCorreo,
       html: mensajeCorreo,
@@ -245,8 +247,8 @@ async function send_email_from_cpa_account(body) {
     return { status: 'ok', message: 'Correo enviado', response: info.response };
 
   } catch (error) {
-    console.error('[send_email_from_cpa_account] Error:', error);
-    return { status: 'error', message: 'Error al enviar correo', error };
+    console.error('[send_email_from_cpa_account] Error:', error.message || error);
+    return { status: 'error', message: error.message || 'Error al enviar correo' };
   }
 }
 

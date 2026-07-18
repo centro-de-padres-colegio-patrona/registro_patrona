@@ -37,4 +37,7 @@ node_modules/@types/node/stream/consumers.d.ts
 node_modules/@types/node/assert.d.ts
 registros.json
 yarn.lock
-yarn.lock
+
+# Archivos de desarrollo local (no subir al repositorio)
+backend/db_support.local.js
+.env.local

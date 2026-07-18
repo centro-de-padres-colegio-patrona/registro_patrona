@@ -541,8 +541,8 @@ form button {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   console.log("¿Está habilitado el campo de contraseña?", !passwordInput.disabled);
 
-  botonIngresar.style.display = 'none'
-  correoManual.style.display = 'none'
+  botonIngresar.style.display = 'block'
+  correoManual.style.display = 'block'
 
   //let correoValido = false;
   //let requierePassword = false;
@@ -621,9 +621,18 @@ form button {
               console.log("El usuario debe ingresar con Google Auth.");
               advertencia.style.display = "block";
               passwordInput.disabled = true;
-              //botonIngresar.disabled = true;
-              //botonIngresar.classList.remove('enabled');
               deshabilitarBotonIngresar();
+            } else if (!user.passwordHash) {
+              // Usuario sin contraseña y ya validado — ir directo al panel
+              if (user.correo_validado) {
+                sessionStorage.setItem('correoManual', correo);
+                window.location.href = `/panel_usuario.html?user_email=${encodeURIComponent(correo)}`;
+              } else {
+                fetch('/logout', { method: 'GET', credentials: 'include' }).then(() => {
+                  sessionStorage.setItem('correoManual', correo);
+                  window.location.href = "/validar_correo.html";
+                });
+              }
             } else {
               console.log("El usuario puede ingresar con contraseña.");
               const password = passwordInput.value.trim();
@@ -648,21 +657,33 @@ form button {
                   alert("Error al verificar contraseña");
                 }
               });
-
             }
           })
           .catch(err => {
             console.warn("No se encontró el usuario:", err);
             //passwordInput.disabled = true;
             deshabilitarPasswordInput();
-            //window.location.href = "/ingreso_manual.html";
-            fetch('/logout', {
-              method: 'GET',
-              credentials: 'include'
-            }).then(() => {
-              sessionStorage.setItem('correoManual', correo);
-              window.location.href = "/validar_correo.html";
-            });
+            // Verificar si ya tiene correo_validado antes de redirigir
+            fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)
+              .then(r => r.ok ? r.json() : null)
+              .then(data => {
+                if (data && data.user && data.user.correo_validado) {
+                  // Ya validado, ir directo al panel
+                  sessionStorage.setItem('correoManual', correo);
+                  window.location.href = `/panel_usuario.html?user_email=${encodeURIComponent(correo)}`;
+                } else {
+                  fetch('/logout', { method: 'GET', credentials: 'include' }).then(() => {
+                    sessionStorage.setItem('correoManual', correo);
+                    window.location.href = "/validar_correo.html";
+                  });
+                }
+              })
+              .catch(() => {
+                fetch('/logout', { method: 'GET', credentials: 'include' }).then(() => {
+                  sessionStorage.setItem('correoManual', correo);
+                  window.location.href = "/validar_correo.html";
+                });
+              });
           });
       } else {
           alert("Correo inválido. Por favor ingresa un correo válido.");

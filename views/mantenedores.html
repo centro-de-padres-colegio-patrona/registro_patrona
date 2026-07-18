@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Mantenedor de Perfiles</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      padding: 24px;
+    }
+
+    .page-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #4A90E2;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+
+    .card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .form-field {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .form-field input,
+    .form-field select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      background: #fafafa;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .form-field input:focus,
+    .form-field select:focus {
+      border-color: #4A90E2;
+      background: white;
+    }
+
+    .btn-principal {
+      padding: 10px 24px;
+      background: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-principal:hover:not(:disabled) { background: #357abd; }
+    .btn-principal:disabled { background: #b0c4de; cursor: not-allowed; }
+
+    /* Tabla de perfiles */
+    .table-container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      word-wrap: break-word;
+    }
+
+    thead { background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
+
+    th, td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 0.82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    th {
+      color: #495057;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    tr:hover { background: #f1f4f9; }
+
+    .badge-rol {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-administrador { background: #ffe0e0; color: #c0392b; }
+    .badge-apoderado { background: #e8f5e9; color: #2e7d32; }
+    .badge-validador { background: #e3f2fd; color: #1565c0; }
+    .badge-supervisor { background: #fff3e0; color: #e65100; }
+
+    .btn-accion {
+      padding: 4px 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .btn-accion:hover { opacity: 0.8; }
+    .btn-editar { background: #fff3cd; color: #856404; }
+    .btn-eliminar { background: #f8d7da; color: #721c24; }
+
+    .estado-msg {
+      font-size: 0.88rem;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">👤 Mantenedor de Perfiles</div>
+
+<!-- Formulario de creación -->
+<div class="card">
+  <h3>Agregar nuevo perfil</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>Nombre Completo</label>
+      <input type="text" id="inp-nombre" placeholder="Juan Pérez González">
+    </div>
+    <div class="form-field">
+      <label>RUT</label>
+      <input type="text" id="inp-rut" placeholder="12.345.678-9">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label>Correo</label>
+      <input type="email" id="inp-email" placeholder="correo@ejemplo.cl">
+    </div>
+    <div class="form-field">
+      <label>Rol</label>
+      <select id="inp-rol">
+        <option value="apoderado">Apoderado</option>
+        <option value="administrador">Administrador</option>
+        <option value="validador">Validador</option>
+        <option value="supervisor">Supervisor</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn-principal" id="btn-guardar" onclick="guardarPerfil()">
+    Guardar Perfil
+  </button>
+  <p class="estado-msg" id="estado-form"></p>
+</div>
+
+<!-- Tabla de perfiles existentes -->
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>RUT</th>
+        <th>Rol</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-perfiles">
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal de edición -->
+<div class="modal-overlay" id="modal-editar" onclick="cerrarModalEditar(event)">
+  <div class="modal-content" onclick="event.stopPropagation()" style="max-width:460px; padding:24px; border-radius:14px; background:white;">
+    <h3 style="font-size:0.85rem; font-weight:700; color:#888; text-transform:uppercase; margin-bottom:16px;">Editar Perfil</h3>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Nombre Completo</label>
+      <input type="text" id="edit-nombre">
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>RUT</label>
+      <input type="text" id="edit-rut">
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Correo (no editable)</label>
+      <input type="email" id="edit-email" readonly style="background:#eee;">
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Rol</label>
+      <select id="edit-rol">
+        <option value="apoderado">Apoderado</option>
+        <option value="administrador">Administrador</option>
+        <option value="validador">Validador</option>
+        <option value="supervisor">Supervisor</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <button class="btn-principal" onclick="actualizarPerfil()">Guardar Cambios</button>
+      <button class="btn-principal" style="background:#95a5a6;" onclick="cerrarModalEditar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+</style>
+
+<script>
+  let perfilesCache = [];
+
+  async function cargarPerfiles() {
+    try {
+      const res = await fetch('/api/perfiles');
+      perfilesCache = await res.json();
+      renderTabla();
+    } catch (err) {
+      console.error('Error cargando perfiles:', err);
+    }
+  }
+
+  function renderTabla() {
+    const tbody = document.getElementById('tabla-perfiles');
+    tbody.innerHTML = '';
+    perfilesCache.filter(p => p.activo !== false).forEach(p => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${p.nombre_completo}</td>
+        <td>${p.email}</td>
+        <td>${p.rut}</td>
+        <td><span class="badge-rol badge-${p.rol}">${p.rol}</span></td>
+        <td>
+          <button class="btn-accion btn-editar" onclick="abrirEditar('${p.email}')">Editar</button>
+          <button class="btn-accion btn-eliminar" onclick="eliminarPerfil('${p.email}')">Eliminar</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  async function guardarPerfil() {
+    const nombre_completo = document.getElementById('inp-nombre').value.trim();
+    const rut = document.getElementById('inp-rut').value.trim();
+    const email = document.getElementById('inp-email').value.trim();
+    const rol = document.getElementById('inp-rol').value;
+    const estado = document.getElementById('estado-form');
+
+    if (!nombre_completo || !rut || !email || !rol) {
+      estado.textContent = '❌ Todos los campos son requeridos';
+      estado.style.color = '#e74c3c';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/perfiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, rut, nombre_completo, rol })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        estado.textContent = '✅ Perfil creado correctamente';
+        estado.style.color = '#2ecc71';
+        document.getElementById('inp-nombre').value = '';
+        document.getElementById('inp-rut').value = '';
+        document.getElementById('inp-email').value = '';
+        cargarPerfiles();
+      } else {
+        estado.textContent = `❌ ${data.error}`;
+        estado.style.color = '#e74c3c';
+      }
+    } catch (err) {
+      estado.textContent = `❌ Error: ${err.message}`;
+      estado.style.color = '#e74c3c';
+    }
+  }
+
+  function abrirEditar(email) {
+    const perfil = perfilesCache.find(p => p.email === email);
+    if (!perfil) return;
+    document.getElementById('edit-nombre').value = perfil.nombre_completo;
+    document.getElementById('edit-rut').value = perfil.rut;
+    document.getElementById('edit-email').value = perfil.email;
+    document.getElementById('edit-rol').value = perfil.rol;
+    document.getElementById('modal-editar').classList.add('active');
+  }
+
+  function cerrarModalEditar(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modal-editar').classList.remove('active');
+  }
+
+  async function actualizarPerfil() {
+    const email = document.getElementById('edit-email').value;
+    const nombre_completo = document.getElementById('edit-nombre').value.trim();
+    const rut = document.getElementById('edit-rut').value.trim();
+    const rol = document.getElementById('edit-rol').value;
+
+    try {
+      const res = await fetch(`/api/perfiles/${encodeURIComponent(email)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre_completo, rut, rol })
+      });
+      if (res.ok) {
+        cerrarModalEditar();
+        cargarPerfiles();
+      }
+    } catch (err) {
+      console.error('Error actualizando:', err);
+    }
+  }
+
+  async function eliminarPerfil(email) {
+    if (!confirm(`¿Eliminar el perfil de ${email}?`)) return;
+    try {
+      await fetch(`/api/perfiles/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      cargarPerfiles();
+    } catch (err) {
+      console.error('Error eliminando:', err);
+    }
+  }
+
+  // Cargar al inicio
+  cargarPerfiles();
+</script>
+
+</body>
+</html>

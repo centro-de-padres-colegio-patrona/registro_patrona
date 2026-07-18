@@ -8,6 +8,8 @@
     .dashboard-container {
       padding: 20px;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
     }
     
     /* Contenedor de Tarjetas */
@@ -295,9 +297,9 @@
     let parentInfo = null;
 
     async function return_to_home(show_alert = true) {
-      if ( show_alert)
-        alert('Usuario no autenticado')
-      window.location.replace = "/";
+      if (show_alert)
+        alert('Usuario no autenticado');
+      window.location.replace('/');
     }
 
     async function init() {
@@ -511,6 +513,7 @@
             <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${item.limite_maximo_por_cliente})">+</button>
           </div>
         ` : '';
+        const monto_base = item.monto;
 
         if (unidades_maximas !== null && unidades_maximas > 1) {
           card.style.borderLeft = "5px solid #f39c12"; // Cambia el color para compromisos con límite
@@ -529,7 +532,7 @@
               Agregar para pagar
             </td-->
             <div style="margin-top: 10px;">
-              <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
+              <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">
               <span class="label-pago">Agregar para pagar</span>
             </div>
             ${cantidadHtml}
@@ -799,36 +802,121 @@
       }
     });
 
-    // Función de ejemplo para el botón de la tarjeta
-    async function iniciarPagoFlow(idCompromiso) {
-      console.log('Iniciando proceso de pago para:', idCompromiso);
-      // Aquí puedes redirigir a la pasarela o abrir un modal
+    async function iniciarPagoFlow(idCompromiso, cantidades = {}) {
+      console.log('Iniciando proceso de pago para:', idCompromiso, 'cantidades:', cantidades);
 
-      const key = 'compromiso_key';
       const compromiso_key = idCompromiso;
-      //const user_email = 'l.herreramena@gmail.com';
       const parent_name = parentInfo ? parentInfo.nombre + ' ' + parentInfo.apellido : 'unknown';
-      try{
+      try {
         const response_raw = await fetch('/api/boton_pago_compromiso', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compromiso_key, user_email, nombre: parent_name, rut: parentInfo ? parentInfo.rut : 'unknown', telefono: parentInfo ? parentInfo.telefono : '', nombres_hijos })
+          body: JSON.stringify({
+            compromiso_key,
+            cantidades,
+            user_email,
+            nombre: parent_name,
+            rut: parentInfo ? parentInfo.rut : 'unknown',
+            telefono: parentInfo ? parentInfo.telefono : '',
+            nombres_hijos
+          })
         });
         allParams = await response_raw.json();
-        const  {token, url, flowOrder, code, message} = allParams;
+        const {token, url, flowOrder, code, message} = allParams;
         console.log('Retorno de Flow: ', allParams);
+
+        const boton = document.getElementById('btn-pagar-todo');
+
         if (code === undefined && url !== undefined && token !== undefined && flowOrder) {
-          // Redirecionar a url + "?token=" + token
-          console.log('Redireccionando hacia la página de pago de Flow ', url + "?token=" + token);
-          // Redirección a la página de pago de Flow
-          window.location.href = `${url}?token=${token}`;          
+          console.log('Redireccionando a Flow: ', url + "?token=" + token);
+          window.location.href = `${url}?token=${token}`;
         } else {
-          console.error('Error from /api/boton_pago_compromiso: ', message)
+          const errorMsg = message || JSON.stringify(allParams);
+          console.error('Error from /api/boton_pago_compromiso: ', errorMsg);
+          if (boton) {
+            boton.disabled = false;
+            boton.style.backgroundColor = '#e74c3c';
+            boton.style.cursor = 'pointer';
+            boton.textContent = `Error: ${errorMsg}`;
+            setTimeout(() => {
+              boton.style.backgroundColor = '#4A90E2';
+              boton.textContent = 'Pagar';
+            }, 5000);
+          }
         }
-      } catch(err){
+      } catch(err) {
         console.error('Botón inicio pago: Error:', err);
-      };
-      
+        const boton = document.getElementById('btn-pagar-todo');
+        if (boton) {
+          boton.disabled = false;
+          boton.style.backgroundColor = '#e74c3c';
+          boton.style.cursor = 'pointer';
+          boton.textContent = `Error: ${err.message}`;
+          setTimeout(() => {
+            boton.style.backgroundColor = '#4A90E2';
+            boton.textContent = 'Pagar';
+          }, 5000);
+        }
+      }
+    }
+
+    async function iniciarPagoMP(idCompromiso, cantidades = {}) {
+      console.log('Iniciando pago Mercado Pago para:', idCompromiso, 'cantidades:', cantidades);
+
+      const compromiso_key = idCompromiso;
+      const parent_name = parentInfo ? parentInfo.nombre + ' ' + parentInfo.apellido : 'unknown';
+      const boton = document.getElementById('btn-pagar-todo');
+
+      try {
+        const response_raw = await fetch('/api/mp/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            compromiso_key,
+            cantidades,
+            user_email,
+            nombre: parent_name,
+            rut: parentInfo ? parentInfo.rut : 'unknown',
+            telefono: parentInfo ? parentInfo.telefono : '',
+            nombres_hijos
+          })
+        });
+
+        const result = await response_raw.json();
+        console.log('Retorno MP:', result);
+
+        if (result.sandbox_init_point || result.init_point) {
+          // En sandbox usar sandbox_init_point, en producción usar init_point
+          const redirectUrl = result.sandbox_init_point || result.init_point;
+          console.log('Redireccionando a Mercado Pago:', redirectUrl);
+          window.location.href = redirectUrl;
+        } else {
+          const errorMsg = result.error || JSON.stringify(result);
+          console.error('Error MP:', errorMsg);
+          if (boton) {
+            boton.disabled = false;
+            boton.style.backgroundColor = '#e74c3c';
+            boton.style.cursor = 'pointer';
+            boton.textContent = `Error: ${errorMsg}`;
+            setTimeout(() => {
+              boton.style.backgroundColor = '#4A90E2';
+              boton.textContent = 'Pagar';
+            }, 5000);
+          }
+        }
+      } catch(err) {
+        console.error('Mercado Pago Error:', err);
+        if (boton) {
+          boton.disabled = false;
+          boton.style.backgroundColor = '#e74c3c';
+          boton.style.cursor = 'pointer';
+          boton.textContent = `Error: ${err.message}`;
+          setTimeout(() => {
+            boton.style.backgroundColor = '#4A90E2';
+            boton.textContent = 'Pagar';
+          }, 5000);
+        }
+      }
     }
 
     function verificarVigencia(startDateStr, stopDateStr) {
@@ -961,10 +1049,29 @@
 
     function actualizarTotal() {
       let total = 0;
+      let lineas = [];
       const checks = document.querySelectorAll('.pago-check:checked');
-      checks.forEach(c => total += parseInt(c.dataset.monto));
-      
-      document.getElementById('total-seleccionado').textContent = `Total: $${total.toLocaleString()}`;
+
+      checks.forEach(c => {
+        const montoBase = parseInt(c.dataset.montoBase || c.dataset.monto);
+        const id = c.dataset.id;
+        const inputCantidad = document.getElementById(`cant-${id}`);
+        const cantidad = inputCantidad ? parseInt(inputCantidad.value) : 1;
+        const subtotal = montoBase * cantidad;
+        total += subtotal;
+
+        const montoFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(montoBase);
+        const subtotalFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(subtotal);
+        if (cantidad > 1) {
+          lineas.push(`${montoFormateado} x ${cantidad} = ${subtotalFormateado}`);
+        } else {
+          lineas.push(subtotalFormateado);
+        }
+      });
+
+      const totalFormateado = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(total);
+      const desglose = lineas.length > 1 ? `<div style="font-size:0.85rem; color:#666; margin-bottom:6px;">${lineas.join('<br>')}</div>` : '';
+      document.getElementById('total-seleccionado').innerHTML = `${desglose}<strong>Total: ${totalFormateado}</strong>`;
       document.getElementById('pago-multiple-container').style.display = checks.length > 0 ? 'block' : 'none';
 
       const cardPago = document.getElementById('card-pago');
@@ -993,36 +1100,29 @@
         return;
       }
       const boton_pagar_todo = document.getElementById('btn-pagar-todo');
-      boton_pagar_todo.disabled = true; // Deshabilitar el botón para evitar múltiples clics
-
-      // 1. Deshabilitar el botón y cambiar su aspecto visual
       boton_pagar_todo.disabled = true;
-      boton_pagar_todo.style.backgroundColor = '#95a5a6'; // Color gris para estado deshabilitado
-      boton_pagar_todo.style.cursor = 'not-allowed';       // Cambia el puntero del mouse
-      boton_pagar_todo.textContent = 'Redirigiendo a pasarela de pago...'; // Cambia el texto informativo
+      boton_pagar_todo.style.backgroundColor = '#95a5a6';
+      boton_pagar_todo.style.cursor = 'not-allowed';
+      boton_pagar_todo.textContent = 'Redirigiendo a pasarela de pago...';
 
       const checks = document.querySelectorAll('.pago-check:checked');
       const ids = Array.from(checks).map(c => c.dataset.id);
-      
-      console.log(`Procesando pago vía ${pasarelaSeleccionada} para los IDs:`, ids);
+
+      // Construir mapa de cantidades { id: cantidad }
+      const cantidades = {};
+      checks.forEach(c => {
+        const id = c.dataset.id;
+        const inputCantidad = document.getElementById(`cant-${id}`);
+        cantidades[id] = inputCantidad ? parseInt(inputCantidad.value) : 1;
+      });
+
+      console.log(`Procesando pago vía ${pasarelaSeleccionada} para IDs:`, ids, 'cantidades:', cantidades);
 
       if (pasarelaSeleccionada === 'flow') {
-        iniciarPagoFlow(ids); // Aquí podrías adaptar para enviar múltiples IDs si tu backend y Flow lo permiten
-        // Aquí puedes implementar la lógica específica para iniciar el proceso de pago múltiple con Flow
-        // Por ejemplo, podrías enviar una solicitud a tu backend para crear una orden de pago múltiple y luego redirigir al usuario a la página de pago de Flow con el token correspondiente.
-      } else if (pasarelaSeleccionada === 'webpay') {
-        // Aquí puedes implementar la lógica específica para iniciar el proceso de pago múltiple con Webpay
-        // Similar al caso de Flow, pero adaptado a la integración que tengas con Webpay.
+        iniciarPagoFlow(ids, cantidades);
+      } else if (pasarelaSeleccionada === 'mercadopago') {
+        iniciarPagoMP(ids, cantidades);
       }
-
-      // Aquí modificas tu fetch para enviar también la 'pasarelaSeleccionada'
-      // Ejemplo:
-      // await fetch('/api/crear_orden', { 
-      //   method: 'POST', 
-      //   body: JSON.stringify({ ids, pasarela: pasarelaSeleccionada, ... }) 
-      // });
-      
-      //alert(`Redirigiendo a ${pasarelaSeleccionada.toUpperCase()}...`);
     }
 
     function cambiarCantidad(id, delta, max) {
@@ -1036,14 +1136,14 @@
 
         input.value = nuevaCantidad;
 
-        // Actualizar el monto total de este item específico en el data-attribute
-        const montoBase = parseInt(checkbox.dataset.montoBase);
-        checkbox.dataset.monto = montoBase * nuevaCantidad;
-
-        // Si el item está seleccionado, actualizar el total general de la pantalla
-        if (checkbox.checked) {
-            actualizarTotal();
+        // Actualizar el data-monto del checkbox multiplicando base * cantidad
+        if (checkbox) {
+          const montoBase = parseInt(checkbox.dataset.montoBase);
+          checkbox.dataset.monto = montoBase * nuevaCantidad;
         }
+
+        // Siempre actualizar el total (esté o no el checkbox marcado)
+        actualizarTotal();
     }
 
   </script>

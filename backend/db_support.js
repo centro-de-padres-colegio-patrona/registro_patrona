@@ -1,5 +1,13 @@
-const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 
+// Si existe db_support.local.js, usarlo como mock local (ignorado por Git)
+const localMockPath = path.join(__dirname, 'db_support.local.js');
+if (fs.existsSync(localMockPath)) {
+  module.exports = require('./db_support.local');
+} else {
+
+const mongoose = require('mongoose');
 const test_api = require('./test_api');
 
 
@@ -231,3 +239,16 @@ module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSc
 module.exports.compromisosPagoDB = mongoose.model('compromisosPagoApoderados', compromisosPagoSchema, 'compromisosPagoApoderados');
 module.exports.paymentOrdersDB = mongoose.model('paymentOrders', commerceSchema, 'paymentOrders');
 module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderSchema, 'CommerceOrders');
+
+const perfilSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  rut: { type: String, required: true },
+  nombre_completo: { type: String, required: true },
+  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor'] },
+  activo: { type: Boolean, default: true },
+  fecha_creacion: { type: Date, default: Date.now }
+});
+
+module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
+
+} // fin else (conexión Atlas)

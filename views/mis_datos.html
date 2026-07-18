@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/styles.css">
-  <title>Mis Datos</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -166,6 +166,55 @@
 
     .btn-agregar:hover {
       background: #f0f7ff;
+    }
+
+    /* ─── Responsive Mobile ─── */
+    @media screen and (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+
+      h2 {
+        font-size: 1.1rem;
+      }
+
+      .form-card {
+        padding: 14px 16px;
+      }
+
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .form-field {
+        min-width: 100%;
+      }
+
+      .form-field--small {
+        max-width: 100%;
+      }
+
+      .form-field input,
+      .form-field select {
+        font-size: 1rem;
+        padding: 10px 12px;
+      }
+
+      .section-header h3 {
+        font-size: 0.9rem;
+      }
+
+      .btn-agregar {
+        width: 100%;
+        text-align: center;
+      }
+
+      .btn-danger-outline {
+        width: 100%;
+        text-align: center;
+        padding: 10px;
+      }
     }
   </style>
 </head>

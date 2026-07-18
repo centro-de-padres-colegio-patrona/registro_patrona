@@ -1241,6 +1241,25 @@ app.post('/api/send_email_entradas', async (req, res) => {
 app.post('/api/generar_entrada_canvas', async (req, res) => {
     try {
       console.log(JSON.stringify(req.body));
+      const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = req.body;
+
+      // Guardar ticket en BD
+      const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
+      await db_support.ticketsDB.create({
+        correlativo: parseInt(correlativo),
+        familia,
+        nombre_completo,
+        tipo,
+        jornada,
+        curso,
+        bloque: bloqueText,
+        num_listado: parseInt(num_listado) || 0,
+        total: parseInt(total) || 0,
+        fecha_generacion: new Date(),
+        usado: false
+      });
+      console.log(`[/api/generar_entrada_canvas] Ticket ${correlativo} guardado en BD`);
+
       const buffer = await genEntradaCanvas(req.body);
       res.set('Content-Type', 'image/png');
       res.send(buffer);
@@ -1383,6 +1402,108 @@ app.delete('/api/perfiles/:email', async (req, res) => {
 });
 
 // ─── QR Entrada ──────────────────────────────────────────────────────────────
+
+// ─── Buscar Entradas (Supervisor) ────────────────────────────────────────────
+
+app.get('/api/buscar_entradas', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({ error: 'Ingrese al menos 2 caracteres para buscar' });
+    }
+
+    // Normalizar: quitar tildes y pasar a minúsculas
+    const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const busqueda = normalizar(q.trim());
+    const todos = await db_support.ticketsDB.find({});
+
+    // Filtrar por correlativo, familia, nombre_completo o curso (búsqueda flexible, sin tildes)
+    const resultados = todos.filter(ticket => {
+      const campos = [
+        String(ticket.correlativo || ''),
+        normalizar(ticket.familia),
+        normalizar(ticket.nombre_completo),
+        normalizar(ticket.curso),
+        normalizar(ticket.bloque)
+      ].join(' ');
+      return campos.includes(busqueda);
+    });
+
+    res.json(resultados);
+  } catch (error) {
+    console.error('[/api/buscar_entradas] Error:', error);
+    res.status(500).json({ error: 'Error al buscar entradas' });
+  }
+});
+
+// ─── Consultar y Validar Entradas ────────────────────────────────────────────
+
+// Consultar estado de un ticket (si existe y si fue usado)
+app.get('/api/consultar_entrada', async (req, res) => {
+  try {
+    const { correlativo, familia } = req.query;
+    if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
+
+    const ticket = await db_support.ticketsDB.findOne({ correlativo: parseInt(correlativo) });
+
+    if (!ticket) {
+      return res.json({ existe: false, mensaje: 'Ticket no registrado en el sistema' });
+    }
+
+    return res.json({
+      existe: true,
+      usado: ticket.usado || false,
+      fecha_uso: ticket.fecha_uso || null,
+      validado_por: ticket.validado_por || null,
+      familia: ticket.familia,
+      nombre_completo: ticket.nombre_completo,
+      tipo: ticket.tipo,
+      jornada: ticket.jornada,
+      curso: ticket.curso,
+      bloque: ticket.bloque,
+      num_listado: ticket.num_listado,
+      total: ticket.total,
+      correlativo: ticket.correlativo
+    });
+  } catch (error) {
+    console.error('[/api/consultar_entrada] Error:', error);
+    res.status(500).json({ error: 'Error al consultar entrada' });
+  }
+});
+
+// Marcar ticket como usado (validado)
+app.post('/api/validar_entrada', express.json(), async (req, res) => {
+  try {
+    const { correlativo, validado_por } = req.body;
+    if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
+
+    const ticket = await db_support.ticketsDB.findOne({ correlativo: parseInt(correlativo) });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
+    }
+
+    if (ticket.usado) {
+      return res.status(409).json({
+        error: 'Este ticket ya fue utilizado',
+        fecha_uso: ticket.fecha_uso,
+        validado_por: ticket.validado_por
+      });
+    }
+
+    // Marcar como usado
+    await db_support.ticketsDB.findOneAndUpdate(
+      { correlativo: parseInt(correlativo) },
+      { $set: { usado: true, fecha_uso: new Date(), validado_por: validado_por || 'desconocido' } }
+    );
+
+    console.log(`[/api/validar_entrada] Ticket ${correlativo} marcado como usado por ${validado_por}`);
+    res.json({ status: 'ok', mensaje: 'Ticket validado correctamente' });
+  } catch (error) {
+    console.error('[/api/validar_entrada] Error:', error);
+    res.status(500).json({ error: 'Error al validar entrada' });
+  }
+});
 
 // Endpoint JSON para obtener datos completos de una entrada (usado por validar_qr.html)
 app.get('/api/entrada_qr_data', async (req, res) => {

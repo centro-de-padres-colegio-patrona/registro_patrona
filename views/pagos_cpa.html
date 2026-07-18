@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/styles.css">
   <title>Mis Pagos Individuales</title>
   <style>
@@ -198,6 +199,69 @@
         border: none;
         font-size: 0.9rem;
         font-weight: bold;
+    }
+
+    /* ─── Responsive Mobile ─── */
+    @media screen and (max-width: 768px) {
+      .dashboard-container {
+        padding: 12px;
+      }
+
+      h2 {
+        font-size: 1.1rem;
+        margin-bottom: 12px;
+      }
+
+      .summary-cards {
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .card {
+        min-width: 100%;
+        padding: 16px;
+      }
+
+      .card .value {
+        font-size: 1.4rem;
+      }
+
+      .card h3 {
+        font-size: 0.8rem;
+      }
+
+      .commitment-group {
+        min-width: 100%;
+      }
+
+      .benefit-card {
+        margin-left: 0;
+        font-size: 0.8rem;
+      }
+
+      .metodos-pago {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .btn-pasarela {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .table-container {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 500px;
+      }
+
+      th, td {
+        padding: 8px 6px;
+        font-size: 0.8rem;
+      }
     }
 
   </style>

@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/styles.css">
-  <title>Mantenedor de Perfiles</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -164,6 +164,49 @@
       margin-top: 10px;
       min-height: 20px;
     }
+
+    /* ─── Responsive Mobile ─── */
+    @media screen and (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+
+      .page-title {
+        font-size: 1.05rem;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .form-field {
+        min-width: 100%;
+      }
+
+      .form-field input,
+      .form-field select {
+        font-size: 1rem;
+        padding: 10px 12px;
+      }
+
+      .btn-principal {
+        width: 100%;
+      }
+
+      table {
+        min-width: 550px;
+      }
+
+      th, td {
+        padding: 8px 6px;
+        font-size: 0.78rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -271,6 +314,48 @@
 <script>
   let perfilesCache = [];
 
+  // Formatear RUT a XX.XXX.XXX-X
+  function formatRut(rut) {
+    if (!rut) return '—';
+    // Limpiar: quitar puntos, guiones, espacios
+    let clean = rut.replace(/[.\-\s]/g, '');
+    // Separar cuerpo y dígito verificador
+    const dv = clean.slice(-1);
+    let cuerpo = clean.slice(0, -1);
+    // Agregar puntos
+    let formatted = '';
+    while (cuerpo.length > 3) {
+      formatted = '.' + cuerpo.slice(-3) + formatted;
+      cuerpo = cuerpo.slice(0, -3);
+    }
+    formatted = cuerpo + formatted + '-' + dv;
+    return formatted;
+  }
+
+  // Auto-formatear input de RUT mientras escribe (máximo XX.XXX.XXX-X)
+  function onRutInput(e) {
+    const input = e.target;
+    let val = input.value.replace(/[^0-9kK]/g, '');
+    // Limitar a 9 caracteres máximo (8 cuerpo + 1 dv)
+    if (val.length > 9) val = val.slice(0, 9);
+    if (val.length > 1) {
+      const dv = val.slice(-1);
+      let cuerpo = val.slice(0, -1);
+      let formatted = '';
+      while (cuerpo.length > 3) {
+        formatted = '.' + cuerpo.slice(-3) + formatted;
+        cuerpo = cuerpo.slice(0, -3);
+      }
+      input.value = cuerpo + formatted + '-' + dv;
+    } else {
+      input.value = val;
+    }
+  }
+
+  // Aplicar listener a inputs de RUT
+  document.getElementById('inp-rut').addEventListener('input', onRutInput);
+  document.getElementById('edit-rut').addEventListener('input', onRutInput);
+
   async function cargarPerfiles() {
     try {
       const res = await fetch('/api/perfiles');
@@ -289,7 +374,7 @@
       row.innerHTML = `
         <td>${p.nombre_completo}</td>
         <td>${p.email}</td>
-        <td>${p.rut}</td>
+        <td>${formatRut(p.rut)}</td>
         <td><span class="badge-rol badge-${p.rol}">${p.rol}</span></td>
         <td>
           <button class="btn-accion btn-editar" onclick="abrirEditar('${p.email}')">Editar</button>
@@ -342,7 +427,7 @@
     const perfil = perfilesCache.find(p => p.email === email);
     if (!perfil) return;
     document.getElementById('edit-nombre').value = perfil.nombre_completo;
-    document.getElementById('edit-rut').value = perfil.rut;
+    document.getElementById('edit-rut').value = formatRut(perfil.rut);
     document.getElementById('edit-email').value = perfil.email;
     document.getElementById('edit-rol').value = perfil.rol;
     document.getElementById('modal-editar').classList.add('active');

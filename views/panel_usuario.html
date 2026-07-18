@@ -200,16 +200,24 @@
 
   <script>
     function cargarContenido(url, botonPresionado) {
+      // Agregar user_email al URL si es login manual
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailFromUrl = urlParams.get('user_email');
+      let fullUrl = url;
+      if (emailFromUrl && !url.includes('user_email')) {
+        fullUrl = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailFromUrl);
+      }
+
       // Desktop
       const visor = document.getElementById('visor');
       if (visor) {
-        if (!visor.src.endsWith(url)) visor.src = url;
+        if (!visor.src.endsWith(fullUrl)) visor.src = fullUrl;
       }
 
       // Mobile
       const mobileVisor = document.getElementById('mobile-visor');
       if (mobileVisor) {
-        if (!mobileVisor.src.endsWith(url)) mobileVisor.src = url;
+        if (!mobileVisor.src.endsWith(fullUrl)) mobileVisor.src = fullUrl;
       }
 
       // Desktop buttons
@@ -244,6 +252,7 @@
         { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
+        { label: '---', url: '' },
         { label: '⚙ Mantenedores', url: 'mantenedores.html' },
       ],
       apoderado: [
@@ -256,7 +265,6 @@
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
       ],
       supervisor: [
-        { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
       ],
@@ -270,6 +278,12 @@
       console.log('Menus a construir:', menus.length, JSON.stringify(menus));
       for (let i = 0; i < menus.length; i++) {
         const item = menus[i];
+        if (item.label === '---') {
+          const hr = document.createElement('hr');
+          hr.style.cssText = 'border:none; border-top:1px solid rgba(255,255,255,0.15); margin:8px 10px;';
+          container.appendChild(hr);
+          continue;
+        }
         const btn = document.createElement('button');
         btn.textContent = item.label;
         btn.setAttribute('data-url', item.url);
@@ -284,6 +298,7 @@
         mobileTabs.innerHTML = '';
         for (let i = 0; i < menus.length; i++) {
           const item = menus[i];
+          if (item.label === '---') continue; // No mostrar separador en mobile tabs
           const btn = document.createElement('button');
           btn.textContent = item.label;
           btn.style.cssText = 'flex-shrink:0; padding:10px 14px; background:transparent; border:none; border-bottom:3px solid transparent; color:rgba(255,255,255,0.6); font-size:0.82rem; font-weight:600; cursor:pointer; white-space:nowrap;';

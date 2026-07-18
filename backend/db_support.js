@@ -251,4 +251,22 @@ const perfilSchema = new mongoose.Schema({
 
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
 
+const ticketSchema = new mongoose.Schema({
+  correlativo: { type: Number, required: true },
+  familia: { type: String, required: true },
+  nombre_completo: String,
+  tipo: String,
+  jornada: String,
+  curso: String,
+  bloque: String,
+  num_listado: Number,
+  total: Number,
+  fecha_generacion: { type: Date, default: Date.now },
+  usado: { type: Boolean, default: false },
+  fecha_uso: Date,
+  validado_por: String
+});
+
+module.exports.ticketsDB = mongoose.model('tickets', ticketSchema, 'tickets');
+
 } // fin else (conexión Atlas)

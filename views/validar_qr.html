@@ -403,7 +403,7 @@
       const params = url.searchParams;
 
       if (params.has('familia') || params.has('correlativo')) {
-        // Es un QR de entrada válido — leer todos los datos de la URL
+        // Es un QR de entrada válido
         const familia = params.get('familia') || '—';
         const jornada = params.get('jornada') || '—';
         const tipo = params.get('tipo') || '—';
@@ -418,20 +418,62 @@
         const jornadaDisplay = jornadaMap[jornada] || jornada;
         const serial = String(correlativo).padStart(4, '0');
 
-        resultadoCard.className = 'resultado-card';
-        resultadoTitulo.textContent = '✅ Entrada válida';
-        resultadoContenido.innerHTML = `
-          <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
-          <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-          <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
-          <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
-          <div class="dato-row"><span class="dato-label">Bloque</span><span class="dato-value">${bloque}</span></div>
-          <div class="dato-row"><span class="dato-label">Curso</span><span class="dato-value">${curso}</span></div>
-          <div class="dato-row"><span class="dato-label">N° Listado</span><span class="dato-value">${numListado}</span></div>
-          <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
-          <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
-        `;
-        resultadoCard.style.display = 'block';
+        // Consultar estado del ticket en BD
+        fetch(`/api/consultar_entrada?correlativo=${encodeURIComponent(correlativo)}`)
+          .then(res => res.json())
+          .then(info => {
+            if (info.usado) {
+              // TICKET YA FUE USADO
+              resultadoCard.className = 'resultado-card error';
+              resultadoTitulo.textContent = '⚠ ENTRADA YA UTILIZADA';
+              resultadoContenido.innerHTML = `
+                <div style="background:#fef2f2; border:2px solid #e74c3c; border-radius:8px; padding:16px; margin-bottom:14px; text-align:center;">
+                  <p style="font-size:1.1rem; font-weight:700; color:#e74c3c; margin:0 0 8px 0;">🚫 Este ticket ya fue escaneado</p>
+                  <p style="font-size:0.85rem; color:#666; margin:0;">Validado por: <strong>${info.validado_por || '—'}</strong></p>
+                  <p style="font-size:0.85rem; color:#666; margin:4px 0 0 0;">Fecha: <strong>${info.fecha_uso ? new Date(info.fecha_uso).toLocaleString('es-CL') : '—'}</strong></p>
+                </div>
+                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
+              `;
+            } else {
+              // TICKET VÁLIDO — mostrar datos y botón VALIDAR QR
+              resultadoCard.className = 'resultado-card';
+              resultadoTitulo.textContent = '✅ Entrada válida';
+              resultadoContenido.innerHTML = `
+                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+                <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
+                <div class="dato-row"><span class="dato-label">Bloque</span><span class="dato-value">${bloque}</span></div>
+                <div class="dato-row"><span class="dato-label">Curso</span><span class="dato-value">${curso}</span></div>
+                <div class="dato-row"><span class="dato-label">N° Listado</span><span class="dato-value">${numListado}</span></div>
+                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
+                <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
+                <button id="btn-validar-entrada" onclick="validarEntrada(${correlativo})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+                  🎫 VALIDAR ENTRADA
+                </button>
+              `;
+            }
+            resultadoCard.style.display = 'block';
+          })
+          .catch(err => {
+            // Si la consulta falla, mostrar datos del QR sin estado BD
+            resultadoCard.className = 'resultado-card';
+            resultadoTitulo.textContent = '✅ Entrada (sin verificar en BD)';
+            resultadoContenido.innerHTML = `
+              <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+              <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+              <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+              <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
+              <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
+              <button id="btn-validar-entrada" onclick="validarEntrada(${correlativo})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
+                🎫 VALIDAR ENTRADA
+              </button>
+            `;
+            resultadoCard.style.display = 'block';
+          });
 
       } else {
         // URL válida pero no es entrada
@@ -446,6 +488,56 @@
       resultadoTitulo.textContent = '⚠ QR no es una entrada';
       resultadoContenido.innerHTML = `<p>Contenido del QR:</p><p style="margin-top:8px; word-break:break-all; color:#666;">${data}</p>`;
       resultadoCard.style.display = 'block';
+    }
+  }
+
+  async function validarEntrada(correlativo) {
+    const btn = document.getElementById('btn-validar-entrada');
+    btn.disabled = true;
+    btn.textContent = '⏳ Validando...';
+    btn.style.background = '#95a5a6';
+
+    // Obtener email del validador desde URL params del parent
+    let validadorEmail = 'validador';
+    try {
+      const urlParams = new URLSearchParams(window.parent.location.search);
+      validadorEmail = urlParams.get('user_email') || 'validador';
+    } catch(e) {}
+
+    try {
+      const res = await fetch('/api/validar_entrada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correlativo: parseInt(correlativo), validado_por: validadorEmail })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        btn.textContent = '✅ ENTRADA VALIDADA';
+        btn.style.background = '#2ecc71';
+        btn.onclick = null;
+      } else if (res.status === 409) {
+        btn.textContent = '🚫 YA FUE UTILIZADA';
+        btn.style.background = '#e74c3c';
+        btn.onclick = null;
+      } else {
+        btn.textContent = `❌ Error: ${data.error}`;
+        btn.style.background = '#e74c3c';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = '🎫 VALIDAR ENTRADA';
+          btn.style.background = '#e74c3c';
+        }, 3000);
+      }
+    } catch (err) {
+      btn.textContent = `❌ Error: ${err.message}`;
+      btn.style.background = '#e74c3c';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = '🎫 VALIDAR ENTRADA';
+        btn.style.background = '#e74c3c';
+      }, 3000);
     }
   }
 </script>

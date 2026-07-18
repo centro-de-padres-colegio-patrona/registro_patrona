@@ -13,7 +13,7 @@
   <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico" />
   <link rel="manifest" href="img/site.webmanifest">
 	<style type="text/css" media="screen">
-		body, html, svg { width: 100%; height: 100%; overflow: hidden; }
+		body, html, svg { width: 100%; height: auto; overflow-y: auto; }
 	</style>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -388,9 +388,14 @@ form select {
 }
 @media screen and (max-width: 600px) {
   .login-box {
-    width: 100%;
+    width: 90%;
+    max-width: 100%;
     padding: 20px;
     margin: 10px auto;
+  }
+
+  .login-box h2 {
+    font-size: 1.1rem;
   }
 
   .login-box input,
@@ -398,16 +403,19 @@ form select {
   .login-box button {
     font-size: 16px;
     padding: 12px;
+    width: 100%;
+  }
+
+  .topnav {
+    display: none;
   }
 
   .grid-container {
-    grid-template-columns: 1fr; /* una sola columna en móviles */
-    grid-template-areas:
-      'header'
-      'menu'
-      'main'
-      'footerA'
-      'footerB';
+    display: none;
+  }
+
+  .sidenav {
+    display: none;
   }
 }
 form button {
@@ -850,7 +858,7 @@ function mostrarTiempoBloqueo(bloqueadoHasta) {
   <hr style="flex-grow: 1; border: none; border-top: 1px solid #ccc;">
 </div>
 
-<div style="width: 250px; margin: 0 auto;">
+<div style="width: 250px; margin: 0 auto; max-width: 90%">
 
   <!-- Botón Google -->
   <!--button onclick="location.href='/auth/google'" type="button" style="-->

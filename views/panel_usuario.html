@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registro CPA: Panel de Usuario</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
@@ -9,7 +10,151 @@
   <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
   <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico" />
   <link rel="manifest" href="img/site.webmanifest">
+  <style>
+    /* ─── Desktop ─── */
+    #usuario-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 10px 8px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
 
+    #usuario-nombre {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: white;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    #usuario-correo {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.65);
+      text-align: center;
+      word-break: break-all;
+    }
+
+    /* ─── Mobile Top Bar (hidden on desktop) ─── */
+    #mobile-topbar {
+      display: none;
+    }
+
+    #mobile-content {
+      display: none;
+    }
+
+    /* ─── Mobile Layout ─── */
+    @media screen and (max-width: 768px) {
+      #sidebar {
+        display: none !important;
+      }
+
+      #content {
+        display: none !important;
+      }
+
+      body.panel-usuario {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden;
+      }
+
+      #mobile-topbar {
+        display: block !important;
+        background: #2c3e50;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 0;
+      }
+
+      .topbar-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+      }
+
+      .topbar-user {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .topbar-user .name {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: white;
+      }
+
+      .topbar-user .email {
+        font-size: 0.68rem;
+        color: rgba(255,255,255,0.55);
+      }
+
+      .topbar-user .role {
+        font-size: 0.65rem;
+        color: rgba(255,255,255,0.4);
+      }
+
+      .btn-salir-mobile {
+        background: transparent;
+        border: 1.5px solid rgba(255,255,255,0.4);
+        color: white;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* Tabs */
+      .mobile-tabs-row {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        background: #34495e;
+        padding: 0 8px;
+      }
+
+      .mobile-tabs-row::-webkit-scrollbar { display: none; }
+
+      .mobile-tabs-row button {
+        flex-shrink: 0;
+        padding: 10px 14px;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: rgba(255,255,255,0.6);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+      }
+
+      .mobile-tabs-row button.activo {
+        color: white;
+        border-bottom-color: #4A90E2;
+      }
+
+      /* Content area */
+      #mobile-content {
+        display: block !important;
+      }
+
+      #mobile-content iframe {
+        width: 100%;
+        height: calc(100vh - 95px);
+        border: none;
+        display: block;
+      }
+    }
+  </style>
 </head>
 <body class="panel-usuario">
 
@@ -18,80 +163,241 @@
   document.body.classList.add(isMobile ? 'mobile' : 'desktop');
 </script>
 
-  <!--div id="barra-superior">
-    <span id="texto-barra">Bienvenido al Registro CPA Colegio Patrona</span>
-  </div-->
+  <!-- ─── Mobile Top Bar ─── -->
+  <div id="mobile-topbar">
+    <div style="display:flex; align-items:center; justify-content:space-between; background:#2c3e50; padding:8px 12px;">
+      <div style="display:flex; flex-direction:column; flex-shrink:0;">
+        <span style="font-size:0.85rem; font-weight:700; color:white;" id="mobile-nombre">cargando...</span>
+        <span style="font-size:0.65rem; color:rgba(255,255,255,0.55);" id="mobile-correo"></span>
+        <span style="font-size:0.6rem; color:rgba(255,255,255,0.4);" id="mobile-rol"></span>
+      </div>
+      <div id="mobile-tabs" style="display:flex; overflow-x:auto; flex:1; margin:0 12px; gap:0;"></div>
+      <button onclick="logout()" style="flex-shrink:0; background:transparent; border:1.5px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">Salir</button>
+    </div>
+  </div>
 
-  <!-- Controles laterales -->
+  <!-- Mobile Content -->
+  <div id="mobile-content">
+    <iframe id="mobile-visor" src="inicio_panel.html"></iframe>
+  </div>
+
+  <!-- ─── Desktop Sidebar ─── -->
   <div id="sidebar">
     <img src="./img/logo.png" alt="Logo" class="logo">
     <div id="usuario-info">
-      <span id="usuario-correo">Usuario: cargando...</span>
+      <span id="usuario-nombre">cargando...</span>
+      <span id="usuario-correo"></span>
+      <span id="usuario-rol" style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:2px;"></span>
     </div>
-    <button onclick="cargarContenido('mis_datos.html', this)">Mis datos</button>
-    <button onclick="cargarContenido('pagos_cpa.html', this)">Mis Pagos al CPA</button>
-    <button onclick="cargarContenido('documentos_matricula.html', this)">Mis Documentos de Matrícula</button>
-    <!--button onclick="cargarContenido('entradas_bingo.html', this)">Actividades y Eventos</button-->
-    <button onclick="cargarContenido('actividades_eventos.html', this)">Actividades y Eventos</button>
-    <button onclick="logout()">Salir</button>
+    <div id="menu-container"></div>
+    <button onclick="logout()" style="margin-top:auto;">Salir</button>
   </div>
 
-  <!-- Área de contenido -->
+  <!-- Desktop Content -->
   <div id="content">
-    <!--iframe id="visor" src=""></iframe-->
     <iframe id="visor" src="inicio_panel.html"></iframe>
   </div>
 
   <script>
     function cargarContenido(url, botonPresionado) {
+      // Agregar user_email al URL si es login manual
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailFromUrl = urlParams.get('user_email');
+      let fullUrl = url;
+      if (emailFromUrl && !url.includes('user_email')) {
+        fullUrl = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailFromUrl);
+      }
+
+      // Desktop
       const visor = document.getElementById('visor');
+      if (visor) {
+        if (!visor.src.endsWith(fullUrl)) visor.src = fullUrl;
+      }
 
-      // Si ya está mostrando el contenido, no hacer nada
-      if (visor.src.endsWith(url)) return;
-      
-      document.getElementById('visor').src = url;
+      // Mobile
+      const mobileVisor = document.getElementById('mobile-visor');
+      if (mobileVisor) {
+        if (!mobileVisor.src.endsWith(fullUrl)) mobileVisor.src = fullUrl;
+      }
 
-      // Quitar clase 'activo' de todos los botones
-      const botones = document.querySelectorAll('#sidebar button');
+      // Desktop buttons
+      const botones = document.querySelectorAll('#menu-container button');
       botones.forEach(boton => boton.classList.remove('activo'));
+      if (botonPresionado) botonPresionado.classList.add('activo');
 
-      // Agregar clase 'activo' al botón presionado
-      botonPresionado.classList.add('activo');
+      // Mobile tabs
+      const mobileTabs = document.querySelectorAll('#mobile-tabs button');
+      mobileTabs.forEach(tab => tab.classList.remove('activo'));
+      if (botonPresionado) botonPresionado.classList.add('activo');
     }
 
     function logout() {
       try {
-        // 1. Opcional: Limpiar datos de sesión del navegador
         sessionStorage.clear();
         localStorage.clear();
-
-        // 2. Redirigir a la ruta de logout de tu servidor
-        // Esta ruta ya existe en tu server.js y destruye la sesión de Passport
         window.location.href = '/logout';
       } catch (err) {
         console.error('Error al cerrar sesión:', err);
-        // Si falla, al menos volvemos al home
         window.location.href = '/';
       }
     }
 
-    fetch('/api/user')
-      .then(res => {
-        if (!res.ok) throw new Error('Usuario no autenticado');
-        return res.json();
-      })
-      .then(data => {
-        const correo = data.user?.email || 'correo no disponible';
-        document.getElementById('usuario-correo').textContent =
-          `Usuario: ${correo}`;
-      })
-      .catch(err => {
-        console.error('No se pudo obtener el usuario:', err);
-        document.getElementById('usuario-correo').textContent =
-          'Usuario: no autenticado';
-      });
+    // Definición de menús por rol
+    const menusPorRol = {
+      administrador: [
+        { label: '📋 Mis datos', url: 'mis_datos.html' },
+        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
+        { label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
+        { label: '🎉 Actividades y Eventos', url: 'actividades_eventos.html' },
+        { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
+        { label: '🔍 Validar QR', url: 'validar_qr.html' },
+        { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
+        { label: '---', url: '' },
+        { label: '⚙ Mantenedores', url: 'mantenedores.html' },
+      ],
+      apoderado: [
+        { label: '📋 Mis datos', url: 'mis_datos.html' },
+        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
+        { label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
+        { label: '🎉 Actividades y Eventos', url: 'actividades_eventos.html' },
+      ],
+      validador: [
+        { label: '🔍 Validar QR', url: 'validar_qr.html' },
+      ],
+      supervisor: [
+        { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
+        { label: '🔍 Validar QR', url: 'validar_qr.html' },
+      ],
+    };
 
-</script>
+    function construirMenu(rol) {
+      // Desktop sidebar
+      const container = document.getElementById('menu-container');
+      container.innerHTML = '';
+      const menus = menusPorRol[rol] || menusPorRol['apoderado'];
+      console.log('Menus a construir:', menus.length, JSON.stringify(menus));
+      for (let i = 0; i < menus.length; i++) {
+        const item = menus[i];
+        if (item.label === '---') {
+          const hr = document.createElement('hr');
+          hr.style.cssText = 'border:none; border-top:1px solid rgba(255,255,255,0.15); margin:8px 10px;';
+          container.appendChild(hr);
+          continue;
+        }
+        const btn = document.createElement('button');
+        btn.textContent = item.label;
+        btn.setAttribute('data-url', item.url);
+        btn.onclick = function() { cargarContenido(item.url, this); };
+        container.appendChild(btn);
+        console.log('Desktop btn agregado:', item.label);
+      }
+
+      // Mobile tabs
+      const mobileTabs = document.getElementById('mobile-tabs');
+      if (mobileTabs) {
+        mobileTabs.innerHTML = '';
+        for (let i = 0; i < menus.length; i++) {
+          const item = menus[i];
+          if (item.label === '---') continue; // No mostrar separador en mobile tabs
+          const btn = document.createElement('button');
+          btn.textContent = item.label;
+          btn.style.cssText = 'flex-shrink:0; padding:10px 14px; background:transparent; border:none; border-bottom:3px solid transparent; color:rgba(255,255,255,0.6); font-size:0.82rem; font-weight:600; cursor:pointer; white-space:nowrap;';
+          btn.onclick = function() {
+            mobileTabs.querySelectorAll('button').forEach(function(b) {
+              b.style.borderBottomColor = 'transparent';
+              b.style.color = 'rgba(255,255,255,0.6)';
+            });
+            btn.style.borderBottomColor = '#4A90E2';
+            btn.style.color = 'white';
+            cargarContenido(item.url, btn);
+          };
+          mobileTabs.appendChild(btn);
+          console.log('Mobile btn agregado:', item.label);
+        }
+      }
+    }
+
+    // Inicialización: obtener usuario y su perfil
+    async function inicializarPanel() {
+      let correo = '';
+      let nombreCompleto = '';
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailFromUrl = urlParams.get('user_email');
+
+      try {
+        const resUser = await fetch('/api/user');
+        if (resUser.ok) {
+          const data = await resUser.json();
+          const user = data.user;
+          correo = user?.email || '';
+          if (user?.padres && user.padres.length > 0) {
+            const p = user.padres[0];
+            nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+          }
+          if (!nombreCompleto) nombreCompleto = user?.displayName || '';
+        }
+      } catch (err) {
+        console.log('Usuario no autenticado por Google, usando URL param');
+      }
+
+      if (!correo && emailFromUrl) {
+        correo = emailFromUrl;
+        try {
+          const resManual = await fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`);
+          if (resManual.ok) {
+            const data = await resManual.json();
+            const user = data.user;
+            if (user?.padres && user.padres.length > 0) {
+              const p = user.padres[0];
+              nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+            }
+            if (!nombreCompleto) nombreCompleto = user?.displayName || '';
+          }
+        } catch (err) {
+          console.error('Error obteniendo usuario manual:', err);
+        }
+      }
+
+      // Actualizar UI con nombre
+      document.getElementById('usuario-nombre').textContent = nombreCompleto || 'Usuario';
+      document.getElementById('usuario-correo').textContent = correo;
+      document.getElementById('mobile-nombre').textContent = nombreCompleto || 'Usuario';
+      document.getElementById('mobile-correo').textContent = correo;
+
+      // Obtener perfil/rol
+      let rol = 'apoderado';
+      if (correo) {
+        try {
+          const resPerfil = await fetch(`/api/mi-perfil?email=${encodeURIComponent(correo)}`);
+          if (resPerfil.ok) {
+            const perfil = await resPerfil.json();
+            rol = perfil.rol || 'apoderado';
+          }
+        } catch (err) {
+          console.error('Error obteniendo perfil:', err);
+        }
+      }
+
+      const rolDisplay = rol.charAt(0).toUpperCase() + rol.slice(1);
+      document.getElementById('usuario-rol').textContent = rolDisplay;
+      document.getElementById('mobile-rol').textContent = rolDisplay;
+      
+      // SIEMPRE construir menú al final
+      console.log('Construyendo menú para rol:', rol);
+      construirMenu(rol);
+
+      // Si es validador, cargar directamente Validar QR
+      if (rol === 'validador') {
+        const mobileVisor = document.getElementById('mobile-visor');
+        const visor = document.getElementById('visor');
+        if (mobileVisor) mobileVisor.src = 'validar_qr.html';
+        if (visor) visor.src = 'validar_qr.html';
+      }
+    }
+
+    inicializarPanel();
+  </script>
 
 </body>
 </html>

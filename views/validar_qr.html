@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validar QR</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .page-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #4A90E2;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      max-width: 500px;
+    }
+
+    .card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    /* Visor de cámara */
+    #visor-camara {
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 1;
+      background: #1a1a2e;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      margin: 0 auto 16px;
+    }
+
+    #visor-camara video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #visor-camara canvas {
+      display: none;
+    }
+
+    .scan-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .scan-frame {
+      width: 65%;
+      height: 65%;
+      border: 3px solid rgba(74, 144, 226, 0.8);
+      border-radius: 16px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.3);
+    }
+
+    .scan-line {
+      position: absolute;
+      width: 60%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #4A90E2, transparent);
+      animation: scan 2s ease-in-out infinite;
+      left: 20%;
+    }
+
+    @keyframes scan {
+      0% { top: 20%; }
+      50% { top: 75%; }
+      100% { top: 20%; }
+    }
+
+    /* Botones */
+    .btn-principal {
+      width: 100%;
+      padding: 14px;
+      background: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .btn-principal:hover:not(:disabled) { background: #357abd; }
+    .btn-principal:disabled { background: #b0c4de; cursor: not-allowed; }
+    .btn-principal:active { transform: scale(0.98); }
+
+    .btn-detener {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: #e74c3c;
+      border: 2px solid #e74c3c;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-detener:hover {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-detener:active { transform: scale(0.98); }
+
+    /* Resultado */
+    .resultado-card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #2ecc71;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-top: 16px;
+      max-width: 500px;
+      display: none;
+    }
+
+    .resultado-card.error {
+      border-left-color: #e74c3c;
+    }
+
+    .resultado-card h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #2ecc71;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .resultado-card.error h3 {
+      color: #e74c3c;
+    }
+
+    .resultado-contenido {
+      font-size: 0.95rem;
+      color: #333;
+      word-break: break-all;
+    }
+
+    .resultado-contenido .dato-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .resultado-contenido .dato-row:last-child {
+      border-bottom: none;
+    }
+
+    .dato-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .dato-value {
+      font-weight: 600;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .estado-msg {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #888;
+      margin-top: 12px;
+    }
+
+    /* ─── Responsive Mobile ─── */
+    @media screen and (max-width: 600px) {
+      body {
+        padding: 12px;
+      }
+
+      .page-title {
+        font-size: 1.1rem;
+        margin-bottom: 14px;
+      }
+
+      .card {
+        padding: 16px;
+        margin-bottom: 14px;
+        max-width: 100%;
+        border-left-width: 4px;
+      }
+
+      #visor-camara {
+        max-width: 100%;
+        border-radius: 10px;
+      }
+
+      .btn-principal {
+        padding: 16px;
+        font-size: 1.05rem;
+        border-radius: 12px;
+      }
+
+      .btn-detener {
+        padding: 14px;
+        font-size: 1rem;
+        border-radius: 12px;
+      }
+
+      .resultado-card {
+        max-width: 100%;
+        padding: 18px;
+      }
+
+      .resultado-contenido .dato-row {
+        flex-direction: column;
+        gap: 2px;
+        padding: 12px 0;
+      }
+
+      .dato-value {
+        font-size: 1.05rem;
+      }
+
+      .estado-msg {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">🔍 Validar QR de Entrada</div>
+
+<div class="card">
+  <h3>Escáner de código QR</h3>
+
+  <div id="visor-camara" style="display:none;">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div class="scan-overlay">
+      <div class="scan-frame"></div>
+      <div class="scan-line"></div>
+    </div>
+  </div>
+
+  <button class="btn-principal" id="btn-iniciar" onclick="iniciarEscaneo()">
+    📷 Abrir cámara y escanear
+  </button>
+
+  <button class="btn-detener" id="btn-detener" style="display:none;" onclick="detenerEscaneo()">
+    ⏹ Detener cámara
+  </button>
+
+  <p class="estado-msg" id="estado">Presione el botón para iniciar el escaneo</p>
+</div>
+
+<div class="resultado-card" id="resultado-card">
+  <h3 id="resultado-titulo">QR Detectado</h3>
+  <div class="resultado-contenido" id="resultado-contenido"></div>
+  <button class="btn-principal" style="margin-top:16px;" onclick="iniciarEscaneo()">
+    🔄 Escanear otro
+  </button>
+</div>
+
+<!-- Librería jsQR para decodificar QR desde canvas -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+  let videoStream = null;
+  let animationId = null;
+  let escaneando = false;
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  async function iniciarEscaneo() {
+    const visor = document.getElementById('visor-camara');
+    const btnIniciar = document.getElementById('btn-iniciar');
+    const btnDetener = document.getElementById('btn-detener');
+    const estado = document.getElementById('estado');
+    const resultadoCard = document.getElementById('resultado-card');
+
+    resultadoCard.style.display = 'none';
+
+    try {
+      // Solicitar acceso a la cámara trasera (ideal para móvil)
+      videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
+      });
+
+      video.srcObject = videoStream;
+      video.setAttribute('playsinline', true);
+      await video.play();
+
+      visor.style.display = 'block';
+      btnIniciar.style.display = 'none';
+      btnDetener.style.display = 'block';
+      estado.textContent = 'Apunte la cámara al código QR...';
+      escaneando = true;
+
+      escanearFrame();
+
+    } catch (err) {
+      console.error('Error accediendo a la cámara:', err);
+      estado.textContent = '❌ No se pudo acceder a la cámara. Verifique los permisos.';
+      estado.style.color = '#e74c3c';
+    }
+  }
+
+  function escanearFrame() {
+    if (!escaneando) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+
+      if (code) {
+        // QR detectado
+        escaneando = false;
+        detenerEscaneo();
+        procesarQR(code.data);
+        return;
+      }
+    }
+
+    animationId = requestAnimationFrame(escanearFrame);
+  }
+
+  function detenerEscaneo() {
+    escaneando = false;
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      videoStream = null;
+    }
+
+    const visor = document.getElementById('visor-camara');
+    const btnIniciar = document.getElementById('btn-iniciar');
+    const btnDetener = document.getElementById('btn-detener');
+    const estado = document.getElementById('estado');
+
+    visor.style.display = 'none';
+    btnIniciar.style.display = 'block';
+    btnDetener.style.display = 'none';
+    estado.textContent = 'Cámara detenida.';
+    estado.style.color = '#888';
+  }
+
+  function procesarQR(data) {
+    const resultadoCard = document.getElementById('resultado-card');
+    const resultadoTitulo = document.getElementById('resultado-titulo');
+    const resultadoContenido = document.getElementById('resultado-contenido');
+    const estado = document.getElementById('estado');
+
+    estado.textContent = '✅ QR detectado';
+    estado.style.color = '#2ecc71';
+
+    // Intentar parsear como URL con parámetros de entrada
+    try {
+      const url = new URL(data);
+      const params = url.searchParams;
+
+      if (params.has('familia') || params.has('correlativo')) {
+        // Es un QR de entrada válido
+        const familia = params.get('familia') || '—';
+        const jornada = params.get('jornada') || '—';
+        const tipo = params.get('tipo') || '—';
+        const correlativo = params.get('correlativo') || '—';
+        const nombre = params.get('nombre') || familia;
+        const curso = params.get('curso') || '—';
+        const bloque = params.get('bloque') || '—';
+        const numListado = params.get('num_listado') || '—';
+        const total = params.get('total') || '—';
+
+        const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+        const jornadaDisplay = jornadaMap[jornada] || jornada;
+        const serial = String(correlativo).padStart(4, '0');
+
+        // Consultar estado del ticket en BD
+        fetch(`/api/consultar_entrada?correlativo=${encodeURIComponent(correlativo)}`)
+          .then(res => res.json())
+          .then(info => {
+            if (info.usado) {
+              // TICKET YA FUE USADO
+              resultadoCard.className = 'resultado-card error';
+              resultadoTitulo.textContent = '⚠ ENTRADA YA UTILIZADA';
+              resultadoContenido.innerHTML = `
+                <div style="background:#fef2f2; border:2px solid #e74c3c; border-radius:8px; padding:16px; margin-bottom:14px; text-align:center;">
+                  <p style="font-size:1.1rem; font-weight:700; color:#e74c3c; margin:0 0 8px 0;">🚫 Este ticket ya fue escaneado</p>
+                  <p style="font-size:0.85rem; color:#666; margin:0;">Validado por: <strong>${info.validado_por || '—'}</strong></p>
+                  <p style="font-size:0.85rem; color:#666; margin:4px 0 0 0;">Fecha: <strong>${info.fecha_uso ? new Date(info.fecha_uso).toLocaleString('es-CL') : '—'}</strong></p>
+                </div>
+                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
+              `;
+            } else {
+              // TICKET VÁLIDO — mostrar datos y botón VALIDAR QR
+              resultadoCard.className = 'resultado-card';
+              resultadoTitulo.textContent = '✅ Entrada válida';
+              resultadoContenido.innerHTML = `
+                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+                <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
+                <div class="dato-row"><span class="dato-label">Bloque</span><span class="dato-value">${bloque}</span></div>
+                <div class="dato-row"><span class="dato-label">Curso</span><span class="dato-value">${curso}</span></div>
+                <div class="dato-row"><span class="dato-label">N° Listado</span><span class="dato-value">${numListado}</span></div>
+                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
+                <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
+                <button id="btn-validar-entrada" onclick="validarEntrada(${correlativo})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+                  🎫 VALIDAR ENTRADA
+                </button>
+              `;
+            }
+            resultadoCard.style.display = 'block';
+          })
+          .catch(err => {
+            // Si la consulta falla, mostrar datos del QR sin estado BD
+            resultadoCard.className = 'resultado-card';
+            resultadoTitulo.textContent = '✅ Entrada (sin verificar en BD)';
+            resultadoContenido.innerHTML = `
+              <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+              <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+              <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+              <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
+              <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
+              <button id="btn-validar-entrada" onclick="validarEntrada(${correlativo})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
+                🎫 VALIDAR ENTRADA
+              </button>
+            `;
+            resultadoCard.style.display = 'block';
+          });
+
+      } else {
+        // URL válida pero no es entrada
+        resultadoCard.className = 'resultado-card error';
+        resultadoTitulo.textContent = '⚠ QR no reconocido';
+        resultadoContenido.innerHTML = `<p>URL detectada pero no corresponde a una entrada:</p><p style="margin-top:8px; word-break:break-all; color:#666;">${data}</p>`;
+        resultadoCard.style.display = 'block';
+      }
+    } catch (e) {
+      // No es una URL — mostrar texto crudo
+      resultadoCard.className = 'resultado-card error';
+      resultadoTitulo.textContent = '⚠ QR no es una entrada';
+      resultadoContenido.innerHTML = `<p>Contenido del QR:</p><p style="margin-top:8px; word-break:break-all; color:#666;">${data}</p>`;
+      resultadoCard.style.display = 'block';
+    }
+  }
+
+  async function validarEntrada(correlativo) {
+    const btn = document.getElementById('btn-validar-entrada');
+    btn.disabled = true;
+    btn.textContent = '⏳ Validando...';
+    btn.style.background = '#95a5a6';
+
+    // Obtener email del validador desde URL params del parent
+    let validadorEmail = 'validador';
+    try {
+      const urlParams = new URLSearchParams(window.parent.location.search);
+      validadorEmail = urlParams.get('user_email') || 'validador';
+    } catch(e) {}
+
+    try {
+      const res = await fetch('/api/validar_entrada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correlativo: parseInt(correlativo), validado_por: validadorEmail })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        btn.textContent = '✅ ENTRADA VALIDADA';
+        btn.style.background = '#2ecc71';
+        btn.onclick = null;
+      } else if (res.status === 409) {
+        btn.textContent = '🚫 YA FUE UTILIZADA';
+        btn.style.background = '#e74c3c';
+        btn.onclick = null;
+      } else {
+        btn.textContent = `❌ Error: ${data.error}`;
+        btn.style.background = '#e74c3c';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = '🎫 VALIDAR ENTRADA';
+          btn.style.background = '#e74c3c';
+        }, 3000);
+      }
+    } catch (err) {
+      btn.textContent = `❌ Error: ${err.message}`;
+      btn.style.background = '#e74c3c';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = '🎫 VALIDAR ENTRADA';
+        btn.style.background = '#e74c3c';
+      }, 3000);
+    }
+  }
+</script>
+
+</body>
+</html>

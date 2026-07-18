@@ -32,7 +32,7 @@ async function genEntrada({ familia, nombre_completo, colores, correlativo, tota
   const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
   const serial = `${correlativo}/${total}`;
-  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${familia}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}`;
+  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colores_to_bloques(colores).join('/'))}&num_listado=${num_listado}&total=${total}`;
 
   const fondo = await Jimp.read('./img/fondo_entrada.png');
   const qr = await QRCode.toBuffer(qrData, { width: 215 });
@@ -72,7 +72,9 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
   const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
   const serial = String(correlativo).padStart(4, '0');
-  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${familia}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}`;
+  const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+  const jornadaDisplay = jornadaMap[jornada] || jornada;
+  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}&total=${total}`;
 
   const fondo = await loadImage(path.join(__dirname, '../img/fondo_entrada.png'));
   const canvas = createCanvas(fondo.width, fondo.height);
@@ -91,18 +93,27 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
   ctx.fillStyle = 'black';
   ctx.textAlign = 'left';
 
-  const textos = [
+  const textosMain = [
     { text: familia, x: 190, y: 415 },
     { text: nombre_completo, x: 58, y: 445 },
     { text: `Bloques: ${colorText}`, x: 58, y: 475 },
-    { text: `Jornada: ${jornada}`, x: 58, y: 505 },
-    { text: serial, x: 375, y: 640 },
-    { text: `Curso: ${curso}`, x: 350, y: 675 },
-    { text: `Nro List: ${num_listado}`, x: 350, y: 710 }
+    { text: `Jornada: ${jornadaDisplay}`, x: 58, y: 505 },
   ];
 
-  //console.log(`${JSON.stringify(textos)}`);
-  textos.forEach(({ text, x, y }) => {
+  textosMain.forEach(({ text, x, y }) => {
+    ctx.fillText(text, x, y);
+  });
+
+  // Textos zona ticket (font más pequeño para que quepa)
+  ctx.font = '18px PottiSreeramulu';
+
+  const textosTicket = [
+    { text: serial, x: 340, y: 645 },
+    { text: `Curso: ${curso}`, x: 340, y: 667 },
+    { text: `Nro List: ${num_listado}`, x: 340, y: 689 }
+  ];
+
+  textosTicket.forEach(({ text, x, y }) => {
     ctx.fillText(text, x, y);
   });
 

@@ -11,17 +11,22 @@ const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
 const FlowApi = require('./flow_api');
 const flow = new FlowApi();
 
+const MercadoPagoApi = require('./mercado_pago_api');
+const mp = new MercadoPagoApi('sandbox');
+
 const { genEntrada, genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
-
-//const BASEURL = 'http://localhost:5001';
-const BASEURL = 'https://unloving-cusp-canning.ngrok-free.dev';
 
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 
 const LOCAL_PORT = 5001;
 const PORT = process.env.PORT || LOCAL_PORT;
+
+// Si corre en local usa ngrok para callbacks de pago, si no usa la URL de producción (Render)
+const BASEURL = (PORT === LOCAL_PORT)
+  ? 'https://unhappily-correct-squeeze.ngrok-free.dev'
+  : 'https://registro-patrona.onrender.com';
 
 const db_support = require('../backend/db_support');
 //const listado_cursos = require('./backend/listadoCurso');
@@ -901,18 +906,17 @@ app.get('/ingreso_manual.html', (req, res) => {
 
 app.post('/api/boton_pago_compromiso', async (req, res) => {
   try {
-    let {compromiso_key, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
+    let {compromiso_key, cantidades = {}, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
     let monto_total = 0;
-    if (typeof compromiso_key === 'array') {
-      for (const key of compromiso_key) {
-        const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: key});
-        const {monto} = compromiso_pago;
-        monto_total += monto;
+    // Normalizar: siempre trabajar con array
+    const keys = Array.isArray(compromiso_key) ? compromiso_key : [compromiso_key];
+    for (const key of keys) {
+      const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: key});
+      if (!compromiso_pago) {
+        return res.status(400).json({ error: `Compromiso '${key}' no encontrado en la base de datos` });
       }
-    } else {
-      const compromiso_pago = await db_support.compromisosPagoDB.findOne({id: compromiso_key});
-      const {monto} = compromiso_pago;
-      monto_total += monto;
+      const cantidad = (cantidades && cantidades[key]) ? parseInt(cantidades[key]) : 1;
+      monto_total += compromiso_pago.monto * cantidad;
     }
     if ( user_email === undefined || user_email === null) 
       user_email = req.user.emails[0].value;
@@ -1237,6 +1241,25 @@ app.post('/api/send_email_entradas', async (req, res) => {
 app.post('/api/generar_entrada_canvas', async (req, res) => {
     try {
       console.log(JSON.stringify(req.body));
+      const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = req.body;
+
+      // Guardar ticket en BD
+      const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
+      await db_support.ticketsDB.create({
+        correlativo: parseInt(correlativo),
+        familia,
+        nombre_completo,
+        tipo,
+        jornada,
+        curso,
+        bloque: bloqueText,
+        num_listado: parseInt(num_listado) || 0,
+        total: parseInt(total) || 0,
+        fecha_generacion: new Date(),
+        usado: false
+      });
+      console.log(`[/api/generar_entrada_canvas] Ticket ${correlativo} guardado en BD`);
+
       const buffer = await genEntradaCanvas(req.body);
       res.set('Content-Type', 'image/png');
       res.send(buffer);
@@ -1250,23 +1273,12 @@ app.post('/api/generar_entrada_canvas', async (req, res) => {
 app.post('/api/enviarCodigo', express.json(), async (req, res) => {
 
   function mensaje_codigo_validacion(codigo) {
-    return `
-      <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
-        <p>Estimado/a apoderado/a,</p>
-        <p>Gracias por utilizar el <strong>Sistema de Registro</strong> del Centro de Padres del Colegio Patrona.</p>
-        <p>Para validar su correo electrónico, por favor ingrese el siguiente código en el formulario:</p>
-        <p style="font-size: 24px; font-weight: bold; color: #4A90E2; text-align: center;">${codigo}</p>
-        <p>Este código es válido por unos minutos. Si no solicitó esta validación, puede ignorar este mensaje.</p>
-        <br>
-        <p>Saludos cordiales,<br>
-        Centro de Padres Colegio Patrona</p>
-      </div>
-    `;
+    return `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="left" style="font-family:Arial,sans-serif;font-size:16px;color:#333;padding:0;"><p style="margin:0 0 12px 0;">Estimado/a apoderado/a,</p><p style="margin:0 0 12px 0;">Gracias por utilizar el <strong>Sistema de Registro</strong> del Centro de Padres del Colegio Patrona.</p><p style="margin:0 0 16px 0;">Para validar su correo electr&oacute;nico, por favor ingrese el siguiente c&oacute;digo en el formulario:</p><table border="0" cellpadding="0" cellspacing="0" align="center" style="border-collapse:collapse;margin:0 auto 16px auto;"><tr><td style="border:3px solid #1a3a6b;padding:18px 48px;background-color:#1a3a6b;"><span style="font-size:36px;font-weight:bold;color:#ffffff;letter-spacing:8px;font-family:monospace;">${codigo}</span></td></tr></table><p style="margin:0 0 12px 0;">Este c&oacute;digo es v&aacute;lido por unos minutos. Si no solicit&oacute; esta validaci&oacute;n, puede ignorar este mensaje.</p><p style="margin:16px 0 0 0;"><em>Centro de Padres - Colegio Patrona de Lourdes</em></p></td></tr></table>`;
   }
 
   const { email_destinatario, codigo } = req.body;
   console.log(`Código enviado al correo: ${codigo}`);
-  const asuntoCorreo = "Registro Centro Padres Colegio Patrona: Validación Correo";
+  const asuntoCorreo = `Centro General de Padres y Apoderados: Validaci\u00f3n de Correo #${codigo}`;
   const mensajeCorreo = mensaje_codigo_validacion(codigo);
   body = {email_destinatario, asuntoCorreo, mensajeCorreo};
   result = await send_email_from_cpa_account(body);
@@ -1278,6 +1290,573 @@ app.post('/api/enviarCodigo', express.json(), async (req, res) => {
   }
 });
 
+
+// ─── Perfiles / Roles ────────────────────────────────────────────────────────
+
+// Obtener perfil del usuario logueado
+app.get('/api/mi-perfil', async (req, res) => {
+  try {
+    let email = null;
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      email = req.user.emails?.[0]?.value || req.user.email;
+    } else {
+      email = req.query.email;
+    }
+    if (!email) return res.status(401).json({ error: 'No autenticado' });
+
+    const perfil = await db_support.perfilesDB.findOne({ email: email.toLowerCase() });
+    if (!perfil) {
+      // Usuario sin perfil asignado = apoderado por defecto
+      return res.json({ email, rol: 'apoderado', nombre_completo: '', rut: '' });
+    }
+    res.json(perfil);
+  } catch (error) {
+    console.error('[/api/mi-perfil] Error:', error);
+    res.status(500).json({ error: 'Error al obtener perfil' });
+  }
+});
+
+// Listar todos los perfiles (solo admin)
+app.get('/api/perfiles', async (req, res) => {
+  try {
+    const perfiles = await db_support.perfilesDB.find({});
+    res.json(perfiles);
+  } catch (error) {
+    console.error('[/api/perfiles] Error:', error);
+    res.status(500).json({ error: 'Error al listar perfiles' });
+  }
+});
+
+// Crear perfil
+app.post('/api/perfiles', express.json(), async (req, res) => {
+  try {
+    const { email, rut, nombre_completo, rol } = req.body;
+    if (!email || !rut || !nombre_completo || !rol) {
+      return res.status(400).json({ error: 'Todos los campos son requeridos' });
+    }
+    const rolesValidos = ['administrador', 'apoderado', 'validador', 'supervisor'];
+    if (!rolesValidos.includes(rol)) {
+      return res.status(400).json({ error: `Rol inválido. Opciones: ${rolesValidos.join(', ')}` });
+    }
+    // Verificar si ya existe
+    const existente = await db_support.perfilesDB.findOne({ email: email.toLowerCase() });
+    if (existente) {
+      return res.status(409).json({ error: 'Ya existe un perfil con ese correo' });
+    }
+    const nuevo = await db_support.perfilesDB.create({
+      email: email.toLowerCase(),
+      rut,
+      nombre_completo,
+      rol,
+      activo: true,
+      fecha_creacion: new Date()
+    });
+    res.status(201).json(nuevo);
+  } catch (error) {
+    console.error('[POST /api/perfiles] Error:', error);
+    res.status(500).json({ error: 'Error al crear perfil' });
+  }
+});
+
+// Actualizar perfil
+app.put('/api/perfiles/:email', express.json(), async (req, res) => {
+  try {
+    const emailParam = decodeURIComponent(req.params.email).toLowerCase();
+    const { rut, nombre_completo, rol, activo } = req.body;
+    const updateData = {};
+    if (rut !== undefined) updateData.rut = rut;
+    if (nombre_completo !== undefined) updateData.nombre_completo = nombre_completo;
+    if (rol !== undefined) updateData.rol = rol;
+    if (activo !== undefined) updateData.activo = activo;
+
+    const result = await db_support.perfilesDB.findOneAndUpdate(
+      { email: emailParam },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ error: 'Perfil no encontrado' });
+    res.json(result);
+  } catch (error) {
+    console.error('[PUT /api/perfiles] Error:', error);
+    res.status(500).json({ error: 'Error al actualizar perfil' });
+  }
+});
+
+// Eliminar perfil
+app.delete('/api/perfiles/:email', async (req, res) => {
+  try {
+    const emailParam = decodeURIComponent(req.params.email).toLowerCase();
+    const perfiles = await db_support.perfilesDB.find({});
+    const idx = perfiles.findIndex(p => p.email === emailParam);
+    if (idx === -1) return res.status(404).json({ error: 'Perfil no encontrado' });
+    // En mock usamos findOneAndUpdate para desactivar, en prod podríamos borrar
+    await db_support.perfilesDB.findOneAndUpdate(
+      { email: emailParam },
+      { $set: { activo: false } }
+    );
+    res.json({ status: 'ok', mensaje: 'Perfil desactivado' });
+  } catch (error) {
+    console.error('[DELETE /api/perfiles] Error:', error);
+    res.status(500).json({ error: 'Error al eliminar perfil' });
+  }
+});
+
+// ─── QR Entrada ──────────────────────────────────────────────────────────────
+
+// ─── Buscar Entradas (Supervisor) ────────────────────────────────────────────
+
+app.get('/api/buscar_entradas', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({ error: 'Ingrese al menos 2 caracteres para buscar' });
+    }
+
+    // Normalizar: quitar tildes y pasar a minúsculas
+    const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const busqueda = normalizar(q.trim());
+    const todos = await db_support.ticketsDB.find({});
+
+    // Filtrar por correlativo, familia, nombre_completo o curso (búsqueda flexible, sin tildes)
+    const resultados = todos.filter(ticket => {
+      const campos = [
+        String(ticket.correlativo || ''),
+        normalizar(ticket.familia),
+        normalizar(ticket.nombre_completo),
+        normalizar(ticket.curso),
+        normalizar(ticket.bloque)
+      ].join(' ');
+      return campos.includes(busqueda);
+    });
+
+    res.json(resultados);
+  } catch (error) {
+    console.error('[/api/buscar_entradas] Error:', error);
+    res.status(500).json({ error: 'Error al buscar entradas' });
+  }
+});
+
+// ─── Consultar y Validar Entradas ────────────────────────────────────────────
+
+// Consultar estado de un ticket (si existe y si fue usado)
+app.get('/api/consultar_entrada', async (req, res) => {
+  try {
+    const { correlativo, familia } = req.query;
+    if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
+
+    const ticket = await db_support.ticketsDB.findOne({ correlativo: parseInt(correlativo) });
+
+    if (!ticket) {
+      return res.json({ existe: false, mensaje: 'Ticket no registrado en el sistema' });
+    }
+
+    return res.json({
+      existe: true,
+      usado: ticket.usado || false,
+      fecha_uso: ticket.fecha_uso || null,
+      validado_por: ticket.validado_por || null,
+      familia: ticket.familia,
+      nombre_completo: ticket.nombre_completo,
+      tipo: ticket.tipo,
+      jornada: ticket.jornada,
+      curso: ticket.curso,
+      bloque: ticket.bloque,
+      num_listado: ticket.num_listado,
+      total: ticket.total,
+      correlativo: ticket.correlativo
+    });
+  } catch (error) {
+    console.error('[/api/consultar_entrada] Error:', error);
+    res.status(500).json({ error: 'Error al consultar entrada' });
+  }
+});
+
+// Marcar ticket como usado (validado)
+app.post('/api/validar_entrada', express.json(), async (req, res) => {
+  try {
+    const { correlativo, validado_por } = req.body;
+    if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
+
+    const ticket = await db_support.ticketsDB.findOne({ correlativo: parseInt(correlativo) });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
+    }
+
+    if (ticket.usado) {
+      return res.status(409).json({
+        error: 'Este ticket ya fue utilizado',
+        fecha_uso: ticket.fecha_uso,
+        validado_por: ticket.validado_por
+      });
+    }
+
+    // Marcar como usado
+    await db_support.ticketsDB.findOneAndUpdate(
+      { correlativo: parseInt(correlativo) },
+      { $set: { usado: true, fecha_uso: new Date(), validado_por: validado_por || 'desconocido' } }
+    );
+
+    console.log(`[/api/validar_entrada] Ticket ${correlativo} marcado como usado por ${validado_por}`);
+    res.json({ status: 'ok', mensaje: 'Ticket validado correctamente' });
+  } catch (error) {
+    console.error('[/api/validar_entrada] Error:', error);
+    res.status(500).json({ error: 'Error al validar entrada' });
+  }
+});
+
+// Endpoint JSON para obtener datos completos de una entrada (usado por validar_qr.html)
+app.get('/api/entrada_qr_data', async (req, res) => {
+  try {
+    const { familia, jornada, tipo, correlativo } = req.query;
+
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+    const jornadaDisplay = jornadaMap[jornada] || jornada;
+
+    // Buscar info en deliveryDB
+    let info = null;
+    if (correlativo) {
+      info = await db_support.deliveryDB.findOne({ serial: parseInt(correlativo) });
+    }
+
+    res.json({
+      familia: familia || '—',
+      nombre_completo: info?.nombre_completo || familia || '—',
+      tipo: tipo || '—',
+      jornada: jornadaDisplay,
+      curso: info?.curso || '—',
+      bloque: info?.bloques ? (Array.isArray(info.bloques) ? info.bloques.join('/') : info.bloques) : '—',
+      num_listado: info?.num_listado || '—',
+      total: info?.total || '—',
+      correlativo: correlativo || '—'
+    });
+  } catch (error) {
+    console.error('[/api/entrada_qr_data] Error:', error);
+    res.status(500).json({ error: 'Error al obtener datos de entrada' });
+  }
+});
+
+app.get('/api/entrada_qr', async (req, res) => {
+  try {
+    const { familia, jornada, tipo, correlativo } = req.query;
+
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+    const jornadaDisplay = jornadaMap[jornada] || jornada;
+
+    // Buscar info adicional en la BD si existe
+    let info = null;
+    if (correlativo) {
+      info = await db_support.deliveryDB.findOne({ serial: parseInt(correlativo) });
+    }
+
+    const nombre = info?.nombre_completo || familia || '—';
+    const curso = info?.curso || '—';
+    const bloque = info?.bloques || '—';
+    const numListado = info?.num_listado || '—';
+    const serial = String(correlativo).padStart(4, '0');
+
+    // Responder con HTML presentable
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Entrada - Fiesta a la Chilena</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f1f4f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          }
+          .ticket-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            max-width: 420px;
+            width: 100%;
+            overflow: hidden;
+          }
+          .ticket-header {
+            background: linear-gradient(135deg, #e53935, #d32f2f);
+            padding: 24px 20px;
+            text-align: center;
+            color: white;
+          }
+          .ticket-header h1 {
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+          }
+          .ticket-header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+          }
+          .ticket-body {
+            padding: 24px 20px;
+          }
+          .ticket-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+          }
+          .ticket-row:last-child { border-bottom: none; }
+          .ticket-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #888;
+            text-transform: uppercase;
+          }
+          .ticket-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            text-align: right;
+          }
+          .ticket-serial {
+            text-align: center;
+            margin-top: 16px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+          }
+          .ticket-serial span {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #e53935;
+            letter-spacing: 3px;
+          }
+          .ticket-serial small {
+            display: block;
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 2px;
+          }
+          .badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket-card">
+          <div class="ticket-header">
+            <h1>🎉 Fiesta a la Chilena 2025</h1>
+            <p>Colegio Patrona de Lourdes</p>
+          </div>
+          <div class="ticket-body">
+            <div class="ticket-row">
+              <span class="ticket-label">Tipo</span>
+              <span class="ticket-value"><span class="badge">${tipo || '—'}</span></span>
+            </div>
+            <div class="ticket-row">
+              <span class="ticket-label">Nombre</span>
+              <span class="ticket-value">${nombre}</span>
+            </div>
+            <div class="ticket-row">
+              <span class="ticket-label">Familia</span>
+              <span class="ticket-value">${familia || '—'}</span>
+            </div>
+            <div class="ticket-row">
+              <span class="ticket-label">Jornada</span>
+              <span class="ticket-value">${jornadaDisplay}</span>
+            </div>
+            <div class="ticket-row">
+              <span class="ticket-label">Curso</span>
+              <span class="ticket-value">${curso}</span>
+            </div>
+            <div class="ticket-row">
+              <span class="ticket-label">N° Listado</span>
+              <span class="ticket-value">${numListado}</span>
+            </div>
+            <div class="ticket-serial">
+              <small>N° ENTRADA</small>
+              <span>${serial}</span>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('[/api/entrada_qr] Error:', error);
+    res.status(500).send('Error al cargar entrada');
+  }
+});
+
+// ─── Mercado Pago ────────────────────────────────────────────────────────────
+
+// Crear preferencia de pago en MP
+app.post('/api/mp/create', async (req, res) => {
+  try {
+    let { compromiso_key, cantidades = {}, user_email, nombre, rut, telefono, nombres_hijos } = req.body;
+
+    // Calcular monto total igual que Flow
+    let monto_total = 0;
+    const keys = Array.isArray(compromiso_key) ? compromiso_key : [compromiso_key];
+    const subjects = [];
+    for (const key of keys) {
+      const compromiso_pago = await db_support.compromisosPagoDB.findOne({ id: key });
+      if (!compromiso_pago) {
+        return res.status(400).json({ error: `Compromiso '${key}' no encontrado` });
+      }
+      const cantidad = (cantidades && cantidades[key]) ? parseInt(cantidades[key]) : 1;
+      monto_total += compromiso_pago.monto * cantidad;
+      subjects.push(key);
+    }
+
+    if (user_email === undefined || user_email === null)
+      user_email = req.user.emails[0].value;
+
+    const commerceOrder = await getNextCorrelativeCommerceOrder();
+    const subject = subjects.join(',');
+
+    // Mapa de códigos a glosas legibles
+    const glosaMap = {
+      'cuota_cpa': 'Cuota Centro de Padres',
+      'entradas_fiesta': 'Entradas Fiesta'
+    };
+    const glosa = subjects.map(s => glosaMap[s] || s).join(' + ');
+
+    const optional = {
+      rut: rut || '9999999-9',
+      nombre: nombre || 'Unknown',
+      telefono: telefono || '',
+      nombres_hijos: Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
+    };
+
+    // Guardar la orden en BD (mismo modelo que Flow)
+    const paymentOrder = {
+      commerceOrder: String(commerceOrder),
+      subject,
+      currency: 'CLP',
+      amount: monto_total,
+      email: user_email,
+      urlConfirmation: BASEURL + '/api/mp/confirm',
+      urlReturn: BASEURL + '/api/mp/return',
+      optional: JSON.stringify(optional),
+      status: 'pending',
+      payment_method: 'mercadopago'
+    };
+    await db_support.paymentOrdersDB.create(paymentOrder);
+
+    // Crear preferencia en MP
+    const preference = await mp.createPreference({
+      title: glosa,
+      amount: monto_total,
+      email: user_email,
+      externalReference: commerceOrder,
+      backUrls: {
+        success: BASEURL + '/api/mp/return?status=approved',
+        failure: BASEURL + '/api/mp/return?status=failure',
+        pending: BASEURL + '/api/mp/return?status=pending'
+      }
+    });
+
+    console.log('[/api/mp/create] Preferencia creada:', preference.id);
+    return res.status(200).json({
+      preference_id: preference.id,
+      init_point: preference.init_point,
+      sandbox_init_point: preference.sandbox_init_point
+    });
+
+  } catch (error) {
+    console.error('[/api/mp/create] Error:', error);
+    return res.status(500).json({ error: 'Error al crear preferencia MP: ' + error.message });
+  }
+});
+
+// MP notifica el pago aquí (webhook IPN)
+app.post('/api/mp/confirm', express.json(), async (req, res) => {
+  try {
+    console.log('[/api/mp/confirm] Notificación recibida:', req.body, req.query);
+    const { type, data } = req.body;
+
+    if (type === 'payment' && data?.id) {
+      const { MercadoPagoConfig, Payment } = require('mercadopago');
+      const mpClient = new MercadoPagoConfig({ accessToken: mp.accessToken });
+      const paymentClient = new Payment(mpClient);
+      const payment = await paymentClient.get({ id: data.id });
+
+      console.log('[/api/mp/confirm] Payment status:', payment.status, 'external_ref:', payment.external_reference);
+
+      if (payment.status === 'approved') {
+        const commerceOrder = payment.external_reference;
+        const orderInDB = await db_support.paymentOrdersDB.findOne({ commerceOrder });
+        if (orderInDB) {
+          await db_support.paymentOrdersDB.findOneAndUpdate(
+            { commerceOrder },
+            { $set: { status: 'approved', paymentData: payment } },
+            { returnDocument: 'after' }
+          );
+
+          const optional = orderInDB.optional ? JSON.parse(orderInDB.optional) : {};
+          const nombres_hijos = optional.nombres_hijos ? optional.nombres_hijos.split(',') : [];
+
+          const pago = {
+            id: nombres_hijos[0] || orderInDB.email,
+            num_folio: commerceOrder,
+            tipo: 'mercadopago',
+            cuota_cpa: orderInDB.subject?.includes('cuota_cpa'),
+            monto: payment.transaction_amount,
+            cantidad_agendas: 0,
+            entrega_agendas: 0,
+            fecha: new Date().toLocaleDateString('es-CL'),
+            comentarios: '',
+            entradas_pagadas: 0,
+            payment_method: 'mercadopago',
+            commerce_order: commerceOrder,
+          };
+          await db_support.pagosDB.create(pago);
+          console.log('[/api/mp/confirm] Pago guardado en DB');
+        }
+      }
+    }
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('[/api/mp/confirm] Error:', error);
+    res.status(500).send('Error');
+  }
+});
+
+// MP redirige al usuario aquí después del pago
+app.get('/api/mp/return', async (req, res) => {
+  try {
+    const { status, external_reference, payment_id } = req.query;
+    console.log('[/api/mp/return] status:', status, 'ref:', external_reference);
+
+    const webPath = '/pagos_cpa.html';
+    let params = '';
+
+    if (external_reference) {
+      const orderInDB = await db_support.paymentOrdersDB.findOne({ commerceOrder: external_reference });
+      if (orderInDB) {
+        const optional = orderInDB.optional ? JSON.parse(orderInDB.optional) : {};
+        params = `?user_email=${encodeURIComponent(orderInDB.email)}&mp_status=${status}`;
+        if (optional.nombres_hijos) {
+          params += `&hijos=${encodeURIComponent(optional.nombres_hijos)}`;
+        }
+      }
+    }
+
+    res.redirect(webPath + params);
+  } catch (error) {
+    console.error('[/api/mp/return] Error:', error);
+    res.redirect('/pagos_cpa.html?mp_status=error');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Start the server on port 8080
 app.listen(PORT, () => {

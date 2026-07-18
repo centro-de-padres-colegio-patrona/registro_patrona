@@ -4,185 +4,310 @@
   <meta charset="UTF-8">
   <link rel="stylesheet" href="/styles.css">
   <title>Validación Correo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
+    .validacion-wrapper {
+      width: 100%;
+      max-width: 460px;
+      padding: 20px;
+    }
+
+    .card-validacion {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      border-left: 5px solid #4A90E2;
+      padding: 36px 32px;
+    }
+
+    .card-validacion .icono-correo {
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .card-validacion h2 {
+      text-align: center;
+      font-size: 1.3rem;
+      color: #333;
+      margin-bottom: 6px;
+    }
+
+    .card-validacion .subtitulo {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    .correo-display {
+      background: #f0f7ff;
+      border: 1px dashed #4A90E2;
+      border-radius: 8px;
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 0.95rem;
+      color: #333;
+      margin-bottom: 24px;
+    }
+
+    .correo-display strong {
+      color: #4A90E2;
+    }
+
+    .campo-grupo {
+      margin-bottom: 18px;
+    }
+
+    .campo-grupo label {
+      display: block;
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .campo-grupo input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      letter-spacing: 4px;
+      text-align: center;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    .campo-grupo input:focus {
+      border-color: #4A90E2;
+    }
+
+    .btn-principal {
+      width: 100%;
+      padding: 12px;
+      background-color: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .btn-principal:hover:not(:disabled) {
+      background-color: #357abd;
+    }
+
+    .btn-principal:disabled {
+      background-color: #b0c4de;
+      cursor: not-allowed;
+    }
+
+    .btn-secundario {
+      width: 100%;
+      padding: 10px;
+      background-color: transparent;
+      color: #888;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+
+    .btn-secundario:hover {
+      background-color: #f8f9fa;
+      color: #555;
+      border-color: #bbb;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 20px 0;
+    }
+
+    #resultadoValidacion {
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      min-height: 22px;
+      margin-top: 10px;
+    }
+
+    .tag-paso {
+      display: inline-block;
+      background: #e8f0fe;
+      color: #4A90E2;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+  </style>
 </head>
-<style>
-  #cancelarBtn {
-      background-color: #f8f9fa; /* Fondo claro */
-      color: #333;               /* Texto oscuro */
-      border: 1px solid #ccc;    /* Borde sutil */
-      transition: background-color 0.3s;
-  }
-
-  #cancelarBtn:hover {
-      background-color: #e2e6ea; /* Cambio sutil al pasar el mouse */
-      color: #000;
-  }  
-</style>
 <body>
+
 <script>
   const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
   document.body.classList.add(isMobile ? 'mobile' : 'desktop');
 </script>
 
-  <h2>Validación Correo</h2>
+<div class="validacion-wrapper">
+  <div class="card-validacion">
 
-    <div class="login-box">
-    <h3>Validación de correo</h3>
-    <p>Correo registrado: <strong id="correoMostrado">cargando...</strong></p>
+    <div class="icono-correo">✉️</div>
+    <h2>Validación de Correo</h2>
+    <p class="subtitulo">Confirma tu correo electrónico para continuar</p>
 
-    <button id="enviarCodigoBtn" class="enviar-btn">Enviar código al correo</button>
-
-    <!--button id="cambiarCorreoBtn" class="enviar-btn" style="background-color: #6c757d; margin-bottom: 10px;">
-        No utilizar este correo
-    </button-->
-
-    <div style="margin-top: 20px;">
-        <label for="codigoIngresado">Ingrese el código recibido:</label>
-        <input type="text" id="codigoIngresado" maxlength="6" placeholder="Ej: 123456">
-        <button id="validarCodigoBtn" class="enviar-btn">Validar</button>
+    <div class="correo-display">
+      <strong id="correoMostrado">cargando...</strong>
     </div>
 
-    <button id="cancelarBtn" class="enviar-btn" style="background-color: #6c757d; margin-top: 15px;">
-        Cancelar y volver al inicio
+    <!-- Paso 1 -->
+    <span class="tag-paso">Paso 1 — Enviar código</span>
+    <button id="enviarCodigoBtn" class="btn-principal">
+      📨 Enviar código al correo
     </button>
 
-    <p id="resultadoValidacion" style="margin-top: 10px; font-weight: bold;"></p>
+    <hr class="divider">
+
+    <!-- Paso 2 -->
+    <span class="tag-paso">Paso 2 — Ingresar código</span>
+    <div class="campo-grupo">
+      <label for="codigoIngresado">Código recibido (6 dígitos)</label>
+      <input type="text" id="codigoIngresado" maxlength="6" placeholder="123456">
     </div>
 
-  <form id="registro-form">
-  <!-- Sección Reporte -->
+    <button id="validarCodigoBtn" class="btn-principal">
+      ✅ Validar código
+    </button>
 
-  <div id="jornadas-container"></div>
+    <p id="resultadoValidacion"></p>
 
-    <br><br>
-    <!--button type="submit">Enviar</button-->
+    <button id="cancelarBtn" class="btn-secundario">
+      ← Cancelar y volver al inicio
+    </button>
 
-  </form>
+  </div>
+</div>
 
-  <script>
-    let codigoGenerado = null;
+<script>
+  let codigoGenerado = null;
 
-    document.getElementById("enviarCodigoBtn").disabled = true;
-    document.getElementById("validarCodigoBtn").disabled = true;
+  document.getElementById("enviarCodigoBtn").disabled = true;
+  document.getElementById("validarCodigoBtn").disabled = true;
 
-    // Mostrar el correo del usuario
-    fetch('/api/user')
-        //.then(res => res.json())
-        .then(response => {
-          console.log('Respuesta del servidor:', response);
-          if (!response.ok) throw new Error('Usuario no autenticado');
-          return response.json();
+  fetch('/api/user')
+    .then(response => {
+      if (!response.ok) throw new Error('Usuario no autenticado');
+      return response.json();
+    })
+    .then(data => {
+      const correo = data.user.email || "ejemplo@correo.com";
+      document.getElementById("correoMostrado").textContent = correo;
+      document.getElementById("enviarCodigoBtn").disabled = false;
+    })
+    .catch(error => {
+      console.log('Ingreso manual:', error);
+      const correoManual = sessionStorage.getItem('correoManual');
+      document.getElementById("correoMostrado").textContent = correoManual || '—';
+      document.getElementById("enviarCodigoBtn").disabled = false;
+    });
+
+  document.getElementById("enviarCodigoBtn").addEventListener("click", () => {
+    const enviarBtn = document.getElementById("enviarCodigoBtn");
+    const validarBtn = document.getElementById("validarCodigoBtn");
+    enviarBtn.disabled = true;
+    validarBtn.disabled = true;
+    enviarBtn.textContent = '⏳ Enviando...';
+
+    codigoGenerado = Math.floor(100000 + Math.random() * 900000).toString();
+    const email_destinatario = document.getElementById("correoMostrado").textContent;
+
+    fetch('/api/enviarCodigo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_destinatario, codigo: codigoGenerado })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        enviarBtn.textContent = '✔ Código enviado';
+        enviarBtn.style.backgroundColor = '#2ecc71';
+        validarBtn.disabled = false;
+        setTimeout(() => {
+          enviarBtn.textContent = '📨 Reenviar código';
+          enviarBtn.style.backgroundColor = '';
+          enviarBtn.disabled = false;
+        }, 30000);
+      } else {
+        alert(`No se pudo enviar el código. Error: ${data.error}`);
+        enviarBtn.textContent = '📨 Enviar código al correo';
+        enviarBtn.disabled = false;
+      }
+    })
+    .catch(err => {
+      console.error("Error al enviar código:", err);
+      alert('Error al enviar el código. Intente nuevamente.');
+      enviarBtn.textContent = '📨 Enviar código al correo';
+      enviarBtn.disabled = false;
+    });
+  });
+
+  document.getElementById("validarCodigoBtn").addEventListener("click", () => {
+    const ingresado = document.getElementById("codigoIngresado").value.trim();
+    const resultado = document.getElementById("resultadoValidacion");
+
+    if (ingresado === codigoGenerado) {
+      fetch('/api/correo_validado')
+        .then(res => {
+          if (!res.ok) throw new Error("Usuario no encontrado");
+          return res.json();
         })
-        .then(data => {
-        const correo = data.user.email || "ejemplo@correo.com";
-        document.getElementById("correoMostrado").textContent = correo;
-        document.getElementById("enviarCodigoBtn").disabled = false;
-        })
-        .catch(error => {
-          console.log('Fue ingresado manual:', error);
-          const correoManual = sessionStorage.getItem('correoManual');
-          console.log(`Correo manual obtenido de sessionStorage: ${correoManual}`);
-          document.getElementById("correoMostrado").textContent = correoManual;
-          document.getElementById("enviarCodigoBtn").disabled = false;
-          console.log(`correoManual: ${correoManual}`);
-          console.log(`document.getElementById("correoMostrado").textContent: ${document.getElementById("correoMostrado").textContent}`);
-        });
-
-    // Generar y enviar código
-    document.getElementById("enviarCodigoBtn").addEventListener("click", () => {
-      const enviarBtn = document.getElementById("enviarCodigoBtn");
-      const validarBtn = document.getElementById("validarCodigoBtn");
-      enviarBtn.disabled = true;
-      validarBtn.disabled = true;
-      codigoGenerado = Math.floor(100000 + Math.random() * 900000).toString();
-        console.log("Código generado:", codigoGenerado);
-        email_destinatario = document.getElementById("correoMostrado").textContent;
-        // Simular envío al backend
-        fetch('/api/enviarCodigo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email_destinatario , codigo: codigoGenerado })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'ok') {
-            alert(`Código enviado al correo ${email_destinatario}.`);
-            console.log("Respuesta del servidor al enviar código:", data);
-            enviarBtn.disabled = false;
-            validarBtn.disabled = false;
-          } else {
-            alert(`Codigo no pudo ser enviado al correo ${email_destinatario}. Error: ${data.error}`);
-          }
+        .then(() => {
+          resultado.textContent = "✅ Correo confirmado. Redirigiendo...";
+          resultado.style.color = "green";
+          // Guardar en localStorage para no volver a pedir
+          const correo = document.getElementById("correoMostrado").textContent;
+          localStorage.setItem(`correo_validado_${correo}`, 'true');
+          setTimeout(() => { window.location.href = "/panel_usuario.html"; }, 1000);
         })
         .catch(err => {
-          alert(`Codigo no pudo ser enviado al correo ${email_destinatario}`);
-          console.error("Error al enviar código:", err);
-          enviarBtn.disabled = false;
+          console.error("Error al confirmar correo:", err);
+          resultado.textContent = "❌ Error al validar. Intente nuevamente.";
+          resultado.style.color = "red";
         });
-    });
+    } else {
+      resultado.textContent = "❌ Código incorrecto. Intente nuevamente.";
+      resultado.style.color = "#e74c3c";
+      document.getElementById("codigoIngresado").style.borderColor = "#e74c3c";
+      setTimeout(() => {
+        document.getElementById("codigoIngresado").style.borderColor = '';
+      }, 2000);
+    }
+  });
 
-    // Validar código ingresado
-    document.getElementById("validarCodigoBtn").addEventListener("click", () => {
-        const ingresado = document.getElementById("codigoIngresado").value.trim();
-        const resultado = document.getElementById("resultadoValidacion");
-        const enviarBtn = document.getElementById("enviarCodigoBtn");
-        const validarBtn = document.getElementById("validarCodigoBtn");
-        enviarBtn.disabled = false;
-        validarBtn.disabled = false;
-        if (ingresado === codigoGenerado) {
-            fetch('/api/correo_validado')
-                .then(res => {
-                  if (!res.ok) throw new Error("Usuario no encontrado");
-                  return res.json();})
-                .then(data => {
-                    //const correo = data.user.email || "ejemplo@correo.com";
-                    //document.getElementById("correoMostrado").textContent = correo;
-                    resultado.textContent = "✅ Código válido. Correo confirmado.";
-                    resultado.style.color = "green";
-                    window.location.href = "/panel_usuario.html";
-                })
-                .catch(err => {
-                    console.error("Error al confirmar correo:", err);
-                    if (data.status && data.status === 401) {
-                      //resultado.textContent = "❌ Error al validar el correo. Intente nuevamente.";
-                      //resultado.style.color = "red";
-                      console.log("Redirigiendo a restablecer contraseña.");
-                      window.location.href = "/reset_password.html";
-                    }
-                });
-        } else {
-            resultado.textContent = "❌ Código incorrecto. Intente nuevamente.";
-            resultado.style.color = "red";
-        }
-        //enviarBtn.disabled = false;
-    });
-
-    /*document.getElementById("cambiarCorreoBtn").addEventListener("click", () => {
-        // 1. Pregunta de confirmación al usuario
-        const mensaje = "¿Está seguro de que desea cambiar el correo? Se eliminarán los datos de la sesión actual y volverá al inicio.";
-        
-        if (confirm(mensaje)) {
-            // 2. Eliminar el correo del sessionStorage
-            sessionStorage.removeItem('correoManual');
-            console.log("Sesión de correoManual eliminada.");
-            console.log("Valor actual de correoManual después de eliminación:", sessionStorage.getItem('correoManual'));
-
-            // 3. Volver a la página principal
-            window.location.href = "/logout";
-        }
-    });*/
-
-    document.getElementById("cancelarBtn").addEventListener("click", () => {
-        // 1. Limpiamos el correo manual por si acaso
-        sessionStorage.removeItem('correoManual');
-        
-        // 2. Redirigimos al home
-        window.location.href = "/";
-    });
-
-  </script>
+  document.getElementById("cancelarBtn").addEventListener("click", () => {
+    sessionStorage.removeItem('correoManual');
+    window.location.href = "/";
+  });
+</script>
 
 </body>
 </html>

@@ -142,6 +142,16 @@ body.mobile button {
   margin-bottom: 12px;
 }
 
+/* Excluir botones del panel de estas reglas mobile */
+body.mobile #sidebar button,
+body.mobile #mobile-topbar button,
+body.mobile #mobile-tabs button {
+  width: auto;
+  font-size: inherit;
+  padding: inherit;
+  margin-bottom: 0;
+}
+
 body.mobile h3 {
   font-size: 20px;
   margin-top: 24px;
@@ -186,6 +196,19 @@ body {
 body.panel-usuario {
   display: flex;
   height: 100vh;
+}
+
+@media screen and (max-width: 768px) {
+  body.panel-usuario {
+    display: block !important;
+    height: auto !important;
+  }
+  body.panel-usuario #sidebar {
+    display: none !important;
+  }
+  body.panel-usuario #content {
+    display: none !important;
+  }
 }
 
 /* Controles laterales */

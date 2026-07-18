@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buscar Entradas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .page-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #4A90E2;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+
+    .card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    /* Barra de búsqueda */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus {
+      border-color: #4A90E2;
+    }
+
+    .search-bar button {
+      padding: 12px 20px;
+      background: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .search-bar button:hover { background: #357abd; }
+
+    .search-hint {
+      font-size: 0.78rem;
+      color: #999;
+      margin-bottom: 16px;
+    }
+
+    /* Tabla de resultados */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      display: none;
+    }
+
+    .table-container.visible {
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    thead { background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 0.85rem;
+    }
+
+    th {
+      color: #495057;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    tr:hover { background: #f1f4f9; }
+
+    /* Badges de estado */
+    .badge-estado {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .badge-pendiente { background: #e8f5e9; color: #2e7d32; }
+    .badge-usado { background: #fef2f2; color: #c0392b; }
+
+    /* Botón validar en tabla */
+    .btn-validar-tabla {
+      padding: 5px 12px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-validar-tabla:hover { background: #c0392b; }
+    .btn-validar-tabla:disabled { background: #95a5a6; cursor: not-allowed; }
+
+    .btn-validado {
+      padding: 5px 12px;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .estado-msg {
+      font-size: 0.88rem;
+      color: #888;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .resultado-count {
+      font-size: 0.82rem;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    /* Cards para mobile */
+    .ticket-cards {
+      display: none;
+    }
+
+    .ticket-card-item {
+      background: white;
+      border-radius: 10px;
+      border-left: 4px solid #4A90E2;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .ticket-card-item.usado { border-left-color: #e74c3c; }
+
+    .ticket-card-item .card-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .ticket-card-item .card-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .ticket-card-item .card-value {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .ticket-card-item .card-actions {
+      margin-top: 10px;
+      text-align: right;
+    }
+
+    @media screen and (max-width: 768px) {
+      body { padding: 12px; }
+
+      .table-container { display: none !important; }
+      .ticket-cards { display: block !important; }
+
+      .search-bar {
+        flex-direction: column;
+      }
+
+      .search-bar button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">📋 Buscar Entradas</div>
+
+<div class="card">
+  <h3>Buscar por RUT, apellido o nombre</h3>
+  <div class="search-bar">
+    <input type="text" id="inp-busqueda" placeholder="Ej: Pérez, 12.345.678, González..." onkeydown="if(event.key==='Enter')buscar()">
+    <button onclick="buscar()">🔍 Buscar</button>
+  </div>
+  <p class="search-hint">Busca por RUT del apoderado, RUT del estudiante, apellido paterno o materno, o nombre</p>
+</div>
+
+<p class="resultado-count" id="resultado-count" style="display:none;"></p>
+
+<!-- Desktop: tabla -->
+<div class="table-container" id="tabla-resultados">
+  <table>
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Nombre</th>
+        <th>Familia</th>
+        <th>Tipo</th>
+        <th>Jornada</th>
+        <th>Curso</th>
+        <th>Estado</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-body"></tbody>
+  </table>
+</div>
+
+<!-- Mobile: cards -->
+<div class="ticket-cards" id="cards-resultados"></div>
+
+<p class="estado-msg" id="estado-msg"></p>
+
+<script>
+  async function buscar() {
+    const q = document.getElementById('inp-busqueda').value.trim();
+    const estadoMsg = document.getElementById('estado-msg');
+    const resultadoCount = document.getElementById('resultado-count');
+    const tablaContainer = document.getElementById('tabla-resultados');
+    const cardsContainer = document.getElementById('cards-resultados');
+
+    if (q.length < 2) {
+      estadoMsg.textContent = 'Ingrese al menos 2 caracteres';
+      estadoMsg.style.color = '#e74c3c';
+      return;
+    }
+
+    estadoMsg.textContent = 'Buscando...';
+    estadoMsg.style.color = '#888';
+
+    try {
+      const res = await fetch(`/api/buscar_entradas?q=${encodeURIComponent(q)}`);
+      const datos = await res.json();
+
+      if (!res.ok) {
+        estadoMsg.textContent = datos.error || 'Error en la búsqueda';
+        estadoMsg.style.color = '#e74c3c';
+        return;
+      }
+
+      if (datos.length === 0) {
+        estadoMsg.textContent = 'No se encontraron entradas con esa búsqueda';
+        estadoMsg.style.color = '#e74c3c';
+        tablaContainer.classList.remove('visible');
+        cardsContainer.innerHTML = '';
+        resultadoCount.style.display = 'none';
+        return;
+      }
+
+      estadoMsg.textContent = '';
+      resultadoCount.textContent = `${datos.length} entrada(s) encontrada(s)`;
+      resultadoCount.style.display = 'block';
+
+      renderTabla(datos);
+      renderCards(datos);
+      // Mostrar tabla (en mobile el CSS la oculta con !important)
+      tablaContainer.classList.add('visible');
+
+    } catch (err) {
+      estadoMsg.textContent = 'Error de conexión';
+      estadoMsg.style.color = '#e74c3c';
+    }
+  }
+
+  function renderTabla(datos) {
+    const tbody = document.getElementById('tabla-body');
+    tbody.innerHTML = '';
+
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+
+    datos.forEach(t => {
+      const serial = String(t.correlativo).padStart(4, '0');
+      const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
+      const esUsado = t.usado === true;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${serial}</td>
+        <td>${t.nombre_completo || '—'}</td>
+        <td>${t.familia || '—'}</td>
+        <td>${t.tipo || '—'}</td>
+        <td>${jornadaDisplay}</td>
+        <td>${t.curso || '—'}</td>
+        <td><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
+        <td id="accion-${t.correlativo}">
+          ${esUsado
+            ? `<span class="btn-validado">✓ Validado</span>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.correlativo}, this)">VALIDAR</button>`
+          }
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderCards(datos) {
+    const container = document.getElementById('cards-resultados');
+    container.innerHTML = '';
+
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+
+    datos.forEach(t => {
+      const serial = String(t.correlativo).padStart(4, '0');
+      const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
+      const esUsado = t.usado === true;
+
+      const card = document.createElement('div');
+      card.className = `ticket-card-item ${esUsado ? 'usado' : ''}`;
+      card.innerHTML = `
+        <div class="card-row"><span class="card-label">N° Entrada</span><span class="card-value">${serial}</span></div>
+        <div class="card-row"><span class="card-label">Nombre</span><span class="card-value">${t.nombre_completo || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Familia</span><span class="card-value">${t.familia || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Tipo</span><span class="card-value">${t.tipo || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
+        <div class="card-row"><span class="card-label">Curso</span><span class="card-value">${t.curso || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-actions" id="card-accion-${t.correlativo}">
+          ${esUsado
+            ? `<span class="btn-validado">✓ Validado</span>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.correlativo}, this)">VALIDAR</button>`
+          }
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  async function validarDesdeTabla(correlativo, btn) {
+    if (!confirm(`¿Confirma validar la entrada N° ${String(correlativo).padStart(4, '0')}?`)) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    // Obtener email del supervisor
+    let supervisorEmail = 'supervisor';
+    try {
+      const urlParams = new URLSearchParams(window.parent.location.search);
+      supervisorEmail = urlParams.get('user_email') || 'supervisor';
+    } catch(e) {}
+
+    try {
+      const res = await fetch('/api/validar_entrada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correlativo: parseInt(correlativo), validado_por: supervisorEmail })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Actualizar en tabla desktop
+        const tdAccion = document.getElementById(`accion-${correlativo}`);
+        if (tdAccion) tdAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
+
+        // Actualizar en card mobile
+        const cardAccion = document.getElementById(`card-accion-${correlativo}`);
+        if (cardAccion) cardAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
+      } else if (res.status === 409) {
+        btn.textContent = 'YA USADO';
+        btn.disabled = true;
+        btn.style.background = '#95a5a6';
+      } else {
+        alert(`Error: ${data.error}`);
+        btn.disabled = false;
+        btn.textContent = 'VALIDAR';
+      }
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+      btn.disabled = false;
+      btn.textContent = 'VALIDAR';
+    }
+  }
+</script>
+
+</body>
+</html>

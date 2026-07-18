@@ -1,78 +1,56 @@
-
-import { MercadoPagoConfig, Order } from "mercadopago";
+const { MercadoPagoConfig, Preference } = require('mercadopago');
 
 const Config = {
-        'production': {
-            APIKEY: 'APP_USR-7274724f-cbd4-4f56-8478-7023ee480857',
-            SECRETKEY: 'aefc24bed6613e40db09df328849568a220085ca',
-            APIURL: ''
-        },
-        'sandbox': {
-            APIKEY: 'APP_USR-7274724f-cbd4-4f56-8478-7023ee480857',
-            SECRETKEY: 'APP_USR-5125226598398616-061717-deb2d0807c31471873fa7b9b821eccbf-3479686713',
-            APIURL: '',
-            APPNUMBER: '5125226598398616',
-            USERID: '3479686713',
-            USUARIO_DE_PRUEBA: 'TESTUSER1357645298606034860',
-            PASSWORD_DE_PRUEBA: 'PJQr2SEYbp',
-            COD_VERIFICACION: '686713'
-        }
+  production: {
+    ACCESS_TOKEN: 'APP_USR-5125226598398616-061717-deb2d0807c31471873fa7b9b821eccbf-3479686713',
+  },
+  sandbox: {
+    ACCESS_TOKEN: 'APP_USR-5125226598398616-061717-deb2d0807c31471873fa7b9b821eccbf-3479686713',
+  }
 };
 
 class MercadoPagoApi {
-        constructor(apiKey = null, secretKey = null, endpoint = 'sandbox') {
-        this.apiKey = apiKey || Config[endpoint].APIKEY;
-        this.secretKey = secretKey || Config[endpoint].SECRETKEY;
-        this.apiUrl = Config[endpoint].APIURL;
+  constructor(endpoint = 'sandbox') {
+    this.accessToken = Config[endpoint].ACCESS_TOKEN;
+    this.client = new MercadoPagoConfig({
+      accessToken: this.accessToken,
+      options: { timeout: 5000 }
+    });
+    this.preference = new Preference(this.client);
+  }
 
-        // Step 2: Initialize the client object
-        const client = new MercadoPagoConfig({
-            accessToken: this.secretKey,
-            options: { timeout: 5000 },
-        });
-    }
+  /**
+   * Crea una preferencia de pago en Mercado Pago.
+   * @param {object} params - { title, amount, email, externalReference, backUrls }
+   * @returns {object} - { id, init_point, sandbox_init_point }
+   */
+  async createPreference({ title, amount, email, externalReference, backUrls }) {
+    const body = {
+      items: [
+        {
+          title: title || 'Pago CPA Colegio Patrona',
+          quantity: 1,
+          unit_price: parseInt(amount),
+          currency_id: 'CLP'
+        }
+      ],
+      payer: {
+        email: email
+      },
+      external_reference: String(externalReference),
+      back_urls: {
+        success: backUrls.success,
+        failure: backUrls.failure,
+        pending: backUrls.pending
+      },
+      statement_descriptor: 'CPA Patrona'
+    };
 
-    /**
-     * Setea las llaves manualmente
-     */
-    setKeys(apiKey, secretKey) {
-        this.apiKey = apiKey;
-        this.secretKey = secretKey;
-    }
+    console.log('[MercadoPagoApi] Creando preferencia:', JSON.stringify(body));
+    const result = await this.preference.create({ body });
+    console.log('[MercadoPagoApi] Preferencia creada:', result.id);
+    return result;
+  }
 }
 
-// Step 3: Initialize the API object
-const order = new Order(client);
-
-// Step 4: Create the request object
-const body = {
-	type: "online",
-	processing_mode: "automatic",
-	total_amount: "1000.00",
-	external_reference: "ext_ref_1234",
-	payer: {
-		email: "<PAYER_EMAIL>",
-	},
-	transactions: {
-		payments: [
-			{
-				amount: "1000.00",
-				payment_method: {
-					id: "master",
-					type: "credit_card",
-					token: "<CARD_TOKEN>",
-					installments: 1,
-					statement_descriptor: "Store name",
-				},
-			},
-		],
-	},
-};
-
-// Step 5: Create request options object - Optional
-const requestOptions = {
-	idempotencyKey: "<IDEMPOTENCY_KEY>",
-};
-
-// Step 6: Make the request
-order.create({ body, requestOptions }).then(console.log).catch(console.error);
+module.exports = MercadoPagoApi;

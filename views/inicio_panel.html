@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inicio Panel</title>
   <link rel="stylesheet" href="/styles.css">
   <style>
@@ -24,6 +25,14 @@
     }
     .contenido {
       padding: 20px;
+    }
+    @media screen and (max-width: 768px) {
+      #barra-superior {
+        display: none;
+      }
+      body {
+        padding-top: 0;
+      }
     }
   </style>
 </head>

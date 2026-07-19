@@ -29,6 +29,8 @@ const BASEURL = (PORT === LOCAL_PORT)
   : 'https://registro-patrona.onrender.com';
 
 const db_support = require('../backend/db_support');
+db_support.connectToDB();
+
 //const listado_cursos = require('./backend/listadoCurso');
 
 const path = require('path'); 

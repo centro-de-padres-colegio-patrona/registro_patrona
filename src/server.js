@@ -32,7 +32,7 @@ const BASEURL = (PORT === LOCAL_PORT)
   ? 'https://unhappily-correct-squeeze.ngrok-free.dev'
   : 'https://registro-patrona.onrender.com';
 
-console.log(`Starting Server with BASEURL: ${BASEURL}`);
+console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
 
 const database_year_name = config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');
@@ -383,6 +383,11 @@ app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
     const estudianteInfo = await db_support.hermanosMapDB.findOne(query);
     //console.log('estudianteInfo: ', estudianteInfo);
     //console.log('apoderado_email: ', estudianteInfo.apoderado_email);
+    if (estudianteInfo === undefined || estudianteInfo === null) {
+      // El estudiante no fue encontrado
+      console.log(`Estudiante no encontrado: ${full_name}`);
+      continue;
+    }
     const email_already_exists = estudianteInfo.apoderado_email.includes(email);
     if (!email_already_exists) {
       // Agregar Email.
@@ -747,8 +752,13 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
     }*/
     // Si no existe, podés crearlo o manejarlo como desees
     if (!user || user === undefined) {
-      console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
-      res.status(500).json({ error: 'Error user not found' });
+      if (req && req.user && req.user.emails && req.user.emails.length > 0) {
+        console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
+        res.status(500).json({ error: 'Error req.user.emails[0].value not found' });
+    } else {
+        console.log(`Usuario ${user_email} no encontrado`)
+        res.status(500).json({ error: 'Error user not found' });
+      }
     } else {
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);

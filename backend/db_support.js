@@ -233,7 +233,7 @@ async function connectToDB(year = '') {
   const db_password = 'tPyw2Cvb2Hco8HM3'
   const db_user = 'lherreramena_db_user'
   const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona${db_year}?retryWrites=true&w=majority&appName=old-data`
-  console.log(`Conectando a la base de datos ...`);
+  console.log(`Conectando a la base de datos url: ${db_uri}`);
   try {
     await mongoose.connect(db_uri, {
       useNewUrlParser: true,

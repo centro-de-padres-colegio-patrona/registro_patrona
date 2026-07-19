@@ -36,7 +36,8 @@ console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
 
 const database_year_name = config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');
-db_support.connectToDB(database_year_name);
+const url_api = (PORT === LOCAL_PORT) ? `http://localhost:${LOCAL_PORT}` : BASEURL;
+db_support.connectToDB(database_year_name, url_api);
 
 //const listado_cursos = require('./backend/listadoCurso');
 
@@ -306,6 +307,12 @@ app.set('view engine', 'ejs');
 
 app.use(cors());
 app.use(express.json());
+
+// Importar el Router de Entradas
+const apiEntradasRouter = require('../backend/api_entradas');
+
+// Usar el Router de Entradas para todas las rutas que comiencen con /api
+app.use('/api', apiEntradasRouter);
 
 // Ruta para la página "hello world" (index.html)
 app.get('/', (req, res) => {
@@ -1257,36 +1264,6 @@ app.post('/api/send_email_entradas', async (req, res) => {
 });
 });
 
-app.post('/api/generar_entrada_canvas', async (req, res) => {
-    try {
-      console.log(JSON.stringify(req.body));
-      const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = req.body;
-
-      // Guardar ticket en BD
-      const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
-      await db_support.ticketsDB.create({
-        correlativo: parseInt(correlativo),
-        familia,
-        nombre_completo,
-        tipo,
-        jornada,
-        curso,
-        bloque: bloqueText,
-        num_listado: parseInt(num_listado) || 0,
-        total: parseInt(total) || 0,
-        fecha_generacion: new Date(),
-        usado: false
-      });
-      console.log(`[/api/generar_entrada_canvas] Ticket ${correlativo} guardado en BD`);
-
-      const buffer = await genEntradaCanvas(req.body);
-      res.set('Content-Type', 'image/png');
-      res.send(buffer);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Error generando entrada' });
-    }
-  });
 
 
 app.post('/api/enviarCodigo', express.json(), async (req, res) => {

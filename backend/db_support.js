@@ -10,6 +10,7 @@ if (fs.existsSync(localMockPath)) {
 const mongoose = require('mongoose');
 const test_api = require('./test_api');
 
+let dbUri = '';
 
 const hijoSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
@@ -200,39 +201,140 @@ const commerceOrderSchema = new mongoose.Schema({
   secuencia: { type: Number, default: 0 }
 });
 
-/*const CommerceOrders = mongoose.model('CommerceOrders', commerceOrderSchema);
+const perfilSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  rut: { type: String, required: true },
+  nombre_completo: { type: String, required: true },
+  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor'] },
+  activo: { type: Boolean, default: true },
+  fecha_creacion: { type: Date, default: Date.now }
+});
 
-module.exports = {
-  // ... tus otros modelos (pagosDB, compromisosPagoDB, etc.)
-  paymentOrdersDB: mongoose.model('PaymentOrders', paymentOrderSchema), 
-  commerceOrderDB: CommerceOrders 
-};*/
+const EventoSchema = new mongoose.Schema({
+  id_evento: { 
+    type: String, 
+    required: true, 
+    unique: true 
+  },
+  index_evento: { 
+    type: Number,
+    unique: true
+  },
+  total_entradas: { 
+    type: Number, 
+    default: 0 
+  },
+  nombre: { type: String, required: true },
+  fecha: { type: Date, required: true },
+  descripcion: { type: String },
+  lugar: { type: String },
+  tipo_evento: { type: String, enum: ['fiesta', 'bingo', 'otro'] },
+  hora_inicio: { type: String },
+  hora_termino: { type: String },
+  hora_apertura_puertas: { type: String },
+  entradas_disponibles: { type: Number, default: 0 },
+  entradas_vendidas: { type: Number, default: 0 },
+  entradas_usadas: { type: Number, default: 0 },
+  precio_entrada: { type: Number, default: 0 },
+  url_imagen: { type: String },
+  url_imagen_ticket: { type: String },
+  imagen_png: { type: Buffer },
+  imagen_ticket_png: { type: Buffer },
+  imagen_path: { type: String },
+  imagen_ticket_path: { type: String },
+  fecha_creacion: { type: Date, default: Date.now },
+  fecha_actualizacion: { type: Date, default: Date.now }
+});
 
-/*//const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
-const db_password = 'tPyw2Cvb2Hco8HM3'
-const db_user = 'lherreramena_db_user'
-//const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data`
-const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
-//const uri  = "mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data";
-// const db_msg = "old_data cluster"
+// Middleware para autoincrementar el index_evento globalmente
+EventoSchema.pre('save', async function (next) {
+  const doc = this;
+  if (doc.isNew) {
+    try {
+      // Usamos el modelo CommerceOrders como generador de secuencias generales
+      const secuenciaActualizada = await mongoose.model('CommerceOrders').findOneAndUpdate(
+        { id: 'secuencia_eventos_global' },
+        { $inc: { secuencia: 1 } },
+        { new: true, upsert: true }
+      );
+      doc.index_evento = secuenciaActualizada.secuencia;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  } else {
+    next();
+  }
+});
 
-mongoose.connect(db_uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-    console.log('Conexión exitosa a MongoDB Atlas');
-    test_api.lauch_test_api();
-  })
-.catch(err => console.error('Error de conexión:', err));
-*/
+const EventDB = mongoose.model('eventos', EventoSchema, 'eventos');
 
-async function connectToDB(year = '') {
+
+const ticketEventoSchema = new mongoose.Schema({
+  id_evento: { type: String, required: true },
+  folio: { type: Number, unique: true },
+  familia: { type: String, required: true },
+  nombre_completo: String,
+  tipo: String,
+  jornada: String,
+  curso: String,
+  bloque: String,
+  num_listado: Number,
+  total: Number,
+  fecha_generacion: { type: Date, default: Date.now },
+  usado: { type: Boolean, default: false },
+  fecha_uso: Date,
+  validado_por: String,
+  imagen_ticket: Buffer
+});
+
+// Forzamos que la combinación de id_evento y folio sea única en la BD
+ticketEventoSchema.index({ id_evento: 1, folio: 1 }, { unique: true });
+
+// Pre-save Middleware: Autogenerar el correlativo de forma atómica
+ticketEventoSchema.pre('save', async function (next) {
+  const doc = this;
+
+  // Solo generamos el correlativo si el documento es nuevo
+  if (doc.isNew) {
+    try {
+      const eventoActualizado = await EventDB.findOneAndUpdate(
+        { id_evento: doc.id_evento },
+        { $inc: { total_entradas: 1 } },
+        { 
+          new: true,      // Retorna el documento modificado (con el número ya incrementado)
+          upsert: false   // El evento debiera existir previamente; no queremos crear uno nuevo aquí
+        }
+      );
+
+      if (!eventoActualizado) {
+        return next(new Error(`El evento con id_evento '${doc.id_evento}' no existe.`));
+      }
+      
+      // Asignamos el número correlativo generado al ticket actual
+      doc.folio = eventoActualizado.total_entradas;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  } else {
+    next();
+  }
+});
+
+const TicketEvento = mongoose.model('TicketEvento', ticketEventoSchema);
+
+
+
+
+
+async function connectToDB(year = '', url_server = 'http://localhost:5001') {
   //return;
   const db_year = year ? `_${year}` : '';
   const db_password = 'tPyw2Cvb2Hco8HM3'
   const db_user = 'lherreramena_db_user'
   const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona${db_year}?retryWrites=true&w=majority&appName=old-data`
+  dbUri = db_uri;
   console.log(`Conectando a la base de datos url: ${db_uri}`);
   try {
     await mongoose.connect(db_uri, {
@@ -240,7 +342,7 @@ async function connectToDB(year = '') {
       useUnifiedTopology: true
     });
     console.log('Conexión exitosa a MongoDB Atlas');
-    test_api.lauch_test_api();
+    test_api.lauch_test_api(500, url_server, db_uri);
   } catch (err) {
     console.error('Error de conexión:', err);
   }
@@ -260,34 +362,10 @@ module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSc
 module.exports.compromisosPagoDB = mongoose.model('compromisosPagoApoderados', compromisosPagoSchema, 'compromisosPagoApoderados');
 module.exports.paymentOrdersDB = mongoose.model('paymentOrders', commerceSchema, 'paymentOrders');
 module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderSchema, 'CommerceOrders');
-
-const perfilSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  rut: { type: String, required: true },
-  nombre_completo: { type: String, required: true },
-  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor'] },
-  activo: { type: Boolean, default: true },
-  fecha_creacion: { type: Date, default: Date.now }
-});
-
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
-
-const ticketSchema = new mongoose.Schema({
-  correlativo: { type: Number, required: true },
-  familia: { type: String, required: true },
-  nombre_completo: String,
-  tipo: String,
-  jornada: String,
-  curso: String,
-  bloque: String,
-  num_listado: Number,
-  total: Number,
-  fecha_generacion: { type: Date, default: Date.now },
-  usado: { type: Boolean, default: false },
-  fecha_uso: Date,
-  validado_por: String
-});
-
-module.exports.ticketsDB = mongoose.model('tickets', ticketSchema, 'tickets');
+module.exports.EventDB = EventDB;
+module.exports.TicketEvento = TicketEvento;
+module.exports.dbUri = dbUri;
+//module.exports.ticketsDB = mongoose.model('tickets', ticketSchema, 'tickets');
 
 } // fin else (conexión Atlas)

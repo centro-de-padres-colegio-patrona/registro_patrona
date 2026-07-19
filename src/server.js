@@ -5,8 +5,12 @@ const session = require('express-session');
 const bcrypt = require('bcrypt');
 const CryptoJS = require("crypto-js");
 
-const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
-const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
+const config_env = require('./setup/config/env.js');
+
+//const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
+//const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
+const flow_api_key = config_env.FLOW_API_KEY;
+const flow_secret_key = config_env.FLOW_SECRET_KEY;
 
 const FlowApi = require('./flow_api');
 const flow = new FlowApi();
@@ -20,7 +24,7 @@ const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 
-const LOCAL_PORT = 5001;
+const LOCAL_PORT = config_env.LOCAL_PORT;
 const PORT = process.env.PORT || LOCAL_PORT;
 
 // Si corre en local usa ngrok para callbacks de pago, si no usa la URL de producción (Render)
@@ -28,7 +32,12 @@ const BASEURL = (PORT === LOCAL_PORT)
   ? 'https://unhappily-correct-squeeze.ngrok-free.dev'
   : 'https://registro-patrona.onrender.com';
 
+console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
+
+const database_year_name = config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');
+db_support.connectToDB(database_year_name);
+
 //const listado_cursos = require('./backend/listadoCurso');
 
 const path = require('path'); 
@@ -374,6 +383,11 @@ app.post('/api/update_apoderado_email', express.json(), async (req, res) => {
     const estudianteInfo = await db_support.hermanosMapDB.findOne(query);
     //console.log('estudianteInfo: ', estudianteInfo);
     //console.log('apoderado_email: ', estudianteInfo.apoderado_email);
+    if (estudianteInfo === undefined || estudianteInfo === null) {
+      // El estudiante no fue encontrado
+      console.log(`Estudiante no encontrado: ${full_name}`);
+      continue;
+    }
     const email_already_exists = estudianteInfo.apoderado_email.includes(email);
     if (!email_already_exists) {
       // Agregar Email.
@@ -738,8 +752,13 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
     }*/
     // Si no existe, podés crearlo o manejarlo como desees
     if (!user || user === undefined) {
-      console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
-      res.status(500).json({ error: 'Error user not found' });
+      if (req && req.user && req.user.emails && req.user.emails.length > 0) {
+        console.log(`Usuario ${req.user.emails[0].value} no encontrado`)
+        res.status(500).json({ error: 'Error req.user.emails[0].value not found' });
+    } else {
+        console.log(`Usuario ${user_email} no encontrado`)
+        res.status(500).json({ error: 'Error user not found' });
+      }
     } else {
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);

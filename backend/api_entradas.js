@@ -350,6 +350,9 @@ router.post('/eventos/crear', async (req, res) => {
       nombre,
       fecha: new Date(fecha),
       descripcion,
+      hora_inicio,
+      hora_termino,
+      hora_apertura_puertas,
       imagen_ticket_path
     });
 

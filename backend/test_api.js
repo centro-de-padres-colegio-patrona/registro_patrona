@@ -219,14 +219,16 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
           })
         });
         if (result_create.status !== 200) {
-          //log_result(tag, 'pass');
-        //} else {
-          log_result(tag, 'fail');
-          result = 'fail';
+          log_result(tag, 'can not create event');
         }
+        result = 'fail';
       }
     }
     console.log(`${tag} `, result);
+    if (result !== 'pass') {
+      log_result(tag, 'fail');
+      throw new Error('test_api_eventos failed. Events not found or created');
+    }
   } catch (error) {
     console.error(`${tag} Error :`, error);
     log_result(tag, 'fail');

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apoderados</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .page-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #4A90E2;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+
+    .card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus { border-color: #4A90E2; }
+
+    .search-bar button {
+      padding: 12px 20px;
+      background: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .search-bar button:hover { background: #357abd; }
+
+    .search-hint {
+      font-size: 0.78rem;
+      color: #999;
+      margin-bottom: 16px;
+    }
+
+    .resultado-count {
+      font-size: 0.82rem;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    .estado-msg {
+      font-size: 0.88rem;
+      color: #888;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* Card de apoderado */
+    .apoderado-card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #2ecc71;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .apoderado-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .apoderado-nombre {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .apoderado-correo {
+      font-size: 0.82rem;
+      color: #666;
+    }
+
+    .apoderado-rut {
+      font-size: 0.82rem;
+      color: #888;
+      background: #f0f0f0;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .seccion-titulo {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 14px 0 8px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 4px;
+    }
+
+    .padre-item, .hijo-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #f5f5f5;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .padre-item:last-child, .hijo-item:last-child { border-bottom: none; }
+
+    .item-nombre {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .item-detalle {
+      font-size: 0.78rem;
+      color: #888;
+    }
+
+    .badge-parentesco {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .badge-curso {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    @media screen and (max-width: 768px) {
+      body { padding: 12px; }
+
+      .search-bar {
+        flex-direction: column;
+      }
+
+      .search-bar button {
+        width: 100%;
+      }
+
+      .apoderado-header {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">👨‍👩‍👧 Apoderados</div>
+
+<div class="card">
+  <h3>Buscar por RUT, apellido o nombre</h3>
+  <div class="search-bar">
+    <input type="text" id="inp-busqueda" placeholder="Ej: Pérez, 12.345.678, González..." onkeydown="if(event.key==='Enter')buscar()">
+    <button onclick="buscar()">🔍 Buscar</button>
+  </div>
+  <p class="search-hint">Busca por RUT del apoderado, RUT del estudiante, apellido paterno o materno, o nombre</p>
+</div>
+
+<p class="resultado-count" id="resultado-count" style="display:none;"></p>
+<div id="resultados-container"></div>
+<p class="estado-msg" id="estado-msg"></p>
+
+<script>
+  async function buscar() {
+    const q = document.getElementById('inp-busqueda').value.trim();
+    const estadoMsg = document.getElementById('estado-msg');
+    const resultadoCount = document.getElementById('resultado-count');
+    const container = document.getElementById('resultados-container');
+
+    if (q.length < 2) {
+      estadoMsg.textContent = 'Ingrese al menos 2 caracteres';
+      estadoMsg.style.color = '#e74c3c';
+      return;
+    }
+
+    estadoMsg.textContent = 'Buscando...';
+    estadoMsg.style.color = '#888';
+    container.innerHTML = '';
+
+    try {
+      const res = await fetch(`/api/buscar_apoderados?q=${encodeURIComponent(q)}`);
+      const datos = await res.json();
+
+      if (!res.ok) {
+        estadoMsg.textContent = datos.error || 'Error en la búsqueda';
+        estadoMsg.style.color = '#e74c3c';
+        return;
+      }
+
+      if (datos.length === 0) {
+        estadoMsg.textContent = 'No se encontraron apoderados con esa búsqueda';
+        estadoMsg.style.color = '#e74c3c';
+        resultadoCount.style.display = 'none';
+        return;
+      }
+
+      estadoMsg.textContent = '';
+      resultadoCount.textContent = `${datos.length} apoderado(s) encontrado(s)`;
+      resultadoCount.style.display = 'block';
+
+      renderResultados(datos);
+
+    } catch (err) {
+      estadoMsg.textContent = 'Error de conexión';
+      estadoMsg.style.color = '#e74c3c';
+    }
+  }
+
+  function renderResultados(datos) {
+    const container = document.getElementById('resultados-container');
+    container.innerHTML = '';
+
+    datos.forEach(async (user, idx) => {
+      const card = document.createElement('div');
+      card.className = 'apoderado-card';
+      card.id = `apoderado-${idx}`;
+
+      // Info principal (primer padre con es_usuario_cuenta o el primero)
+      const padreMain = user.padres.find(p => p.es_usuario_cuenta) || user.padres[0];
+      const nombreCompleto = padreMain ? `${padreMain.nombre || ''} ${padreMain.apellido || ''}`.trim() : user.displayName || '—';
+      const correo = user.email || '—';
+
+      // Verificar estado de pago CPA
+      let pagoCpaHtml = '<span style="font-size:0.75rem; color:#888; background:#f0f0f0; padding:2px 8px; border-radius:12px;">Verificando...</span>';
+      
+      let html = `
+        <div class="apoderado-header">
+          <div>
+            <div class="apoderado-nombre">${nombreCompleto}</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span id="pago-cpa-${idx}">${pagoCpaHtml}</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button onclick='abrirEditar(${JSON.stringify(user).replace(/'/g, "&#39;")})' style="padding:4px 10px; background:#fff3cd; color:#856404; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;">Editar</button>
+            <button onclick="eliminarApoderado('${correo}')" style="padding:4px 10px; background:#f8d7da; color:#721c24; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;">Eliminar</button>
+          </div>
+        </div>
+      `;
+
+      // Sección padres
+      if (user.padres && user.padres.length > 0) {
+        html += `<div class="seccion-titulo">Padres / Apoderados</div>`;
+        html += `
+          <div class="padre-header" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #ddd; margin-bottom:4px;">
+            <span style="flex:2; font-size:0.72rem; font-weight:700; color:#888; text-transform:uppercase;">Nombre</span>
+            <span style="flex:2; font-size:0.72rem; font-weight:700; color:#888; text-transform:uppercase;">Correo</span>
+            <span style="flex:1; font-size:0.72rem; font-weight:700; color:#888; text-transform:uppercase; text-align:right;">Parentesco</span>
+          </div>
+        `;
+        user.padres.forEach(p => {
+          html += `
+            <div class="padre-item" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f5f5f5; flex-wrap:wrap; gap:4px;">
+              <span class="item-nombre" style="flex:2;">${p.nombre || ''} ${p.apellido || ''}</span>
+              <span class="item-detalle" style="flex:2; font-size:0.82rem; color:#666;">${p.correo || '—'}</span>
+              <span style="flex:1; text-align:right;"><span class="badge-parentesco">${p.parentesco || '—'}</span></span>
+            </div>
+          `;
+        });
+      }
+
+      // Sección hijos
+      if (user.hijos && user.hijos.length > 0) {
+        html += `<div class="seccion-titulo">Hijos/as en el colegio</div>`;
+        user.hijos.forEach(h => {
+          html += `
+            <div class="hijo-item">
+              <span class="item-nombre">${h.nombre || '—'}</span>
+              <span>
+                ${h.rut ? `<span class="item-detalle">${h.rut}</span>` : ''}
+                <span class="badge-curso">${h.curso || ''} ${h.seccion || ''}</span>
+              </span>
+            </div>
+          `;
+        });
+      }
+
+      card.innerHTML = html;
+      container.appendChild(card);
+
+      // Consultar estado de pago CPA por cada hijo
+      if (user.hijos && user.hijos.length > 0) {
+        try {
+          const res = await fetch(`/api/estado_pago_cpa?user_email=${encodeURIComponent(user.email)}`);
+          const pagos = await res.json();
+          const tieneCuotaCpa = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
+          const badge = document.getElementById(`pago-cpa-${idx}`);
+          if (badge) {
+            if (tieneCuotaCpa) {
+              badge.innerHTML = '<span style="font-size:0.75rem; font-weight:700; color:#2e7d32; background:#e8f5e9; padding:2px 10px; border-radius:12px;">✅ Cuota CPA Pagada</span>';
+            } else {
+              badge.innerHTML = '<span style="font-size:0.75rem; font-weight:700; color:#c0392b; background:#ffe0e0; padding:2px 10px; border-radius:12px;">❌ Cuota CPA Pendiente</span>';
+            }
+          }
+        } catch (err) {
+          const badge = document.getElementById(`pago-cpa-${idx}`);
+          if (badge) badge.innerHTML = '<span style="font-size:0.75rem; color:#888;">—</span>';
+        }
+      } else {
+        const badge = document.getElementById(`pago-cpa-${idx}`);
+        if (badge) badge.innerHTML = '<span style="font-size:0.75rem; color:#888;">Sin hijos</span>';
+      }
+    });
+  }
+
+  // --- Editar apoderado ---
+  let editandoUser = null;
+
+  async function abrirEditar(user) {
+    editandoUser = user;
+    const modal = document.getElementById('modal-editar-apo');
+    const contenido = document.getElementById('edit-apo-contenido');
+
+    let html = ``;
+
+    // Sección Cuota CPA
+    const hijosUser = user.hijos || [];
+    let cuotaCpaPagada = false;
+    if (hijosUser.length > 0) {
+      try {
+        const resPagos = await fetch(`/api/estado_pago_cpa?user_email=${encodeURIComponent(user.email)}`);
+        const pagosData = await resPagos.json();
+        cuotaCpaPagada = Array.isArray(pagosData) && pagosData.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
+      } catch (e) { console.error('Error consultando CPA:', e); }
+    }
+    html += `<div style="font-size:0.72rem;font-weight:700;color:#888;text-transform:uppercase;margin:0 0 8px;">Cuota CPA</div>`;
+    html += `
+      <div style="border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="edit-cuota-cpa" ${cuotaCpaPagada ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;">
+        <label for="edit-cuota-cpa" style="font-size:0.88rem;color:#333;cursor:pointer;">${cuotaCpaPagada ? '✅ Cuota Centro de Padres Pagada' : '❌ Cuota Centro de Padres Pendiente'}</label>
+      </div>
+    `;
+
+    // Padres editables
+    html += `<div style="font-size:0.72rem;font-weight:700;color:#888;text-transform:uppercase;margin:14px 0 8px;">Padres / Apoderados</div>`;
+    (user.padres || []).forEach((p, i) => {
+      html += `
+        <div style="border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:8px;">
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <input id="edit-p-nombre-${i}" value="${p.nombre || ''}" placeholder="Nombre" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;">
+            <input id="edit-p-apellido-${i}" value="${p.apellido || ''}" placeholder="Apellido" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;">
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <input id="edit-p-rut-${i}" value="${p.rut || ''}" placeholder="RUT" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;">
+            <select id="edit-p-parentesco-${i}" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;">
+              <option value="Padre" ${p.parentesco==='Padre'?'selected':''}>Padre</option>
+              <option value="Madre" ${p.parentesco==='Madre'?'selected':''}>Madre</option>
+              <option value="Apoderado" ${p.parentesco==='Apoderado'?'selected':''}>Apoderado</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input id="edit-p-correo-${i}" value="${p.correo || ''}" placeholder="Correo" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;" type="email">
+          </div>
+        </div>
+      `;
+    });
+
+    // Hijos editables
+    html += `<div style="font-size:0.72rem;font-weight:700;color:#888;text-transform:uppercase;margin:14px 0 8px;">Hijos/as</div>`;
+    (user.hijos || []).forEach((h, i) => {
+      html += `
+        <div style="border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:8px;" class="edit-hijo-block">
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <div style="flex:2;">
+              <label style="font-size:0.7rem;font-weight:600;color:#888;text-transform:uppercase;">Curso</label>
+              <select id="edit-h-curso-${i}" style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;" onchange="cargarNombresHijo(${i})">
+                <option value="">Seleccione</option>
+                <option value="Prekínder" ${h.curso==='Prekínder'?'selected':''}>Prekínder</option>
+                <option value="Kínder" ${h.curso==='Kínder'?'selected':''}>Kínder</option>
+                <option value="1° Básico" ${h.curso==='1° Básico'?'selected':''}>1° Básico</option>
+                <option value="2° Básico" ${h.curso==='2° Básico'?'selected':''}>2° Básico</option>
+                <option value="3° Básico" ${h.curso==='3° Básico'?'selected':''}>3° Básico</option>
+                <option value="4° Básico" ${h.curso==='4° Básico'?'selected':''}>4° Básico</option>
+                <option value="5° Básico" ${h.curso==='5° Básico'?'selected':''}>5° Básico</option>
+                <option value="6° Básico" ${h.curso==='6° Básico'?'selected':''}>6° Básico</option>
+                <option value="7° Básico" ${h.curso==='7° Básico'?'selected':''}>7° Básico</option>
+                <option value="8° Básico" ${h.curso==='8° Básico'?'selected':''}>8° Básico</option>
+                <option value="I° Medio" ${h.curso==='I° Medio'?'selected':''}>I° Medio</option>
+                <option value="II° Medio" ${h.curso==='II° Medio'?'selected':''}>II° Medio</option>
+                <option value="III° Medio" ${h.curso==='III° Medio'?'selected':''}>III° Medio</option>
+                <option value="IV° Medio" ${h.curso==='IV° Medio'?'selected':''}>IV° Medio</option>
+              </select>
+            </div>
+            <div style="flex:1;max-width:80px;">
+              <label style="font-size:0.7rem;font-weight:600;color:#888;text-transform:uppercase;">Sección</label>
+              <select id="edit-h-seccion-${i}" style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;" onchange="cargarNombresHijo(${i})">
+                <option value="A" ${h.seccion==='A'?'selected':''}>A</option>
+                <option value="B" ${h.seccion==='B'?'selected':''}>B</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:6px;">
+            <label style="font-size:0.7rem;font-weight:600;color:#888;text-transform:uppercase;">Nombre</label>
+            <select id="edit-h-nombre-${i}" style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;box-sizing:border-box;">
+              <option value="${h.nombre || ''}">${h.nombre || 'Seleccione'}</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;">
+              <label style="font-size:0.7rem;font-weight:600;color:#888;text-transform:uppercase;">RUT</label>
+              <input id="edit-h-rut-${i}" value="${h.rut || ''}" placeholder="RUT" style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.88rem;box-sizing:border-box;">
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    contenido.innerHTML = html;
+    document.getElementById('edit-apo-msg').textContent = '';
+    // Listener para actualizar label del checkbox CPA
+    const checkCpa = document.getElementById('edit-cuota-cpa');
+    if (checkCpa) {
+      checkCpa.addEventListener('change', function() {
+        const label = this.nextElementSibling;
+        if (this.checked) {
+          label.textContent = '✅ Cuota Centro de Padres Pagada';
+        } else {
+          label.textContent = '❌ Cuota Centro de Padres Pendiente';
+        }
+      });
+    }
+    // Cargar listas de nombres para cada hijo
+    await cargarNombresTodosHijos((user.hijos || []).length);
+    modal.style.display = 'flex';
+  }
+
+  function cerrarModalApo() {
+    document.getElementById('modal-editar-apo').style.display = 'none';
+    editandoUser = null;
+  }
+
+  async function guardarEdicionApo() {
+    if (!editandoUser) return;
+
+    // Recoger datos editados
+    const padres = (editandoUser.padres || []).map((p, i) => ({
+      ...p,
+      nombre: document.getElementById(`edit-p-nombre-${i}`).value.trim(),
+      apellido: document.getElementById(`edit-p-apellido-${i}`).value.trim(),
+      rut: document.getElementById(`edit-p-rut-${i}`).value.trim(),
+      parentesco: document.getElementById(`edit-p-parentesco-${i}`).value,
+      correo: document.getElementById(`edit-p-correo-${i}`).value.trim(),
+    }));
+
+    const hijos = (editandoUser.hijos || []).map((h, i) => ({
+      ...h,
+      nombre: document.getElementById(`edit-h-nombre-${i}`).value.trim() || h.nombre || '',
+      rut: document.getElementById(`edit-h-rut-${i}`).value.trim(),
+      curso: document.getElementById(`edit-h-curso-${i}`).value,
+      seccion: document.getElementById(`edit-h-seccion-${i}`).value,
+    }));
+
+    try {
+      // Guardar estado de cuota CPA
+      const cuotaCpaChecked = document.getElementById('edit-cuota-cpa')?.checked || false;
+      await fetch('/api/actualizar_cuota_cpa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: editandoUser.email, cuota_cpa: cuotaCpaChecked })
+      });
+
+      const res = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editandoUser, padres, hijos })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        const msg = document.getElementById('edit-apo-msg');
+        msg.textContent = '✅ Datos actualizados correctamente';
+        msg.style.color = '#2ecc71';
+        setTimeout(() => { cerrarModalApo(); buscar(); }, 1500);
+      } else {
+        const msg = document.getElementById('edit-apo-msg');
+        msg.textContent = '❌ Error al actualizar: ' + (data.error || 'desconocido');
+        msg.style.color = '#e74c3c';
+      }
+    } catch (err) {
+      const msg = document.getElementById('edit-apo-msg');
+      msg.textContent = '❌ Error: ' + err.message;
+      msg.style.color = '#e74c3c';
+    }
+  }
+
+  async function eliminarApoderado(email) {
+    if (!confirm(`¿Eliminar todos los datos del apoderado ${email}? Esta acción no se puede deshacer.`)) return;
+
+    try {
+      const res = await fetch(`/api/eliminar_apoderado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Apoderado eliminado correctamente');
+        buscar();
+      } else {
+        alert('Error: ' + (data.error || 'desconocido'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  // Cargar lista de nombres de alumnos para un hijo en el modal de edición
+  async function cargarNombresHijo(index) {
+    const curso = document.getElementById(`edit-h-curso-${index}`).value;
+    const seccion = document.getElementById(`edit-h-seccion-${index}`).value;
+    const nombreSelect = document.getElementById(`edit-h-nombre-${index}`);
+    const nombreActual = nombreSelect.value;
+
+    if (!curso || !seccion) return;
+
+    try {
+      const res = await fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`);
+      const alumnos = await res.json();
+      nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+      
+      // Si el nombre actual no está en la nueva lista, agregarlo como primera opción
+      if (nombreActual && !alumnos.includes(nombreActual)) {
+        const optActual = document.createElement('option');
+        optActual.value = nombreActual;
+        optActual.textContent = nombreActual + ' (actual)';
+        nombreSelect.appendChild(optActual);
+      }
+      
+      alumnos.forEach(nombre => {
+        const option = document.createElement('option');
+        option.value = nombre;
+        option.textContent = nombre;
+        nombreSelect.appendChild(option);
+      });
+      // Re-seleccionar el nombre actual
+      if (nombreActual) {
+        nombreSelect.value = nombreActual;
+      }
+    } catch (err) {
+      console.error('Error al cargar nombres:', err);
+    }
+  }
+
+  // Cargar nombres para todos los hijos al abrir el modal
+  async function cargarNombresTodosHijos(cantidadHijos) {
+    for (let i = 0; i < cantidadHijos; i++) {
+      await cargarNombresHijo(i);
+    }
+  }
+</script>
+
+<!-- Modal de edición -->
+<div id="modal-editar-apo" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this)cerrarModalApo()">
+  <div style="background:white; border-radius:14px; max-width:520px; width:100%; max-height:85vh; overflow-y:auto; padding:24px;" onclick="event.stopPropagation()">
+    <h3 style="font-size:0.85rem; font-weight:700; color:#888; text-transform:uppercase; margin-bottom:16px;">Editar Apoderado</h3>
+    <div id="edit-apo-contenido"></div>
+    <p id="edit-apo-msg" style="font-size:0.88rem; font-weight:600; margin:10px 0 0; min-height:20px;"></p>
+    <div style="display:flex; gap:12px; margin-top:12px;">
+      <button onclick="guardarEdicionApo()" style="flex:1; padding:12px; background:#4A90E2; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Guardar</button>
+      <button onclick="cerrarModalApo()" style="flex:1; padding:12px; background:#95a5a6; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

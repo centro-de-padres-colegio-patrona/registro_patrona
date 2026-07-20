@@ -253,9 +253,25 @@
       })
       .then(user => {
         currentUser = user.user;
+        console.log('[mis_datos] Hijos recibidos:', JSON.stringify(currentUser.hijos));
+        console.log('[mis_datos] Padres recibidos:', JSON.stringify(currentUser.padres));
+        
+        // Ocultar loading
+        document.getElementById('loading-state').style.display = 'none';
+        // Mostrar formulario
+        document.getElementById('registro-form').style.display = 'block';
+        
         fillUserInfo(currentUser);
-        console.log('Datos del usuario:', user); // Útil para debugging
-        actualizarLabelCompletitud();
+        console.log('Datos del usuario:', user);
+        
+        // Si tiene datos (heredados o propios con hijos), ocultar el label
+        const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
+        if (currentUser.datosHeredados || tieneHijos) {
+          document.getElementById('completitudLabel').style.display = 'none';
+          window._ocultarCompletitud = true;
+        } else {
+          actualizarLabelCompletitud();
+        }
         mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
         addBrothers();
         
@@ -270,6 +286,10 @@
       .catch(error => {
         console.log('Fue ingresado manual:', error);
         
+          // Ocultar loading
+          document.getElementById('loading-state').style.display = 'none';
+          document.getElementById('registro-form').style.display = 'block';
+
           const params = new URLSearchParams(window.location.search);
           const username = params.get('username');
           const correoManual = params.get('correoManual');
@@ -286,11 +306,16 @@
 
   <h2>Mis Datos</h2>
 
-  <div id="completitudLabel" style="display: none; color: #dc3545; font-weight: bold; margin-bottom: 15px; text-align: center; background-color: #f8d7da; padding: 8px; border-radius: 5px; border: 1px solid #f5c6cb;">
-      ⚠️ Faltan datos por completar
+  <!-- Estado de carga -->
+  <div id="loading-state" style="text-align:center; padding:40px; color:#666; font-size:1rem;">
+    ⏳ Cargando datos...
   </div>
 
-  <form id="registro-form">
+  <div id="completitudLabel" style="display: none; color: #dc3545; font-weight: bold; margin-bottom: 15px; text-align: center; background-color: #f8d7da; padding: 8px; border-radius: 5px; border: 1px solid #f5c6cb;">
+      ⚠️ Faltan datos por completar. Debe ingresar los datos de los apoderados e hijos.
+  </div>
+
+  <form id="registro-form" style="display:none;">
   <!-- Sección Reporte -->
 
   <div id="jornadas-container"></div>
@@ -344,6 +369,9 @@
         </div>
         <button type="button" class="btn-eliminar-child btn-danger-outline">
           🗑 Eliminar
+        </button>
+        <button type="button" class="btn-modificar-child" style="background:transparent; color:#4A90E2; border:1.5px solid #4A90E2; padding:6px 14px; border-radius:7px; font-size:0.85rem; cursor:pointer; margin-top:4px; margin-left:8px;">
+          ✏️ Modificar
         </button>
       </div>
     </div>
@@ -399,6 +427,9 @@
         </div>
         <button type="button" class="btn-eliminar-parent btn-danger-outline">
           🗑 Eliminar
+        </button>
+        <button type="button" class="btn-modificar-parent" style="background:transparent; color:#4A90E2; border:1.5px solid #4A90E2; padding:6px 14px; border-radius:7px; font-size:0.85rem; cursor:pointer; margin-top:4px; margin-left:8px;">
+          ✏️ Modificar
         </button>
       </div>
     </div>
@@ -509,6 +540,36 @@
       const parentSection = document.getElementById('parent-section');
 
       childrenSection.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-modificar-child')) {
+          const childForm = e.target.closest('.child-form');
+          childForm.querySelector("select[name='childCourse[]']").disabled = false;
+          childForm.querySelector("select[name='childSeccion[]']").disabled = false;
+          childForm.querySelector("select[name='childName[]']").disabled = false;
+          
+          // Cargar la lista de nombres del curso/sección actual
+          const curso = childForm.querySelector("select[name='childCourse[]']").value;
+          const seccion = childForm.querySelector("select[name='childSeccion[]']").value;
+          const nombreSelect = childForm.querySelector("select[name='childName[]']");
+          const nombreActual = nombreSelect.value;
+          
+          if (curso && seccion) {
+            fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
+              .then(res => res.json())
+              .then(alumnos => {
+                nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+                alumnos.forEach(nombre => {
+                  const option = document.createElement('option');
+                  option.value = nombre;
+                  option.textContent = nombre;
+                  nombreSelect.appendChild(option);
+                });
+                nombreSelect.value = nombreActual;
+              })
+              .catch(err => console.error('Error al cargar nombres:', err));
+          }
+          
+          e.target.style.display = 'none';
+        }
         if (e.target.classList.contains('btn-eliminar-child')) {
           const childForms = childrenSection.querySelectorAll('.child-form');
           childForm = e.target.closest('.child-form');
@@ -571,6 +632,11 @@
         actualizarLabelCompletitud();
       });
       parentSection.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-modificar-parent')) {
+          const parentForm = e.target.closest('.parent-form');
+          parentForm.querySelectorAll('input, select').forEach(el => el.disabled = false);
+          e.target.style.display = 'none';
+        }
         if (e.target.classList.contains('btn-eliminar-parent')) {
           const parentForms = parentSection.querySelectorAll('.parent-form');
           const parentForm = e.target.closest('.parent-form');
@@ -717,6 +783,14 @@
 
     function actualizarLabelCompletitud() {
         const label = document.getElementById('completitudLabel');
+        const form = document.getElementById('registro-form');
+        // No mostrar nunca si ya se determinó que tiene datos
+        if (window._ocultarCompletitud) {
+            label.style.display = 'none';
+            return;
+        }
+        // No mostrar si el formulario aún no es visible (cargando)
+        if (!form || form.style.display === 'none') return;
         if (verificarDatosCompletos()) {
             label.style.display = 'none';
         } else {
@@ -813,13 +887,32 @@
         return;
       }
 
+      // Función para resolver el valor correcto del select de curso
+      function resolverCurso(cursoRaw) {
+        if (!cursoRaw) return '';
+        // Si es código corto, usar reverse_curso_map
+        if (reverse_curso_map[cursoRaw]) return reverse_curso_map[cursoRaw];
+        // Si ya es un valor válido del select, retornar directo
+        const opcionesValidas = ["Prekínder","Kínder","1° Básico","2° Básico","3° Básico","4° Básico","5° Básico","6° Básico","7° Básico","8° Básico","I° Medio","II° Medio","III° Medio","IV° Medio"];
+        if (opcionesValidas.includes(cursoRaw)) return cursoRaw;
+        // Normalizar para comparación sin tildes
+        const normalizar = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const cursoNorm = normalizar(cursoRaw);
+        const match = opcionesValidas.find(op => normalizar(op) === cursoNorm);
+        if (match) return match;
+        return cursoRaw;
+      }
+
       hijos.forEach(async (hijo, index) => {
         // Clona si no es el primero
         const form = index === 0 ? baseForm : baseForm.cloneNode(true);
         if (index > 0) section.appendChild(form);
 
+        // Determinar el valor largo del curso (puede venir como código corto o largo)
+        const cursoLargo = resolverCurso(hijo.curso);
+
         // Asigna valores
-        form.querySelector("select[name='childCourse[]']").value = hijo.curso;
+        form.querySelector("select[name='childCourse[]']").value = cursoLargo;
         form.querySelector("select[name='childSeccion[]']").value = hijo.seccion;
         const {rut, is_valid} = validarRutChile(hijo.rut || '');
         form.querySelector("input[name='childRut[]']").value = rut || '';
@@ -836,12 +929,21 @@
         rut_status[hijo.nombre] = {rut, is_valid};
 
         // Simula llamada a API para cargar nombres válidos
-        if (hijo.curso && hijo.seccion) {
-          fetch(`/api/alumnos?curso=${encodeURIComponent(hijo.curso)}&seccion=${encodeURIComponent(hijo.seccion)}`)
+        if (cursoLargo && hijo.seccion) {
+          fetch(`/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`)
             .then(res => res.json())
             .then(alumnos => {
               const nombreSelect = form.querySelector("select[name='childName[]']");
               nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+              
+              // Si el hijo tiene nombre y no está en la lista, agregarlo primero
+              if (hijo.nombre && !alumnos.includes(hijo.nombre)) {
+                const optActual = document.createElement('option');
+                optActual.value = hijo.nombre;
+                optActual.textContent = hijo.nombre;
+                nombreSelect.appendChild(optActual);
+              }
+              
               alumnos.forEach(nombre => {
                 const option = document.createElement('option');
                 option.value = nombre;
@@ -849,22 +951,27 @@
                 nombreSelect.appendChild(option);
               });
 
-              // Selecciona el nombre si está en la lista
-              nombreSelect.value = hijo.nombre;
+              // Selecciona el nombre del hijo
+              if (hijo.nombre) {
+                nombreSelect.value = hijo.nombre;
+              }
             })
             .catch(err => console.error('Error al cargar nombres:', err));
         }
         const nombreSelect = form.querySelector("select[name='childName[]']");
         nombreSelect.innerHTML = '<option value="">Seleccione</option>';
-        const option = document.createElement('option');
-        option.value = hijo.nombre;
-        option.textContent = hijo.nombre;
-        nombreSelect.appendChild(option);
-        nombreSelect.value = hijo.nombre;
+        if (hijo.nombre) {
+          const option = document.createElement('option');
+          option.value = hijo.nombre;
+          option.textContent = hijo.nombre;
+          nombreSelect.appendChild(option);
+          nombreSelect.value = hijo.nombre;
+        }
 
-        if (hijo.nombre && hijo.curso && hijo.seccion) {
+        if (hijo.nombre && cursoLargo && hijo.seccion) {
           form.querySelector("select[name='childCourse[]']").disabled = true;
           form.querySelector("select[name='childSeccion[]']").disabled = true;
+          form.querySelector("select[name='childName[]']").disabled = true;
         }
       });
     }

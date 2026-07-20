@@ -249,11 +249,13 @@
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
         { label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'actividades_eventos.html' },
-        { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
+        // { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
         { label: '---', url: '' },
-        { label: '⚙ Mantenedores', url: 'mantenedores.html' },
+        { label: '::Mantenedores', url: '' },
+        { label: '👤 Perfiles', url: 'mantenedores.html' },
+        { label: '👨‍👩‍👧 Apoderados', url: 'apoderados.html' },
       ],
       apoderado: [
         { label: '📋 Mis datos', url: 'mis_datos.html' },
@@ -284,6 +286,13 @@
           container.appendChild(hr);
           continue;
         }
+        if (item.label.startsWith('::')) {
+          const title = document.createElement('span');
+          title.textContent = item.label.slice(2);
+          title.style.cssText = 'display:block; padding:4px 10px; font-size:0.7rem; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px;';
+          container.appendChild(title);
+          continue;
+        }
         const btn = document.createElement('button');
         btn.textContent = item.label;
         btn.setAttribute('data-url', item.url);
@@ -298,7 +307,8 @@
         mobileTabs.innerHTML = '';
         for (let i = 0; i < menus.length; i++) {
           const item = menus[i];
-          if (item.label === '---') continue; // No mostrar separador en mobile tabs
+          if (item.label === '---') continue;
+          if (item.label.startsWith('::')) continue;
           const btn = document.createElement('button');
           btn.textContent = item.label;
           btn.style.cssText = 'flex-shrink:0; padding:10px 14px; background:transparent; border:none; border-bottom:3px solid transparent; color:rgba(255,255,255,0.6); font-size:0.82rem; font-weight:600; cursor:pointer; white-space:nowrap;';
@@ -332,10 +342,12 @@
           const user = data.user;
           correo = user?.email || '';
           if (user?.padres && user.padres.length > 0) {
-            const p = user.padres[0];
-            nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+            const p = user.padres.find(pa => pa.es_usuario_cuenta) || user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase());
+            if (p) {
+              nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+            }
           }
-          if (!nombreCompleto) nombreCompleto = user?.displayName || '';
+          if (!nombreCompleto) nombreCompleto = data.req?.displayName || user?.displayName || '';
         }
       } catch (err) {
         console.log('Usuario no autenticado por Google, usando URL param');
@@ -349,7 +361,7 @@
             const data = await resManual.json();
             const user = data.user;
             if (user?.padres && user.padres.length > 0) {
-              const p = user.padres[0];
+              const p = user.padres.find(pa => pa.es_usuario_cuenta) || user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres[0];
               nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
             }
             if (!nombreCompleto) nombreCompleto = user?.displayName || '';

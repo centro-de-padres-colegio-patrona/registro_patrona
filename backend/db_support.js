@@ -208,11 +208,12 @@ module.exports = {
   commerceOrderDB: CommerceOrders 
 };*/
 
-/*//const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
+//const uri = "mongodb+srv://centrodepadres:HGnFAObh72WfE5Sv@cluster0.fkoa22c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=Cluster0"
 const db_password = 'tPyw2Cvb2Hco8HM3'
 const db_user = 'lherreramena_db_user'
 //const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data`
-const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
+//const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
+const db_uri = `mongodb://${db_user}:${db_password}@ac-chgm3sd-shard-00-00.g2qp95c.mongodb.net:27017,ac-chgm3sd-shard-00-01.g2qp95c.mongodb.net:27017,ac-chgm3sd-shard-00-02.g2qp95c.mongodb.net:27017/cpa_patrona?tls=true&authSource=admin&retryWrites=true&w=majority`;
 //const uri  = "mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data";
 // const db_msg = "old_data cluster"
 
@@ -225,29 +226,8 @@ mongoose.connect(db_uri, {
     test_api.lauch_test_api();
   })
 .catch(err => console.error('Error de conexión:', err));
-*/
-
-async function connectToDB(year = '') {
-  //return;
-  const db_year = year ? `_${year}` : '';
-  const db_password = 'tPyw2Cvb2Hco8HM3'
-  const db_user = 'lherreramena_db_user'
-  const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona${db_year}?retryWrites=true&w=majority&appName=old-data`
-  console.log(`Conectando a la base de datos url: ${db_uri}`);
-  try {
-    await mongoose.connect(db_uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-    console.log('Conexión exitosa a MongoDB Atlas');
-    test_api.lauch_test_api();
-  } catch (err) {
-    console.error('Error de conexión:', err);
-  }
-}
 
 //module.exports = mongoose.model('users', userSchema);
-module.exports.connectToDB = connectToDB;
 
 module.exports.usersDB = mongoose.model('users', userSchema);
 module.exports.listadoCursosDB = mongoose.model('listado_cursos', cursoSchema);

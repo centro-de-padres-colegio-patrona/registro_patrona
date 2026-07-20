@@ -192,7 +192,7 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
       imagen_ticket_path: `./img/ticket_bingo_familiar_2026.jpg`
     }
   }
-  let result = 'pass';
+  let test_result = 'pass';
   try {
     for (const [id_evento, eventoData] of Object.entries(eventos_map)) {
       //const id_evento = 'fiesta_chilena_2026';
@@ -221,11 +221,11 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
         if (result_create.status !== 200) {
           log_result(tag, 'can not create event');
         }
-        result = 'fail';
+        test_result = 'fail';
       }
     }
-    console.log(`${tag} `, result);
-    if (result !== 'pass') {
+    console.log(`${tag} `, test_result);
+    if (test_result !== 'pass') {
       log_result(tag, 'fail');
       throw new Error('test_api_eventos failed. Events not found or created');
     }

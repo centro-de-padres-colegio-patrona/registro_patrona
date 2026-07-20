@@ -28,13 +28,14 @@ function colores_to_bloques(colores) {
 }
 
 
-async function genEntrada({ familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
+async function genEntrada({ nombre_evento, amilia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
   const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
   const serial = `${correlativo}/${total}`;
-  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colores_to_bloques(colores).join('/'))}&num_listado=${num_listado}&total=${total}`;
+  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${encodeURIComponent(amilia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colores_to_bloques(colores).join('/'))}&num_listado=${num_listado}&total=${total}`;
 
-  const fondo = await Jimp.read('./img/fondo_entrada.png');
+  const fondo_path = `./img/${nombre_evento}.png`;
+  const fondo = await Jimp.read(fondo_path);
   const qr = await QRCode.toBuffer(qrData, { width: 215 });
 
   const qrImage = await Jimp.read(qr);

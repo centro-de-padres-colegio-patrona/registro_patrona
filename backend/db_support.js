@@ -212,7 +212,8 @@ module.exports = {
 const db_password = 'tPyw2Cvb2Hco8HM3'
 const db_user = 'lherreramena_db_user'
 //const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data`
-const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
+//const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona?retryWrites=true&w=majority&appName=old-data`
+const db_uri = `mongodb://${db_user}:${db_password}@ac-chgm3sd-shard-00-00.g2qp95c.mongodb.net:27017,ac-chgm3sd-shard-00-01.g2qp95c.mongodb.net:27017,ac-chgm3sd-shard-00-02.g2qp95c.mongodb.net:27017/cpa_patrona?tls=true&authSource=admin&retryWrites=true&w=majority`;
 //const uri  = "mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/?appName=old-data";
 // const db_msg = "old_data cluster"
 

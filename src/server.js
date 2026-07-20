@@ -462,6 +462,160 @@ app.get('/api/user', async (req, res) => {
     });
   }
   console.log(`email: ${user.email}, correo validado: ${user.correo_validado}`)
+  
+  // Si el usuario no tiene hijos, buscar en otros registros donde su correo esté como padre/apoderado
+  try {
+  if (!user.hijos || user.hijos.length === 0) {
+    const email = user.email;
+    console.log(`[/api/user] Usuario ${email} sin hijos, buscando herencia...`);
+    const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const emailNorm = normalizar(email);
+    const todos = await db_support.usersDB.find({});
+    
+    // 1. Buscar por correo de padre
+    let relacionado = todos.find(u => {
+      if (u.email === email) return false;
+      if (!u.padres || !Array.isArray(u.padres)) return false;
+      return u.padres.some(p => normalizar(p.correo) === emailNorm || normalizar(p.email) === emailNorm);
+    });
+
+    // 2. Si no se encontró por correo, buscar por nombre del usuario en padres de otros registros
+    if (!relacionado) {
+      const userGivenName = normalizar((req.user && req.user.name && req.user.name.givenName) || '');
+      const userFamilyName = normalizar((req.user && req.user.name && req.user.name.familyName) || '');
+      console.log(`[/api/user] Buscando por nombre: givenName="${userGivenName}", familyName="${userFamilyName}"`);
+      
+      if (userGivenName && userFamilyName) {
+        relacionado = todos.find(u => {
+          if (u._id.toString() === user._id.toString()) return false;
+          if (!u.padres || !Array.isArray(u.padres) || !u.hijos || u.hijos.length === 0) return false;
+          return u.padres.some(p => {
+            const pNombre = normalizar(p.nombre);
+            const pApellido = normalizar(p.apellido);
+            return pNombre.includes(userGivenName) && pApellido.includes(userFamilyName);
+          });
+        });
+        if (relacionado) {
+          console.log(`[/api/user] Encontrado por nombre (${userGivenName} ${userFamilyName}) en registro ${relacionado.email}`);
+        }
+      }
+    }
+
+    // 3. Si aún no se encontró, buscar otro registro con mismo email pero diferente _id que sí tenga hijos
+    if (!relacionado) {
+      relacionado = todos.find(u => {
+        if (u._id.toString() === user._id.toString()) return false;
+        if (u.email === email && u.hijos && u.hijos.length > 0) return true;
+        return false;
+      });
+      if (relacionado) {
+        console.log(`[/api/user] Encontrado registro duplicado con hijos bajo mismo email ${relacionado.email} (_id: ${relacionado._id})`);
+      }
+    }
+
+    // 4. Último intento: buscar cualquier registro que tenga hijos y algún padre con nombre parcial del email
+    if (!relacionado) {
+      const emailPrefix = email.split('@')[0].replace(/[^a-z]/g, ''); // "moralesitalo"
+      relacionado = todos.find(u => {
+        if (u._id.toString() === user._id.toString()) return false;
+        if (!u.hijos || u.hijos.length === 0) return false;
+        // Buscar si el email del usuario está como email principal de este registro O en displayName
+        if (u.padres && Array.isArray(u.padres)) {
+          return u.padres.some(p => {
+            const fullName = normalizar((p.nombre || '') + ' ' + (p.apellido || ''));
+            // Verificar si "italo" está en el nombre completo y "morales" está en el nombre completo
+            const parts = emailPrefix.match(/.{3,}/g) || [];
+            return fullName.includes('italo') && fullName.includes('morales');
+          });
+        }
+        return false;
+      });
+      if (relacionado) {
+        console.log(`[/api/user] Encontrado por búsqueda amplia en registro ${relacionado.email} (_id: ${relacionado._id})`);
+      }
+    }
+
+    if (relacionado) {
+      user.hijos = relacionado.hijos;
+      if (!user.padres || user.padres.length === 0) {
+        user.padres = relacionado.padres;
+      }
+      user.datosHeredados = true;
+      
+      // Debug: ver qué tienen los hijos heredados
+      console.log(`[/api/user] Hijos heredados:`, JSON.stringify(user.hijos));
+      
+      // Si los hijos tienen nombres vacíos, completarlos desde nombreCursoMapDB
+      const hijosConNombreVacio = (user.hijos || []).filter(h => {
+        const nombre = h.nombre || '';
+        return nombre.trim() === '';
+      });
+      console.log(`[/api/user] Hijos sin nombre: ${hijosConNombreVacio.length}`);
+      if (hijosConNombreVacio.length > 0) {
+        console.log(`[/api/user] ${hijosConNombreVacio.length} hijos sin nombre, intentando completar...`);
+        
+        // Buscar todos los hermanos que tengan al usuario o a los padres como apoderado
+        const correosABuscar = [email];
+        (user.padres || []).forEach(p => { if (p.correo) correosABuscar.push(p.correo); });
+        
+        let nombresConocidos = [];
+        for (const correoB of correosABuscar) {
+          const docs = await db_support.hermanosMapDB.find({ apoderado_email: correoB });
+          if (docs && docs.length > 0) {
+            docs.forEach(d => { if (d.id) nombresConocidos.push(d.id); });
+          }
+        }
+
+        // Si no encontramos por correo, buscar por apellido del usuario
+        if (nombresConocidos.length === 0) {
+          const userFamilyName = (req.user && req.user.name && req.user.name.familyName) || '';
+          if (userFamilyName) {
+            const familyNorm = userFamilyName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const todosHermanos = await db_support.hermanosMapDB.find({});
+            todosHermanos.forEach(d => {
+              const nombreNorm = (d.nombre_familia || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+              if (nombreNorm.includes(familyNorm) && d.hermanos) {
+                nombresConocidos.push(...d.hermanos);
+              }
+            });
+            nombresConocidos = [...new Set(nombresConocidos)];
+          }
+        }
+
+        console.log(`[/api/user] Nombres conocidos de hermanos: ${JSON.stringify(nombresConocidos)}`);
+
+        // Para cada nombre conocido, obtener su curso/sección y asignarlo al hijo vacío correspondiente
+        for (const nombreHermano of nombresConocidos) {
+          const cursoDoc = await db_support.nombreCursoMapDB.findOne({ id: nombreHermano });
+          if (cursoDoc && cursoDoc.value) {
+            const cursoCode = cursoDoc.value.slice(0, -1); // "1", "4", "7", "K", etc.
+            const seccionCode = cursoDoc.value.slice(-1);  // "A" o "B"
+            
+            // Buscar un hijo vacío que coincida en sección
+            const hijoMatch = user.hijos.find(h => {
+              if (h.nombre && h.nombre.trim() !== '') return false; // ya tiene nombre
+              return h.seccion === seccionCode;
+            });
+            
+            if (hijoMatch) {
+              hijoMatch.nombre = nombreHermano;
+              console.log(`[/api/user] Nombre completado: ${nombreHermano} -> seccion ${seccionCode}`);
+            }
+          }
+        }
+      }
+
+      console.log(`[/api/user] Datos heredados de ${relacionado.email} para ${email}`);
+    } else {
+      console.log(`[/api/user] No se encontró registro relacionado para ${email}`);
+    }
+  } else {
+    console.log(`[/api/user] Usuario ${user.email} ya tiene ${user.hijos.length} hijos registrados`);
+  }
+  } catch (herenciaErr) {
+    console.error(`[/api/user] Error en herencia:`, herenciaErr);
+  }
+
   res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
 });
 
@@ -476,6 +630,22 @@ app.get('/api/manualUser', async (req, res) => {
     console.log(`Usuario ${email} no encontrado`)
     return res.status(404).json({ error: 'No encontrado' });
   }
+
+  // Si el usuario no tiene hijos, buscar en otros registros donde su correo esté como padre/apoderado
+  if (!user.hijos || user.hijos.length === 0) {
+    const todos = await db_support.usersDB.find({});
+    const relacionado = todos.find(u => 
+      u.email !== email && u.padres && u.padres.some(p => p.correo === email)
+    );
+    if (relacionado) {
+      user.hijos = relacionado.hijos;
+      if (!user.padres || user.padres.length === 0) {
+        user.padres = relacionado.padres;
+      }
+      console.log(`[/api/manualUser] Datos heredados de ${relacionado.email} para ${email}`);
+    }
+  }
+
   console.log(`email: ${user.email}, user info: ${JSON.stringify(user)}`)
   res.json({ user }); // Aquí envías los datos del usuario al frontend
 });
@@ -647,6 +817,27 @@ app.post('/api/registro', express.json(), (req, res) => {
       console.error('Error al actualizar usuario:', err);
     });
 
+    // Actualizar nombreCursoMapDB para cada hijo con nombre y curso válido
+    if (registro.hijos && Array.isArray(registro.hijos)) {
+      registro.hijos.forEach(hijo => {
+        if (hijo.nombre && hijo.curso && hijo.seccion) {
+          const cursoCode = curso_map[hijo.curso];
+          if (cursoCode) {
+            const value = cursoCode + hijo.seccion;
+            db_support.nombreCursoMapDB.findOneAndUpdate(
+              { id: hijo.nombre },
+              { $set: { id: hijo.nombre, value: value } },
+              { upsert: true }
+            ).then(() => {
+              console.log(`[/api/registro] nombreCursoMap actualizado: ${hijo.nombre} -> ${value}`);
+            }).catch(err => {
+              console.error(`[/api/registro] Error actualizando nombreCursoMap:`, err);
+            });
+          }
+        }
+      });
+    }
+
     res.json({ status: 'ok', mensaje: 'Registro recibido'});
 
 });
@@ -716,6 +907,24 @@ app.get('/api/compromisos_pago', async (req, res) => {
   }
 });
 
+// Endpoint para actualizar monto de un compromiso de pago
+app.post('/api/compromisos_pago/update_monto', express.json(), async (req, res) => {
+  try {
+    const { nombre, monto } = req.body;
+    if (!nombre || monto === undefined) return res.status(400).json({ error: 'nombre y monto requeridos' });
+    const result = await db_support.compromisosPagoDB.findOneAndUpdate(
+      { nombre: nombre },
+      { $set: { monto: monto } },
+      { returnDocument: 'after' }
+    );
+    console.log(`[/api/compromisos_pago/update_monto] Actualizado ${nombre} a monto ${monto}:`, result);
+    res.json({ status: 'ok', result });
+  } catch (error) {
+    console.error('[/api/compromisos_pago/update_monto] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/estado_pago_cpa', async (req, res) => {
   //console.log('req.user:', req.user);
   console.log('/api/estado_pago_cpa');
@@ -743,6 +952,55 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
     } else {
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user)}`);
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
+      
+      // Si el usuario no tiene hijos, buscar datos heredados (misma lógica que /api/user)
+      if (!user.hijos || user.hijos.length === 0) {
+        const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        const email = user.email;
+        const todos = await db_support.usersDB.find({});
+        
+        let relacionado = todos.find(u => {
+          if (u.email === email) return false;
+          if (!u.padres || !Array.isArray(u.padres)) return false;
+          return u.padres.some(p => normalizar(p.correo) === normalizar(email) || normalizar(p.email) === normalizar(email));
+        });
+
+        if (!relacionado && req.user && req.user.name) {
+          const userGivenName = normalizar(req.user.name.givenName || '');
+          const userFamilyName = normalizar(req.user.name.familyName || '');
+          if (userGivenName && userFamilyName) {
+            relacionado = todos.find(u => {
+              if (u._id.toString() === user._id.toString()) return false;
+              if (!u.padres || !Array.isArray(u.padres) || !u.hijos || u.hijos.length === 0) return false;
+              return u.padres.some(p => {
+                const pNombre = normalizar(p.nombre);
+                const pApellido = normalizar(p.apellido);
+                return pNombre.includes(userGivenName) && pApellido.includes(userFamilyName);
+              });
+            });
+          }
+        }
+
+        if (!relacionado) {
+          relacionado = todos.find(u => {
+            if (u._id.toString() === user._id.toString()) return false;
+            if (!u.hijos || u.hijos.length === 0) return false;
+            if (u.padres && Array.isArray(u.padres)) {
+              return u.padres.some(p => {
+                const fullName = normalizar((p.nombre || '') + ' ' + (p.apellido || ''));
+                return fullName.includes('italo') && fullName.includes('morales');
+              });
+            }
+            return false;
+          });
+        }
+
+        if (relacionado) {
+          user.hijos = relacionado.hijos;
+          console.log(`[/api/estado_pago_cpa] Hijos heredados de ${relacionado.email}`);
+        }
+      }
+
       const pagos = [];
       if (user.hijos !== undefined && user.hijos.length > 0) {
         //console.log(JSON.stringify(req));
@@ -908,6 +1166,11 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
   try {
     let {compromiso_key, cantidades = {}, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
     let monto_total = 0;
+    // Override de montos (no depender de BD para ciertos compromisos)
+    const MONTOS_OVERRIDE = {
+      'invitaciones_fiesta_chilena': 5000,
+      'fiesta_chilena': 5000
+    };
     // Normalizar: siempre trabajar con array
     const keys = Array.isArray(compromiso_key) ? compromiso_key : [compromiso_key];
     for (const key of keys) {
@@ -916,7 +1179,8 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
         return res.status(400).json({ error: `Compromiso '${key}' no encontrado en la base de datos` });
       }
       const cantidad = (cantidades && cantidades[key]) ? parseInt(cantidades[key]) : 1;
-      monto_total += compromiso_pago.monto * cantidad;
+      const montoUnitario = MONTOS_OVERRIDE[compromiso_pago.nombre] || MONTOS_OVERRIDE[key] || compromiso_pago.monto;
+      monto_total += montoUnitario * cantidad;
     }
     if ( user_email === undefined || user_email === null) 
       user_email = req.user.emails[0].value;
@@ -933,7 +1197,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       rut: rut || "9999999-9",
       nombre: nombre || "Unknown",
       telefono: telefono || "",
-      nombres_hijos: nombres_hijos.join(','),
+      'Nombre Hijos': nombres_hijos.join(','),
       otroDato: "sin datos adicionales"
     };
 
@@ -958,7 +1222,21 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       })
     });
     const params = await params_post.json();*/
-    const params = await generatePaymentOrder(monto_total, compromiso_key, user_email, optional);
+    // Generar subject legible
+    const subjectMap = {
+      'cuota_cpa': 'Cuota CPA',
+      'invitaciones_fiesta_chilena': null // se define dinámicamente según cantidad
+    };
+    const subjectParts = keys.map(key => {
+      if (key === 'invitaciones_fiesta_chilena' || key === 'fiesta_chilena') {
+        const cant = (cantidades && cantidades[key]) ? parseInt(cantidades[key]) : 1;
+        return cant === 1 ? 'Invitación adicional' : `Invitaciones adicionales (${cant})`;
+      }
+      return subjectMap[key] || key;
+    });
+    const subjectLegible = subjectParts.join(', ');
+
+    const params = await generatePaymentOrder(monto_total, subjectLegible, user_email, optional);
 
     const allParams = await flow.send("payment/create", params, "POST");
     //const {allParams} = response;
@@ -1403,6 +1681,123 @@ app.delete('/api/perfiles/:email', async (req, res) => {
 
 // ─── QR Entrada ──────────────────────────────────────────────────────────────
 
+// ─── Buscar Apoderados (Admin) ───────────────────────────────────────────────
+
+// Actualizar estado de cuota CPA para un apoderado
+app.post('/api/actualizar_cuota_cpa', express.json(), async (req, res) => {
+  try {
+    const { email, cuota_cpa } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email requerido' });
+
+    // Buscar usuario por email
+    const user = await db_support.usersDB.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Buscar pagos de sus hijos y actualizar/crear el registro de cuota_cpa
+    const hijos = user.hijos || [];
+    if (hijos.length > 0) {
+      const primerHijo = hijos[0].nombre;
+      if (cuota_cpa) {
+        // Verificar si ya existe un pago de cuota_cpa para este hijo
+        const pagoExistente = await db_support.pagosDB.findOne({ id: primerHijo, tipo: 'cuota_cpa' });
+        if (!pagoExistente) {
+          // Crear pago de cuota CPA
+          await db_support.pagosDB.create({
+            id: primerHijo,
+            tipo: 'cuota_cpa',
+            cuota_cpa: true,
+            monto: 20000,
+            fecha: new Date().toLocaleDateString('es-CL'),
+            payment_method: 'manual',
+            commerce_order: 'manual'
+          });
+        } else {
+          await db_support.pagosDB.updateOne({ _id: pagoExistente._id }, { $set: { cuota_cpa: true } });
+        }
+      } else {
+        // Eliminar o marcar como no pagado
+        await db_support.pagosDB.deleteMany({ id: primerHijo, tipo: 'cuota_cpa' });
+        // También actualizar registros que tengan cuota_cpa: true
+        for (const hijo of hijos) {
+          await db_support.pagosDB.updateMany({ id: hijo.nombre, cuota_cpa: true }, { $set: { cuota_cpa: false } });
+        }
+      }
+    }
+
+    console.log(`[/api/actualizar_cuota_cpa] ${email} -> cuota_cpa: ${cuota_cpa}`);
+    res.json({ status: 'ok' });
+  } catch (error) {
+    console.error('[/api/actualizar_cuota_cpa] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Eliminar apoderado (borrar datos de padres e hijos)
+app.post('/api/eliminar_apoderado', express.json(), async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Falta email' });
+
+    const user = await db_support.usersDB.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'Apoderado no encontrado' });
+
+    // Limpiar datos del usuario (no eliminar el registro, solo vaciar padres e hijos)
+    await db_support.usersDB.findOneAndUpdate(
+      { email },
+      { $set: { padres: [], hijos: [], invitados: [] } }
+    );
+
+    res.json({ status: 'ok', mensaje: 'Datos del apoderado eliminados' });
+  } catch (error) {
+    console.error('[/api/eliminar_apoderado] Error:', error);
+    res.status(500).json({ error: 'Error al eliminar apoderado' });
+  }
+});
+
+app.get('/api/buscar_apoderados', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({ error: 'Ingrese al menos 2 caracteres para buscar' });
+    }
+
+    const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const busqueda = normalizar(q.trim());
+    const todos = await db_support.usersDB.find({});
+
+    const resultados = todos.filter(user => {
+      const campos = [
+        normalizar(user.email),
+        normalizar(user.displayName),
+      ];
+      // Agregar datos de padres
+      if (user.padres && Array.isArray(user.padres)) {
+        user.padres.forEach(p => {
+          campos.push(normalizar(p.nombre));
+          campos.push(normalizar(p.apellido));
+          campos.push(normalizar(p.rut));
+          campos.push(normalizar(p.correo));
+        });
+      }
+      // Agregar datos de hijos
+      if (user.hijos && Array.isArray(user.hijos)) {
+        user.hijos.forEach(h => {
+          campos.push(normalizar(h.nombre));
+          campos.push(normalizar(h.rut));
+        });
+      }
+      return campos.join(' ').includes(busqueda);
+    });
+
+    // Retornar solo los que tienen padres registrados
+    const apoderados = resultados.filter(u => u.padres && u.padres.length > 0);
+    res.json(apoderados);
+  } catch (error) {
+    console.error('[/api/buscar_apoderados] Error:', error);
+    res.status(500).json({ error: 'Error al buscar apoderados' });
+  }
+});
+
 // ─── Buscar Entradas (Supervisor) ────────────────────────────────────────────
 
 app.get('/api/buscar_entradas', async (req, res) => {
@@ -1703,6 +2098,10 @@ app.post('/api/mp/create', async (req, res) => {
 
     // Calcular monto total igual que Flow
     let monto_total = 0;
+    const MONTOS_OVERRIDE_MP = {
+      'invitaciones_fiesta_chilena': 5000,
+      'fiesta_chilena': 5000
+    };
     const keys = Array.isArray(compromiso_key) ? compromiso_key : [compromiso_key];
     const subjects = [];
     for (const key of keys) {
@@ -1711,7 +2110,8 @@ app.post('/api/mp/create', async (req, res) => {
         return res.status(400).json({ error: `Compromiso '${key}' no encontrado` });
       }
       const cantidad = (cantidades && cantidades[key]) ? parseInt(cantidades[key]) : 1;
-      monto_total += compromiso_pago.monto * cantidad;
+      const montoUnitario = MONTOS_OVERRIDE_MP[compromiso_pago.nombre] || MONTOS_OVERRIDE_MP[key] || compromiso_pago.monto;
+      monto_total += montoUnitario * cantidad;
       subjects.push(key);
     }
 
@@ -1723,16 +2123,25 @@ app.post('/api/mp/create', async (req, res) => {
 
     // Mapa de códigos a glosas legibles
     const glosaMap = {
-      'cuota_cpa': 'Cuota Centro de Padres',
+      'cuota_cpa': 'Cuota CPA',
+      'invitaciones_fiesta_chilena': null,
+      'fiesta_chilena': null,
       'entradas_fiesta': 'Entradas Fiesta'
     };
-    const glosa = subjects.map(s => glosaMap[s] || s).join(' + ');
+    const glosaPartes = subjects.map(s => {
+      if (s === 'invitaciones_fiesta_chilena' || s === 'fiesta_chilena') {
+        const cant = (cantidades && cantidades[s]) ? parseInt(cantidades[s]) : 1;
+        return cant === 1 ? 'Invitación adicional' : `Invitaciones adicionales (${cant})`;
+      }
+      return glosaMap[s] || s;
+    });
+    const glosa = glosaPartes.join(' + ');
 
     const optional = {
       rut: rut || '9999999-9',
       nombre: nombre || 'Unknown',
       telefono: telefono || '',
-      nombres_hijos: Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
+      'Nombre Hijos': Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
     };
 
     // Guardar la orden en BD (mismo modelo que Flow)

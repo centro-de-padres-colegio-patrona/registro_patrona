@@ -402,6 +402,11 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
 
 async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_completo) {
   const lista_entradas = [];
+  // Detecta si está en producción según NODE_ENV o si existe URL_SERVER
+  const PORT = process.env.PORT;
+  const baseUrl = PORT !== 5001 
+    ? config_env.URL_SERVER
+    : `http://localhost:5001`;  
   try {
     //console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
     // Buscar la familia en la base de datos usando el nombre completo del estudiante
@@ -416,7 +421,7 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
       const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
       const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
       // , , , , , , jornada, bloques
-      const result_create = await fetch(`/api/entrada/create`, {
+      const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
         body: JSON.stringify({

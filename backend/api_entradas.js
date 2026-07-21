@@ -373,6 +373,7 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
 });
 
 async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_completo) {
+  const lista_entradas = [];
   try {
     //console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
     // Buscar la familia en la base de datos usando el nombre completo del estudiante
@@ -385,19 +386,26 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
       const curso = estudianteInfo.value;
       cursos.push(curso);
       const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
-      const num_lista = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
-        // id_evento, imagen_ticket_path, familia, nombre_completo, num_listado, curso, jornada, tipo, bloques
-        const result_create = await fetch(`/api/entradas/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-          body: JSON.stringify({
-            id_evento,
-            imagen_ticket_path,
-            familia: nombre_familia,
-            tipo: 'estudiante'
+      const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
+      // , , , , , , jornada, bloques
+      const result_create = await fetch(`/api/entradas/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({
+          id_evento,
+          imagen_ticket_path,
+          familia: nombre_familia,
+          nombre_completo: nombre_estudiante,
+          tipo: 'estudiante',
+          curso,
+          num_listado
           })
         });
-      cursos.push(estudianteInfo.value);
+      if (result_create.status != 200 ) {
+        console.log('La entrada para ${nombre_estudiante} no se pudo crear');
+        continue;
+      }
+      lista_entradas.push(nombre_estudiante);
       //console.log(`Estudiante: ${nombre_estudiante}, Curso: ${estudianteInfo.value}`);
     }
     return hermanos;

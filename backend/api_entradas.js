@@ -43,6 +43,7 @@ async function save_png(buffer, filename = null) {
   // 1. POST: Generar entrada Canvas
 router.post('/entrada/create', apiKeyAuth, async (req, res) => {
   const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  console.log('POST /api/entrada/create:  started')
   try {
     console.log(JSON.stringify(req.body));
     const { 
@@ -435,7 +436,7 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
           })
         });
       if (result_create.status != 200 ) {
-        console.log('La entrada para ${nombre_estudiante} no se pudo crear');
+        console.log(`La entrada para ${nombre_estudiante} no se pudo crear`);
         continue;
       }
       lista_entradas.push(nombre_estudiante);

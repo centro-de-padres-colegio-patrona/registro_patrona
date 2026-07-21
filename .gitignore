@@ -41,3 +41,13 @@ yarn.lock
 # Archivos de desarrollo local (no subir al repositorio)
 backend/db_support.local.js
 .env.local
+tickets_png/apoderado_1.png
+tickets_png/apoderado_2.png
+tickets_png/herrera_messina cristobal nicolas.png
+tickets_png/herrera_messina florencia isidora.png
+tickets_png/invitado_1.png
+tickets_png/invitado_2.png
+tickets_png/ticket.png
+tickets_png/
+logs/
+tickets_pdf/

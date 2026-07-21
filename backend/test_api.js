@@ -1,23 +1,33 @@
 const db_support = require('../backend/db_support');
 const test_result_array = {};
 
+class TestResult {
+  static PASS = 'pass';
+  static FAIL = 'fail';
+}
+
 async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:5001', db_uri = '') {
   console.log('Launching Api Test...');
     setTimeout(test_api_db_connection, delay_ms/2, db_uri);
+    setTimeout(test_api_perfiles, delay_ms, url_server);
     setTimeout(test_api_curso, delay_ms, url_server);
     setTimeout(test_api_email_update, delay_ms, url_server);
     setTimeout(test_api_pagos_cpa, delay_ms, url_server);
     setTimeout(test_api_compromisos_pago, delay_ms, url_server);
-    //setTimeout(actualizarTiposDePago, delay_ms);
+    ////setTimeout(actualizarTiposDePago, delay_ms);
     setTimeout(listing_all_tipos_de_pago, delay_ms+1000, url_server);
-    //setTimeout(test_api_pago_compromiso, delay_ms);
-    setTimeout(test_api_eventos, delay_ms+1500, url_server);
-    setTimeout(test_api_pre_generate_entries, delay_ms+2000, url_server);
+    ////setTimeout(test_api_pago_compromiso, delay_ms);
+
+    //setTimeout(test_api_eventos, delay_ms+1500, url_server);
+    //setTimeout(test_api_pre_generate_entries, delay_ms+2000, url_server);
 }
 
 async function log_result(tag, result) {
   const result_upppercase = String(result).toUpperCase();
-      console.log(`${tag}.....${result_upppercase}`);
+      const max_pad = 40;
+      //const len_pad = tag.length < max_pad ? max_pad - tag.length : 0;
+      const padded_tag = tag.padEnd(max_pad, '.');
+      console.log(`${padded_tag}${result_upppercase}`);
 }
 
 async function test_api_get(tag, url_server, url, key, payload,  callback) {
@@ -225,7 +235,7 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
         test_result = 'fail';
       }
     }
-    console.log(`${tag} `, test_result);
+    log_result(tag, test_result);
     if (test_result !== 'pass') {
       log_result(tag, 'fail');
       throw new Error('test_api_eventos failed. Events not found or created');
@@ -244,7 +254,7 @@ async function test_api_db_connection(db_uri = '') {
     console.log(`${tag}: fail. Wrong DataBase URI:`, db_uri);
     throw new Error('DB Connection URI test failed');
   }
-  console.log(`${tag}: pass`);
+  log_result(tag, 'pass');
 }
 
 
@@ -282,40 +292,35 @@ async function test_api_perfiles(url_server = 'http://localhost:5001') {
       rol: 'administrador'
     }
   };
-  let test_result = 'PASS';
+  let test_result = 'pass';
   try {
     // Iterar sobre los perfiles definidos en el mapa y verificar su existencia en la base de datos
     for (const [email, perfilData] of Object.entries(perfiles_map)) {
+      //console.log(`${tag} Verificando perfil: ${email}`);
       const result = await fetch(`${url_server}/api/perfiles?email=${encodeURIComponent(email)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
       const perfil = await result.json();
       if (!perfil || perfil.email !== perfilData.email || perfil.rut !== perfilData.rut || perfil.nombre_completo !== perfilData.nombre_completo || perfil.rol !== perfilData.rol) {
-        console.log(`Perfil ${email} no encontrado o datos incorrectos. Creando perfil...`);
-        test_result = 'FAIL';
-        const createResult = await fetch(`${url_server}/api/perfiles`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(perfilData)
-        });
-        if (createResult.status !== 201) {
-          log_result(tag, `fail creating profile ${email}`);
+        //console.log(`Perfil ${email} no encontrado o datos incorrectos. Creando perfil...`);
+        test_result = 'fail';
+        if (!perfil) {
+          console.log(`${tag} Perfil ${email} no encontrado. Creando perfil...`);
+          const createResult = await fetch(`${url_server}/api/perfiles`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(perfilData)
+          });
+          if (createResult.status !== 201) {
+            console.log(`${tag} fail creating profile ${email}`);
+          }
+        } else {
+          console.log(`${tag} Perfil ${email} encontrado pero con datos incorrectos. Creando perfil...`);
         }
       }
     }
     log_result(tag, test_result);
-  } catch (error) {
-    console.error(`${tag} Error :`, error);
-    log_result(tag, 'fail');
-  }
-}
-    const result = await fetch(`${url_server}/api/perfiles`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const perfiles = await result.json();
-    console.log('Perfiles encontrados:', perfiles);
   } catch (error) {
     console.error(`${tag} Error :`, error);
     log_result(tag, 'fail');

@@ -310,9 +310,11 @@ app.use(express.json());
 
 // Importar el Router de Entradas
 const apiEntradasRouter = require('../backend/api_entradas');
+const apiPerfilesRouter = require('../backend/api_perfiles');
 
-// Usar el Router de Entradas para todas las rutas que comiencen con /api
+// Usar el Router de Entradas para todas las rutas que comienzan con /api
 app.use('/api', apiEntradasRouter);
+app.use('/api', apiPerfilesRouter);
 
 // Ruta para la página "hello world" (index.html)
 app.get('/', (req, res) => {

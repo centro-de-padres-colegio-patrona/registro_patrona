@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const fs = require('fs').promises; // Usamos la versión basada en promesas
 
 // Requerir dependencias compartidas necesarias para las entradas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
@@ -12,6 +13,30 @@ const config_env = require('../src/setup/config/env.js');
 // Mapeo auxiliar de jornadas
 const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
+async function save_png(buffer, filename = null) {
+  try {
+    // Definir directorio de destino (ej. ./tickets_png)
+    const outputDir = path.join(__dirname, '../tickets_png');
+
+    // Crear el directorio si no existe
+    await fs.mkdir(outputDir, { recursive: true });
+
+    // Definir nombre del archivo (si no viene uno, genera un timestamp)
+    const name = filename 
+      ? `${filename}.png` 
+      : `ticket.png`;
+
+    const filePath = path.join(outputDir, name);
+
+    // Escribir el buffer directamente en el disco
+    await fs.writeFile(filePath, buffer);
+    console.log(`[save_png] Imagen guardada correctamente en: ${filePath}`);
+    
+    return filePath;
+  } catch (error) {
+    console.error('[save_png] Error al guardar el archivo PNG:', error);
+  }
+}
 
   // 1. POST: Generar entrada Canvas
 router.post('/entrada/create', apiKeyAuth, async (req, res) => {
@@ -61,6 +86,7 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
       { $set: { imagen_ticket: buffer } }
     );
 
+    save_png(buffer);
     res.set('Content-Type', 'image/png');
     res.send(buffer);
   } catch (err) {

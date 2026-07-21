@@ -285,9 +285,19 @@ async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
   try {
     const id_evento = 'fiesta_chilena_2026';
     const nombre_completo = 'herrera messina florencia isidora';
-    const result = await fetch(`${url_server}/api/entradas/generar/familia?id_evento=${id_evento}&nombre_completo=${encodeURIComponent(nombre_completo)}`, {
+    const eventoInfo = await fetch(`${url_server}/api/eventos/buscar?id_evento=${id_evento}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    const imagen_ticket_path = eventoInfo.imagen_ticket_path;
+    const result = await fetch(`${url_server}/api/entradas/generar/familia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+      body: JSON.stringify({
+        id_evento,
+        nombre_completo,
+        imagen_ticket_path
+      })
     });
     const entradas = await result.json();
     console.log('Entradas generadas para la familia:', entradas);

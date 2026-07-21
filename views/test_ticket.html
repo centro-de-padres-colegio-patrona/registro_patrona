@@ -328,8 +328,8 @@
 
   <div class="form-row">
     <div class="form-field">
-      <label>Correlativo (N°)</label>
-      <input type="number" id="correlativo" value="1" min="1">
+      <label>folio (N°)</label>
+      <input type="number" id="folio" value="1" min="1">
     </div>
     <div class="form-field">
       <label>Total entradas</label>
@@ -377,7 +377,7 @@
       familia:        document.getElementById('familia').value,
       nombre_completo: document.getElementById('nombre_completo').value,
       colores:        document.getElementById('colores').value,
-      correlativo:    parseInt(document.getElementById('correlativo').value),
+      folio:    parseInt(document.getElementById('folio').value),
       total:          parseInt(document.getElementById('total').value),
       num_listado:    parseInt(document.getElementById('num_listado').value),
       curso:          document.getElementById('curso').value,
@@ -386,7 +386,7 @@
     };
 
     try {
-      const response = await fetch('/api/generar_entrada_canvas', {
+      const response = await fetch('/api/entrada/imagen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -403,7 +403,7 @@
       document.getElementById('imagen-ticket').src = url;
       document.getElementById('btn-descargar').href = url;
       document.getElementById('btn-descargar').download =
-        `ticket_${payload.familia.replace(/\s+/g,'_')}_${String(payload.correlativo).padStart(4,'0')}.png`;
+        `ticket_${payload.familia.replace(/\s+/g,'_')}_${String(payload.folio).padStart(4,'0')}.png`;
 
       // Mostrar modal
       document.getElementById('modal-ticket').classList.add('active');

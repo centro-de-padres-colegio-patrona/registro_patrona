@@ -268,6 +268,58 @@
 <p class="estado-msg" id="estado-msg"></p>
 
 <script>
+
+  // Obtener email del supervisor
+  let supervisorEmail = null;
+
+// Función de inicialización
+  async function init() {
+    supervisorEmail = await getUserEmail();
+    //console.log(`Supervisor cargado: ${supervisorEmail}`);
+  }
+
+  // Ejecutar inicialización al cargar el script
+  init();
+
+  async function getUserEmail() {
+    try {
+      // 1. Intentar obtener de los parámetros de la URL
+      const urlParams = new URLSearchParams(window.parent.location.search);
+      let user_email = urlParams.get('user_email');
+      console.log(`user_email: ${user_email}`);
+
+      // Si viene en la URL y no está vacío, lo retornamos inmediatamente
+      if (user_email && user_email.trim() !== '') {
+        return user_email;
+      }
+
+      // 2. Si no venía en la URL, consultamos a la API esperando la respuesta con await
+      const response = await fetch('/api/user');
+      
+      if (!response.ok) {
+        console.error('Usuario no autenticado');
+        return null;
+      }
+
+      const user = await response.json();
+      
+      if (user && user.user) {
+        const currentUser = user.user;
+        user_email = currentUser.email && currentUser.email.trim() !== "" 
+          ? currentUser.email 
+          : null;
+
+        console.log(`[/api/user] correo: ${user_email}`);
+        return user_email;
+      }
+
+    } catch (err) {
+      console.error('unexpected error: ', err);
+    }
+
+    return null;
+  }
+
   async function buscar() {
     const q = document.getElementById('inp-busqueda').value.trim();
     const estadoMsg = document.getElementById('estado-msg');
@@ -285,33 +337,45 @@
     estadoMsg.style.color = '#888';
 
     try {
-      const res = await fetch(`/api/buscar_entradas?q=${encodeURIComponent(q)}`);
-      const datos = await res.json();
+      fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`)
+      .then ( res => res.json() )
+      .then ( async config_json => {
+        const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(q)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey }
+          }
+        );
+        const datos = await res.json();
 
-      if (!res.ok) {
-        estadoMsg.textContent = datos.error || 'Error en la búsqueda';
+        if (!res.ok) {
+          estadoMsg.textContent = datos.error || 'Error en la búsqueda';
+          estadoMsg.style.color = '#e74c3c';
+          return;
+        }
+
+        if (datos.length === 0) {
+          estadoMsg.textContent = 'No se encontraron entradas con esa búsqueda';
+          estadoMsg.style.color = '#e74c3c';
+          tablaContainer.classList.remove('visible');
+          cardsContainer.innerHTML = '';
+          resultadoCount.style.display = 'none';
+          return;
+        }
+
+        estadoMsg.textContent = '';
+        resultadoCount.textContent = `${datos.length} entrada(s) encontrada(s)`;
+        resultadoCount.style.display = 'block';
+
+        renderTabla(datos);
+        renderCards(datos);
+        // Mostrar tabla (en mobile el CSS la oculta con !important)
+        tablaContainer.classList.add('visible');
+      })
+      .catch( err => {
+        console.error(`User ${supervisorEmail} has not access rights`);
+        estadoMsg.textContent = 'Usuario sin permisos de acceso';
         estadoMsg.style.color = '#e74c3c';
-        return;
-      }
-
-      if (datos.length === 0) {
-        estadoMsg.textContent = 'No se encontraron entradas con esa búsqueda';
-        estadoMsg.style.color = '#e74c3c';
-        tablaContainer.classList.remove('visible');
-        cardsContainer.innerHTML = '';
-        resultadoCount.style.display = 'none';
-        return;
-      }
-
-      estadoMsg.textContent = '';
-      resultadoCount.textContent = `${datos.length} entrada(s) encontrada(s)`;
-      resultadoCount.style.display = 'block';
-
-      renderTabla(datos);
-      renderCards(datos);
-      // Mostrar tabla (en mobile el CSS la oculta con !important)
-      tablaContainer.classList.add('visible');
-
+      });
     } catch (err) {
       estadoMsg.textContent = 'Error de conexión';
       estadoMsg.style.color = '#e74c3c';
@@ -325,7 +389,7 @@
     const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
     datos.forEach(t => {
-      const serial = String(t.correlativo).padStart(4, '0');
+      const serial = String(t.folio).padStart(4, '0');
       const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
       const esUsado = t.usado === true;
 
@@ -338,10 +402,10 @@
         <td>${jornadaDisplay}</td>
         <td>${t.curso || '—'}</td>
         <td><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
-        <td id="accion-${t.correlativo}">
+        <td id="accion-${t.folio}">
           ${esUsado
             ? `<span class="btn-validado">✓ Validado</span>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.correlativo}, this)">VALIDAR</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
           }
         </td>
       `;
@@ -356,7 +420,7 @@
     const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
     datos.forEach(t => {
-      const serial = String(t.correlativo).padStart(4, '0');
+      const serial = String(t.folio).padStart(4, '0');
       const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
       const esUsado = t.usado === true;
 
@@ -370,10 +434,10 @@
         <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
         <div class="card-row"><span class="card-label">Curso</span><span class="card-value">${t.curso || '—'}</span></div>
         <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
-        <div class="card-actions" id="card-accion-${t.correlativo}">
+        <div class="card-actions" id="card-accion-${t.folio}">
           ${esUsado
             ? `<span class="btn-validado">✓ Validado</span>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.correlativo}, this)">VALIDAR</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
           }
         </div>
       `;
@@ -381,45 +445,45 @@
     });
   }
 
-  async function validarDesdeTabla(correlativo, btn) {
-    if (!confirm(`¿Confirma validar la entrada N° ${String(correlativo).padStart(4, '0')}?`)) return;
+  async function validarDesdeTabla(folio, btn) {
+    if (!confirm(`¿Confirma validar la entrada N° ${String(folio).padStart(4, '0')}?`)) return;
 
     btn.disabled = true;
     btn.textContent = '...';
 
-    // Obtener email del supervisor
-    let supervisorEmail = 'supervisor';
     try {
-      const urlParams = new URLSearchParams(window.parent.location.search);
-      supervisorEmail = urlParams.get('user_email') || 'supervisor';
-    } catch(e) {}
+      fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`)
+      .then ( res => res.json() )
+      .then ( async config_json => {
+        const res = await fetch('/api/entrada/validar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folio: parseInt(folio), validado_por: supervisorEmail, 'x-api-key': config_json.apiKey })
+        });
 
-    try {
-      const res = await fetch('/api/validar_entrada', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correlativo: parseInt(correlativo), validado_por: supervisorEmail })
+        const data = await res.json();
+
+        if (res.ok) {
+          // Actualizar en tabla desktop
+          const tdAccion = document.getElementById(`accion-${folio}`);
+          if (tdAccion) tdAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
+
+          // Actualizar en card mobile
+          const cardAccion = document.getElementById(`card-accion-${folio}`);
+          if (cardAccion) cardAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
+        } else if (res.status === 409) {
+          btn.textContent = 'YA USADO';
+          btn.disabled = true;
+          btn.style.background = '#95a5a6';
+        } else {
+          alert(`Error: ${data.error}`);
+          btn.disabled = false;
+          btn.textContent = 'VALIDAR';
+        }
+      })
+      .catch( err => {
+        console.error(`User ${supervisorEmail} has not access rights`);
       });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        // Actualizar en tabla desktop
-        const tdAccion = document.getElementById(`accion-${correlativo}`);
-        if (tdAccion) tdAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
-
-        // Actualizar en card mobile
-        const cardAccion = document.getElementById(`card-accion-${correlativo}`);
-        if (cardAccion) cardAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
-      } else if (res.status === 409) {
-        btn.textContent = 'YA USADO';
-        btn.disabled = true;
-        btn.style.background = '#95a5a6';
-      } else {
-        alert(`Error: ${data.error}`);
-        btn.disabled = false;
-        btn.textContent = 'VALIDAR';
-      }
     } catch (err) {
       alert(`Error: ${err.message}`);
       btn.disabled = false;

@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
 
-const { genEntrada, genEntradaCanvas } = require('../src/generateTicket');
+const { genEntradaCanvas } = require('../src/generateTicket');
 const db_support = require('../backend/db_support');
 
 
@@ -33,9 +33,9 @@ async function send_fiesta_chilena_email(body) {
         //const {vector} = entrada
         console.log(`vector: ${JSON.stringify(vector)}`);
         const buffer = await genEntradaCanvas(vector);
-        const {nombre_completo, jornada, correlativo} = vector;
-        seriales.push(correlativo)
-        const nombreArchivo = `entrada_${nombre_completo.replace(/ /g, "_")}_${jornada}_${String(correlativo).padStart(4, '0')}.png`;
+        const {nombre_completo, jornada, folio} = vector;
+        seriales.push(folio)
+        const nombreArchivo = `entrada_${nombre_completo.replace(/ /g, "_")}_${jornada}_${String(folio).padStart(4, '0')}.png`;
         return {
           filename: nombreArchivo,
           content: buffer,
@@ -79,10 +79,10 @@ async function send_fiesta_chilena_email(body) {
         console.log("email destinatario: ", email_destinatario);
           console.log('Correo enviado exitosamente:', info.response);
           entradas.map(async (entrada) => {
-            const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = entrada
-            const nombreArchivo = `entrada_${familia}_${correlativo}.png`.replace(/\s+/g, '_');
+            const { familia, nombre_completo, colores, folio, total, num_listado, curso, jornada, tipo } = entrada
+            const nombreArchivo = `entrada_${familia}_${folio}.png`.replace(/\s+/g, '_');
             // Buscar registro por numero serial
-            let registro = await db_support.deliveryDB.findOne({ serial: correlativo });
+            let registro = await db_support.deliveryDB.findOne({ serial: folio });
 
             if (registro === undefined) {
               console.log('Registro undefined');
@@ -93,7 +93,7 @@ async function send_fiesta_chilena_email(body) {
                 familia: familia,
                 nombre_completo: nombre_completo,
                 bloques: colores,
-                serial: correlativo,
+                serial: folio,
                 total: total,
                 num_listado: num_listado,
                 curso: curso,
@@ -102,7 +102,7 @@ async function send_fiesta_chilena_email(body) {
                 nombreArchivo: nombreArchivo,
                 email_destinatario: email_destinatario,
               });
-              console.log(`Registro entrega entrada serial ${correlativo} creado`)
+              console.log(`Registro entrega entrada serial ${folio} creado`)
             } 
             return
           })
@@ -129,7 +129,7 @@ async function send_email_registro_success(body) {
     const attachments = await Promise.all(
         entradas.map(async (entrada) => {
         const buffer = await genEntradaCanvas(entrada);
-        const nombreArchivo = `entrada_${entrada.familia}_${entrada.correlativo}.png`.replace(/\s+/g, '_');
+        const nombreArchivo = `entrada_${entrada.familia}_${entrada.folio}.png`.replace(/\s+/g, '_');
         return {
             filename: nombreArchivo,
             content: buffer,
@@ -153,22 +153,22 @@ async function send_email_registro_success(body) {
         } else {
           console.log('Correo enviado exitosamente:', info.response);
           entradas.map(async (entrada) => {
-            const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = entrada
-            const nombreArchivo = `entrada_${familia}_${correlativo}.png`.replace(/\s+/g, '_');
+            const { familia, nombre_completo, colores, folio, total, num_listado, curso, jornada, tipo } = entrada
+            const nombreArchivo = `entrada_${familia}_${folio}.png`.replace(/\s+/g, '_');
             // Buscar registro por numero serial
-            let registro = await db_support.deliveryDB.findOne({ serial: correlativo });
+            let registro = await db_support.deliveryDB.findOne({ serial: folio });
 
             if (registro === undefined) {
               console.log('Registro undefined');
             }
             // Si no existe, podés crearlo o manejarlo como desees
             if (!registro || registro === undefined) {
-              console.log(`Registro ${correlativo} no encontrado`)
+              console.log(`Registro ${folio} no encontrado`)
               registro = await db_support.deliveryDB.create({
                 familia: familia,
                 nombre_completo: nombre_completo,
                 bloques: colores,
-                serial: correlativo,
+                serial: folio,
                 total: total,
                 num_listado: num_listado,
                 curso: curso,
@@ -266,7 +266,7 @@ async function send_validacion_email(body) {
 
 
   } catch (error) {
-    console.error(`[send_fiesta_chilena_email] ${error}`);
+    console.error(`[send_validacion_email] ${error}`);
   }
 }
 

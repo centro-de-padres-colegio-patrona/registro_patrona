@@ -28,102 +28,95 @@ function colores_to_bloques(colores) {
 }
 
 
-async function genEntrada({ nombre_evento, amilia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
-  const bloques = colores_to_bloques(colores);
-  const colorText = bloques.join('/');
-  const serial = `${correlativo}/${total}`;
-  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${encodeURIComponent(amilia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colores_to_bloques(colores).join('/'))}&num_listado=${num_listado}&total=${total}`;
+async function genEntradaCanvas({ url_server, id_organizacion, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
+  const tag = '[genEntradaCanvas]';
+  try {
+    const serial = String(folio).padStart(4, '0');
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+    const jornadaDisplay = jornadaMap[jornada] || jornada;
+    const qrData = `${url_server}/api/entrada/consultar?organizacion=${encodeURIComponent(id_organizacion)}&evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloques=${encodeURIComponent(bloques)}&num_listado=${num_listado}`;
 
-  const fondo_path = `./img/${nombre_evento}.png`;
-  const fondo = await Jimp.read(fondo_path);
-  const qr = await QRCode.toBuffer(qrData, { width: 215 });
+    const fondo = await loadImage(path.join(__dirname, '../', imagen_ticket_path));
+    const canvas = createCanvas(fondo.width, fondo.height);
+    const ctx = canvas.getContext('2d');
 
-  const qrImage = await Jimp.read(qr);
-  fondo.composite(qrImage, 45, 528);
+    ctx.drawImage(fondo, 0, 0);
 
-  const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-  const fontBig = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+    const y_ = 70;
+    const x_ = 40;
 
-  fondo.print(fontBig, 0, 104, {
-    text: tipo,
-    alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER
-  }, fondo.bitmap.width);
+    // Texto centrado arriba
+    ctx.font = '40px PottiSreeramulu';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'left';
+    x_texto_tipo = canvas.width / 2 + 80;
+    ctx.fillText(tipo, x_texto_tipo -x_, 690-30-y_);
 
-  const textos = [
-    { text: familia, x: 190, y: 385 },
-    { text: nombre_completo, x: 58, y: 415 },
-    { text: `Bloques: ${colorText}`, x: 58, y: 445 },
-    { text: `Jornada: ${jornada}`, x: 58, y: 475 },
-    { text: serial, x: 375, y: 615 },
-    { text: `Curso: ${curso}`, x: 350, y: 655 },
-    { text: `Nro List: ${num_listado}`, x: 350, y: 690 }
-  ];
+    ctx.font = '32px PottiSreeramulu';
+    ctx.fillText(`Folio: ${serial}`, x_texto_tipo -x_, 700-y_);
 
-  textos.forEach(({ text, x, y }) => {
-    fondo.print(font, x, y, text);
-  });
+// Función auxiliar para ajustar la fuente según el ancho máximo permitido
+    function fillTextFit(ctx, text, x, y, maxPxWidth, defaultFontSize = 30, fontFace = 'PottiSreeramulu') {
+      let fontSize = defaultFontSize;
+      ctx.font = `${fontSize}px ${fontFace}`;
 
-  return await fondo.getBufferAsync(Jimp.MIME_PNG);
-}
+      // Reduce el fontSize en bucle hasta que quepa en el ancho permitido
+      while (ctx.measureText(text).width > maxPxWidth && fontSize > 12) {
+        fontSize -= 2;
+        ctx.font = `${fontSize}px ${fontFace}`;
+      }
 
+      ctx.fillText(text, x-x_, y-y_);
+    }
 
-async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
-  //console.log(`${JSON.stringify(colores)}`);
-  //console.log(`typeof(colores): ${typeof(colores)}`);
-  const bloques = colores_to_bloques(colores);
-  const colorText = bloques.join('/');
-  const serial = String(correlativo).padStart(4, '0');
-  const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
-  const jornadaDisplay = jornadaMap[jornada] || jornada;
-  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}&total=${total}`;
+    // Textos laterales
+    ctx.font = '30px PottiSreeramulu';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'left';
 
-  const fondo = await loadImage(path.join(__dirname, '../img/fondo_entrada.png'));
-  const canvas = createCanvas(fondo.width, fondo.height);
-  const ctx = canvas.getContext('2d');
+    const maxAnchoPermitido = 480; // Ancho máximo disponible en px antes de salir de la imagen
+    const y_offset = 490;
+    const textosMain = [
+      { text: `Familia: ${familia}`, x: 58, y: y_offset },
+      { text: nombre_completo, x: 58, y: y_offset+30 },
+      { text: `Bloques: ${bloques}`, x: 58, y: y_offset+60 },
+      { text: `Jornada: ${jornadaDisplay}`, x: 58, y: y_offset+90 },
+    ];
 
-  ctx.drawImage(fondo, 0, 0);
+    textosMain.forEach(({ text, x, y }) => {
+      //ctx.fillText(text, x-x_, y-y_);
+      fillTextFit(ctx, text, x, y, maxAnchoPermitido, 30, 'PottiSreeramulu');
+    });
 
-  // Texto centrado arriba
-  ctx.font = '50px PottiSreeramulu';
-  ctx.fillStyle = 'white';
-  ctx.textAlign = 'center';
-  ctx.fillText(tipo, canvas.width / 2, 144);
+    // Textos zona ticket (font más pequeño para que quepa)
+    ctx.font = '18px PottiSreeramulu';
 
-  // Textos laterales
-  ctx.font = '30px PottiSreeramulu';
-  ctx.fillStyle = 'black';
-  ctx.textAlign = 'left';
+    const textosTicket_y_offset = 690;
+    const textosTicket = [
+      //{ text: `Folio: ${serial}`, x: 340, y: textosTicket_y_offset }
+    ];
+    if (curso) {
+      textosTicket.push({ text: `Curso: ${curso}`, x: 340, y: textosTicket_y_offset+32 });
+    }
+    if (num_listado) {
+      textosTicket.push({ text: `Nro List: ${num_listado}`, x: 340, y: textosTicket_y_offset+54 });
+    }
 
-  const textosMain = [
-    { text: familia, x: 190, y: 415 },
-    { text: nombre_completo, x: 58, y: 445 },
-    { text: `Bloques: ${colorText}`, x: 58, y: 475 },
-    { text: `Jornada: ${jornadaDisplay}`, x: 58, y: 505 },
-  ];
+    textosTicket.forEach(({ text, x, y }) => {
+      ctx.fillText(text, x-x_, y-y_);
+    });
 
-  textosMain.forEach(({ text, x, y }) => {
-    ctx.fillText(text, x, y);
-  });
+    // QR
+    const qrBuffer = await QRCode.toBuffer(qrData, { width: 215 });
+    const qrImage = await loadImage(qrBuffer);
+    ctx.drawImage(qrImage, 45-x_, 608-y_);
 
-  // Textos zona ticket (font más pequeño para que quepa)
-  ctx.font = '18px PottiSreeramulu';
-
-  const textosTicket = [
-    { text: serial, x: 340, y: 645 },
-    { text: `Curso: ${curso}`, x: 340, y: 667 },
-    { text: `Nro List: ${num_listado}`, x: 340, y: 689 }
-  ];
-
-  textosTicket.forEach(({ text, x, y }) => {
-    ctx.fillText(text, x, y);
-  });
-
-  // QR
-  const qrBuffer = await QRCode.toBuffer(qrData, { width: 215 });
-  const qrImage = await loadImage(qrBuffer);
-  ctx.drawImage(qrImage, 45, 528);
-
-  return canvas.toBuffer('image/png');
+    //console.log(`genEntradaCanvas success`);
+    return [canvas.toBuffer('image/png'), qrData];
+  } catch (err) {
+    console.log(`[genEntradaCanvas]: Error: `, err.stack || err.message || err);
+    return null;
+  }
 }
 
 /*async function test_brother() {
@@ -149,4 +142,4 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
 
 setTimeout(test_brother, 2000);*/
 
-module.exports = { genEntrada, genEntradaCanvas };
+module.exports = { genEntradaCanvas };

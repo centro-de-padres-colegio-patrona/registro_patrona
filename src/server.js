@@ -18,7 +18,7 @@ const flow = new FlowApi();
 const MercadoPagoApi = require('./mercado_pago_api');
 const mp = new MercadoPagoApi('sandbox');
 
-const { genEntrada, genEntradaCanvas } = require('./generateTicket');
+const { genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 
 const nodemailer = require('nodemailer');
@@ -26,6 +26,8 @@ const cors = require('cors');
 
 const LOCAL_PORT = config_env.LOCAL_PORT;
 const PORT = process.env.PORT || LOCAL_PORT;
+
+//const SECRET_API_KEY = config_env.API_KEY;
 
 // Si corre en local usa ngrok para callbacks de pago, si no usa la URL de producción (Render)
 const BASEURL = (PORT === LOCAL_PORT)
@@ -310,9 +312,15 @@ app.use(express.json());
 
 // Importar el Router de Entradas
 const apiEntradasRouter = require('../backend/api_entradas');
+const apiPerfilesRouter = require('../backend/api_perfiles');
+const apiEventosRouter = require('../backend/api_eventos');
+const apiConfigRouter = require('../backend/api_config');
 
-// Usar el Router de Entradas para todas las rutas que comiencen con /api
+// Usar el Router de Entradas para todas las rutas que comienzan con /api
 app.use('/api', apiEntradasRouter);
+app.use('/api', apiPerfilesRouter);
+app.use('/api', apiEventosRouter);
+app.use('/api', apiConfigRouter);
 
 // Ruta para la página "hello world" (index.html)
 app.get('/', (req, res) => {
@@ -1497,7 +1505,7 @@ app.post('/api/send_email_entradas', async (req, res) => {
     const attachments = await Promise.all(
       entradas.map(async (entrada) => {
         const buffer = await genEntradaCanvas(entrada);
-        const nombreArchivo = `entrada_${entrada.familia.replace(/\s+/g, '_')}_${String(entrada.correlativo).padStart(4, '0')}.png`;
+        const nombreArchivo = `entrada_${entrada.familia.replace(/\s+/g, '_')}_${String(entrada.folio).padStart(4, '0')}.png`;
         return {
           filename: nombreArchivo,
           content: buffer,
@@ -1542,7 +1550,9 @@ app.post('/api/send_email_entradas', async (req, res) => {
 });
 });
 
-app.post('/api/generar_entrada_canvas', async (req, res) => {
+
+/// Endpoint reemplazado por /api/entrada/imagen
+/*app.post('/api/generar_entrada_canvas', async (req, res) => {
     try {
       console.log(JSON.stringify(req.body));
       const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = req.body;
@@ -1571,7 +1581,7 @@ app.post('/api/generar_entrada_canvas', async (req, res) => {
       console.error(err);
       res.status(500).json({ error: 'Error generando entrada' });
     }
-  });
+  });*/
 
 
 app.post('/api/enviarCodigo', express.json(), async (req, res) => {
@@ -1825,8 +1835,8 @@ app.get('/api/buscar_apoderados', async (req, res) => {
 });
 
 // ─── Buscar Entradas (Supervisor) ────────────────────────────────────────────
-
-app.get('/api/buscar_entradas', async (req, res) => {
+// Endpoint reemplazado por /api/entrada/buscar
+/*app.get('/api/buscar_entradas', async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2) {
@@ -1855,12 +1865,13 @@ app.get('/api/buscar_entradas', async (req, res) => {
     console.error('[/api/buscar_entradas] Error:', error);
     res.status(500).json({ error: 'Error al buscar entradas' });
   }
-});
+});*/
 
 // ─── Consultar y Validar Entradas ────────────────────────────────────────────
 
 // Consultar estado de un ticket (si existe y si fue usado)
-app.get('/api/consultar_entrada', async (req, res) => {
+// endpoint renombrado como /api/entrada/consultar
+/*app.get('/api/consultar_entrada', async (req, res) => {
   try {
     const { correlativo, familia } = req.query;
     if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
@@ -1890,10 +1901,11 @@ app.get('/api/consultar_entrada', async (req, res) => {
     console.error('[/api/consultar_entrada] Error:', error);
     res.status(500).json({ error: 'Error al consultar entrada' });
   }
-});
+});*/
 
 // Marcar ticket como usado (validado)
-app.post('/api/validar_entrada', express.json(), async (req, res) => {
+// Endpoint reemplazdo por /api/entrada/validar
+/*app.post('/api/validar_entrada', express.json(), async (req, res) => {
   try {
     const { correlativo, validado_por } = req.body;
     if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
@@ -1924,10 +1936,11 @@ app.post('/api/validar_entrada', express.json(), async (req, res) => {
     console.error('[/api/validar_entrada] Error:', error);
     res.status(500).json({ error: 'Error al validar entrada' });
   }
-});
+});*/
 
 // Endpoint JSON para obtener datos completos de una entrada (usado por validar_qr.html)
-app.get('/api/entrada_qr_data', async (req, res) => {
+// Endpoint reemplazado por /api/entrada/qr_data
+/*app.get('/api/entrada_qr_data', async (req, res) => {
   try {
     const { familia, jornada, tipo, correlativo } = req.query;
 
@@ -1955,9 +1968,10 @@ app.get('/api/entrada_qr_data', async (req, res) => {
     console.error('[/api/entrada_qr_data] Error:', error);
     res.status(500).json({ error: 'Error al obtener datos de entrada' });
   }
-});
+});*/
 
-app.get('/api/entrada_qr', async (req, res) => {
+// Endpoint reemplazado por /api/entrada/qr
+/*app.get('/api/entrada_qr', async (req, res) => {
   try {
     const { familia, jornada, tipo, correlativo } = req.query;
 
@@ -2113,7 +2127,7 @@ app.get('/api/entrada_qr', async (req, res) => {
     console.error('[/api/entrada_qr] Error:', error);
     res.status(500).send('Error al cargar entrada');
   }
-});
+});*/
 
 // ─── Mercado Pago ────────────────────────────────────────────────────────────
 

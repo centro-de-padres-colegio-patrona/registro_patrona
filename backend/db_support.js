@@ -188,8 +188,11 @@ const cursoBloqueMapSchema = new mongoose.Schema({
   id: String,
   bloque: String,
   jornada: String,
-  color: String
-});
+  color: String,
+  hash: String,
+  pases_apoderados: { type: Number, default: 2 },
+  pases_invitados:  { type: Number, default: 2 },
+}, { strict: false });
 
 const registroEntradasSchema = new mongoose.Schema({
   id: String,
@@ -201,6 +204,11 @@ const commerceOrderSchema = new mongoose.Schema({
   secuencia: { type: Number, default: 0 }
 });
 
+const eventoCounterSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true }, // Ejemplo: 'pagos_flow'
+  secuencia: { type: Number, default: 0 }
+});
+
 const perfilSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   rut: { type: String, required: true },
@@ -208,6 +216,41 @@ const perfilSchema = new mongoose.Schema({
   rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor'] },
   activo: { type: Boolean, default: true },
   fecha_creacion: { type: Date, default: Date.now }
+});
+
+const ubicacionSchema = new mongoose.Schema({
+    id_pais : { type: String, required: true},
+    id_region: { type: String, required: true},
+    id_ciudad: { type: String, required: true},
+    id_comuna: { type: String, required: true},
+    id_calle: { type: String, required: true},
+    numeracion: { type: String, required: true},
+    codigo_postal: { type: String}
+});
+
+
+const InfoOrganizacionSchema = new mongoose.Schema({
+  id_organizacion: { 
+    type: String, 
+    required: true, 
+    unique: true 
+  },
+  index_organizacion: { 
+    type: Number,
+    unique: true
+  },
+  total_usuarios: { 
+    type: Number, 
+    default: 0 
+  },
+  nombre: { type: String, required: true },
+  descripcion: { type: String },
+  direccion_comercial: { type: ubicacionSchema },
+  tipo_organizacion: { type: String, 
+        enum: [ 'centro_padres', 'colegio', 'club_deportivo', 'grupo_scout', 'junta__vecinos', 'local_minorista', 'comercial', 'municipalidad'] 
+    },
+  duracion_database: { type: String, enum: ['mensual', 'anual', 'unica']},
+  rut: { type: String, requred: true}
 });
 
 const EventoSchema = new mongoose.Schema({
@@ -242,6 +285,7 @@ const EventoSchema = new mongoose.Schema({
   imagen_ticket_png: { type: Buffer },
   imagen_path: { type: String },
   imagen_ticket_path: { type: String },
+  cursoBloqueMap: { type: Object, default: [] } ,
   fecha_creacion: { type: Date, default: Date.now },
   fecha_actualizacion: { type: Date, default: Date.now }
 });
@@ -269,8 +313,17 @@ EventoSchema.pre('save', async function (next) {
 
 const EventDB = mongoose.model('eventos', EventoSchema, 'eventos');
 
+const ticketAccionSchema = new mongoose.Schema({
+  timestamp: { type: Date, default: Date.now },
+  accion : { 
+    type: String,
+    enum: ['consulta', 'ingreso', 'anulacion', 'denegar_acceso', 'creacion'],
+    required: true },
+  descripcion: String
+});
 
 const ticketEventoSchema = new mongoose.Schema({
+  id_organizacion: { type: String, required: true },
   id_evento: { type: String, required: true },
   folio: { type: Number, unique: true },
   familia: { type: String, required: true },
@@ -278,14 +331,19 @@ const ticketEventoSchema = new mongoose.Schema({
   tipo: String,
   jornada: String,
   curso: String,
-  bloque: String,
+  bloques: String,
   num_listado: Number,
   total: Number,
   fecha_generacion: { type: Date, default: Date.now },
-  usado: { type: Boolean, default: false },
+  estado: { 
+    type: String,
+    enum: ['inactiva', 'activa', 'usada', 'anulada'],
+     default: 'inactiva' },
   fecha_uso: Date,
   validado_por: String,
-  imagen_ticket: Buffer
+  //imagen_ticket: Buffer,
+  qr_str: String,
+  historial: [ticketAccionSchema]
 });
 
 // Forzamos que la combinación de id_evento y folio sea única en la BD
@@ -322,7 +380,31 @@ ticketEventoSchema.pre('save', async function (next) {
   }
 });
 
-const TicketEvento = mongoose.model('TicketEvento', ticketEventoSchema);
+const TicketEventoDB = mongoose.model('TicketEvento', ticketEventoSchema, 'ticketEventos');
+const infoOrganizacionDB = mongoose.model('organizacion', InfoOrganizacionSchema, 'info_organizacion');
+
+
+
+/////////////////////////////////////////////////
+/// Access Right Helpers
+/////////////////////////////////////////////////
+
+// Definimos explícitamente los roles permitidos por nivel
+const ROLES_VALIDADOR = ['administrador', 'supervisor', 'validador'];
+const ROLES_SUPERVISOR = ['administrador', 'supervisor'];
+const ROLES_ADMINISTRADOR = ['administrador'];
+
+function hasValidadorAccessRights(rol) {
+  return ROLES_VALIDADOR.includes(rol);
+}
+
+function hasSupervisorAccessRights(rol) {
+  return ROLES_SUPERVISOR.includes(rol);
+}
+
+function hasAdministradorAccessRights(rol) {
+  return ROLES_ADMINISTRADOR.includes(rol);
+}
 
 
 
@@ -343,10 +425,80 @@ async function connectToDB(year = '', url_server = 'http://localhost:5001') {
     });
     console.log('Conexión exitosa a MongoDB Atlas');
     test_api.lauch_test_api(500, url_server, db_uri);
+    run_db_tests();
   } catch (err) {
     console.error('Error de conexión:', err);
   }
 }
+
+
+/////////////////////////////////////////////////////////////////////////////
+/// Test Database
+/////////////////////////////////////////////////////////////////////////////
+
+async function run_db_tests() {
+  setTimeout(test_info_organizacion, 500);
+}
+
+/// Testear Info Organizacion
+async function test_info_organizacion() {
+  const tag = '[test_info_organizacion]'
+  const organizaInfoMap = {
+    'cpa_patrona': {
+      nombre: 'Centro General de Padres y Apoderados Colegio Patrona de Lourdes de la Florida',
+      descripcion: 'centro de padres',
+      direccion_comercial: { 
+        id_pais: 'chile',
+        id_region: 'metropolitana',
+        id_ciudad: 'santiago',
+        id_comuna: 'la florida',
+        id_calle: 'Alicahue',
+        numeracion: '7370',
+        codigo_postal: '8270829',
+      },
+      rut: '',
+      tipo_organizacion: 'centro_padres',
+      duracion_database: 'anual'
+    }
+  };
+
+  let testResult = 'pass';
+  try {
+    // Iterar sobre los objectos del mapa
+    for ( const [id_organizacion, info] of Object.entries(organizaInfoMap) ) {
+      // Verificar si la informacion de la organizacion existe
+      const infoDB = await infoOrganizacionDB.findOne({id_organizacion})
+      if (!infoDB) {
+        console.log(`${tag} Informacion de la Organizacion ${id_organizacion} no encontrada. Creando informacion ...`);
+        testResult = 'fail';
+        const new_info = await infoOrganizacionDB.create({
+          id_organizacion,
+          nombre: info.nombre,
+          descripcion: info.descripcion,
+          direccion_comercial: info.direccion_comercial,
+          rut: info.rut,
+          tipo_organizacion: info.tipo_organizacion,
+          duracion_database: info.duracion_database
+        });
+        if (!new_info) {
+          console.log(`${tag} La informacion no pudo ser creada`);
+        } else {
+          console.log(`${tag} Informacion creada satisfactoriamente`);
+        }
+        continue;
+      }
+    }
+  } catch ( err ) {
+    console.log(`${tag} Error: `, err.stack || err.message || err);
+    testResult = 'fail';
+  }
+  console.log(`${tag} ... ${testResult}`);
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+/// Exporting 
+/////////////////////////////////////////////////////////////////////////////
 
 //module.exports = mongoose.model('users', userSchema);
 module.exports.connectToDB = connectToDB;
@@ -362,10 +514,17 @@ module.exports.nombreCursoMapDB = mongoose.model('nombreCursoMap', nombreCursoSc
 module.exports.compromisosPagoDB = mongoose.model('compromisosPagoApoderados', compromisosPagoSchema, 'compromisosPagoApoderados');
 module.exports.paymentOrdersDB = mongoose.model('paymentOrders', commerceSchema, 'paymentOrders');
 module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderSchema, 'CommerceOrders');
+module.exports.eventoCounterDB = mongoose.model('contador_eventos', eventoCounterSchema, 'contador_eventos');
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
+module.exports.infoOrganizacionDB = infoOrganizacionDB
 module.exports.EventDB = EventDB;
-module.exports.TicketEvento = TicketEvento;
+module.exports.TicketEventoDB = TicketEventoDB;
 module.exports.dbUri = dbUri;
+
+module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
+module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;
+module.exports.hasAdministradorAccessRights = hasAdministradorAccessRights;
+
 //module.exports.ticketsDB = mongoose.model('tickets', ticketSchema, 'tickets');
 
 } // fin else (conexión Atlas)

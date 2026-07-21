@@ -10,6 +10,8 @@ const { genEntradaCanvas } = require('../src/generateTicket');
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
 
+const SECRET_API_KEY = config_env.API_KEY;
+
 // Mapeo auxiliar de jornadas
 const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 

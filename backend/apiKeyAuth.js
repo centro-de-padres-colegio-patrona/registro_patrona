@@ -1,6 +1,6 @@
 // ./backend/apiKeyAuth.js
 
-const config_env = require('./setup/config/env.js');
+const config_env = require('../src/setup/config/env.js');
 
 
 const API_KEY_SECRET = config_env.API_KEY;

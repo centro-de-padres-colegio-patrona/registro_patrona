@@ -1,5 +1,5 @@
 const db_support = require('../backend/db_support');
-const config_env = require('./setup/config/env.js');
+const config_env = require('../src/setup/config/env.js');
 
 const SECRET_API_KEY = config_env.API_KEY;
 
@@ -292,7 +292,7 @@ async function test_api_perfiles(url_server = 'http://localhost:5001') {
     'l.herreramena@gmail.com': {
       email: 'l.herreramena@gmail.com',
       rut: '12.485.285-4',
-      nombre_completo: 'Luis Herreramena',
+      nombre_completo: 'Leo Herrera',
       rol: 'administrador'
     }
   };

@@ -40,3 +40,5 @@ export const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY || flow_secret_key
 export const LOCAL_PORT = process.env.LOCAL_PORT || 5001
 
 export const API_KEY = process.env.API_KEY || '123456'
+
+export const URL_SERVER = process.env.URL_SERVER || 'https://registro-patrona.onrender.com'

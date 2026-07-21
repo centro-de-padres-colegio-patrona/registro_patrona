@@ -1501,7 +1501,7 @@ app.post('/api/send_email_entradas', async (req, res) => {
     const attachments = await Promise.all(
       entradas.map(async (entrada) => {
         const buffer = await genEntradaCanvas(entrada);
-        const nombreArchivo = `entrada_${entrada.familia.replace(/\s+/g, '_')}_${String(entrada.correlativo).padStart(4, '0')}.png`;
+        const nombreArchivo = `entrada_${entrada.familia.replace(/\s+/g, '_')}_${String(entrada.folio).padStart(4, '0')}.png`;
         return {
           filename: nombreArchivo,
           content: buffer,

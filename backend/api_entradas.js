@@ -27,12 +27,10 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
             num_listado, 
             curso, 
             jornada,
-            bloque,
-            tipo,
-            hash
+            bloques,
+            tipo
           } = req.body;
 
-    // Verificar hash
     const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
 
     let buffer = null;
@@ -104,8 +102,8 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
 // 3. GET: Consultar estado de una entrada. Endpoint Publico. No requiere autenticación. Se puede usar para validar QR.
 router.get('/entrada/consultar', async (req, res) => {
   try {
-    const { correlativo, familia } = req.query;
-    if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
+    const { folio, familia } = req.query;
+    if (!folio) return res.status(400).json({ error: 'Falta folio' });
 
     const ticket = await db_support.ticketsDB.findOne({ correlativo: parseInt(correlativo) });
 
@@ -374,7 +372,7 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
   }
 });
 
-async function generarEntradaParaFamilia(id_evento, nombre_completo) {
+async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_completo) {
   try {
     //console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
     // Buscar la familia en la base de datos usando el nombre completo del estudiante
@@ -384,6 +382,21 @@ async function generarEntradaParaFamilia(id_evento, nombre_completo) {
     const cursos = []
     for (const nombre_estudiante of hermanos || []) {
       const estudianteInfo = await db_support.nombreCursoMapDB.findOne({ 'id': nombre_estudiante });
+      const curso = estudianteInfo.value;
+      cursos.push(curso);
+      const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
+      const num_lista = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
+        // id_evento, imagen_ticket_path, familia, nombre_completo, num_listado, curso, jornada, tipo, bloques
+        const result_create = await fetch(`/api/entradas/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+          body: JSON.stringify({
+            id_evento,
+            imagen_ticket_path,
+            familia: nombre_familia,
+            tipo: 'estudiante'
+          })
+        });
       cursos.push(estudianteInfo.value);
       //console.log(`Estudiante: ${nombre_estudiante}, Curso: ${estudianteInfo.value}`);
     }
@@ -395,19 +408,20 @@ async function generarEntradaParaFamilia(id_evento, nombre_completo) {
   return [];
 }
 
-router.get('/entradas/generar/familia', apiKeyAuth, async (req, res) => {
-  const tag = '[/api/entradas/generar/familia]';
+router.post('/entradas/generar/familia', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entradas/generar/familia]';
   try {
-    const { id_evento, nombre_completo } = req.query;
+    const { id_evento, imagen_ticket_path, nombre_completo } = req.body;
     if (!id_evento || !nombre_completo) {
       return res.status(400).json({ error: 'Faltan parámetros: id_evento y nombre_completo son requeridos' });
     }
 
-    const nombres_estudiantes = await generarEntradaParaFamilia(id_evento, nombre_completo);
+    const nombres_estudiantes = await generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_completo);
+    
     console.log(`${tag} Entradas generadas para la familia del estudiante ${nombre_completo}: ${nombres_estudiantes.join(', ')}`);
     res.json({ status: 'ok', estudiantes: nombres_estudiantes });
   } catch (error) {
-    console.error(`${tag} Error al generar entradas para la familia del estudiante ${req.query.nombre_completo}:`, error);
+    console.error(`${tag} Error al generar entradas para la familia del estudiante ${req.body.nombre_completo}:`, error);
     res.status(500).json({ error: 'Error al generar entradas para la familia' });
   }
 });

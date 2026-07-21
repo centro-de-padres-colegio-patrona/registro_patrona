@@ -28,8 +28,8 @@ function colores_to_bloques(colores) {
 }
 
 
-async function genEntrada({ url_server, id_evento, imagen_ticket_path, familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo, hash }) {
-  // Verificar hash
+async function genEntrada({ url_server, id_evento, imagen_ticket_path, familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
+  
   const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
   const serial = `${correlativo}/${total}`;
@@ -68,17 +68,17 @@ async function genEntrada({ url_server, id_evento, imagen_ticket_path, familia, 
 }
 
 
-async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
+async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
   //console.log(`${JSON.stringify(colores)}`);
   //console.log(`typeof(colores): ${typeof(colores)}`);
-  const bloques = colores_to_bloques(colores);
+  //const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
-  const serial = String(correlativo).padStart(4, '0');
+  const serial = String(folio).padStart(4, '0');
   const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
   const jornadaDisplay = jornadaMap[jornada] || jornada;
-  const qrData = `https://registro-patrona.onrender.com/api/entrada_qr?familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}&total=${total}`;
+  const qrData = `${url_server}/api/entrada/consultar?evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}&total=${total}`;
 
-  const fondo = await loadImage(path.join(__dirname, '../img/fondo_entrada.png'));
+  const fondo = await loadImage(path.join(__dirname, '../', imagen_ticket_path));
   const canvas = createCanvas(fondo.width, fondo.height);
   const ctx = canvas.getContext('2d');
 
@@ -110,10 +110,14 @@ async function genEntradaCanvas({ familia, nombre_completo, colores, correlativo
   ctx.font = '18px PottiSreeramulu';
 
   const textosTicket = [
-    { text: serial, x: 340, y: 645 },
-    { text: `Curso: ${curso}`, x: 340, y: 667 },
-    { text: `Nro List: ${num_listado}`, x: 340, y: 689 }
+    { text: serial, x: 340, y: 645 }
   ];
+  if (curso) {
+    textosTicket.push({ text: `Curso: ${curso}`, x: 340, y: 667 });
+  }
+  if (num_listado) {
+    textosTicket.push({ text: `Nro List: ${num_listado}`, x: 340, y: 689 });
+  }
 
   textosTicket.forEach(({ text, x, y }) => {
     ctx.fillText(text, x, y);

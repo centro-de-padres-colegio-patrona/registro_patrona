@@ -316,16 +316,70 @@ router.get('/entrada/qr', async (req, res) => {
   }
 });
 
-router.get('/entradas/generar', async (req, res) => {
+router.get('/entradas/pre_generar', async (req, res) => {
   try {
-    const { familia, jornada, tipo, correlativo } = req.body;
-    const jornadaDisplay = JORNADA_MAP[jornada] || jornada;
+    const id_evento = req.query.id_evento;
+    // Obtener listado de cursos desde la base de datos
+    const listadoCursos = await db_support.listadoCursosDB.find();
+
+    // Iterar sobre los cursos obtenidos
+    for (const curso of listadoCursos) {
+      // Procesar cada curso
+      console.log(`Procesando curso: ${curso.id}`);
+      console.log(`Estudiantes curso: ${curso.estudiantesCurso}`);
+      // Iterando sobre objecto estudiantesCurso
+      for (const nombre_completo of Object.keys(curso.estudiantesCurso)) {
+        // Generar entrada para la familia del estudiante
+        await generarEntradaParaFamilia(id_evento, nombre_completo);
+      }
+    }
   } catch (error) {
-    console.error('[/api/entradas/generar] Error:', error);
-    res.status(500).json({ error: 'Error al generar entrada' });
+    console.error('[/api/entradas/pre_generar] Error:', error);
+    res.status(500).json({ error: 'Error al pre-generar entradas' });
   }
 });
 
+async function generarEntradaParaFamilia(id_evento, nombre_completo) {
+  try {
+    console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
+    // Buscar la familia en la base de datos usando el nombre completo del estudiante
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': nombre_completo });
+    const { nombre_familia, hermanos } = familiaInfo || {};
+    // Buscar Cursos
+    const cursos = []
+    for (const nombre_estudiante of hermanos || []) {
+      const estudianteInfo = await db_support.nombreCursoMapDB.findOne({ 'id': nombre_estudiante });
+      cursos.push(estudianteInfo.value);
+      console.log(`Estudiante: ${nombre_estudiante}, Curso: ${estudianteInfo.value}`);
+    }
+    
+
+    return;
+    // Generar correlativo único para la entrada
+    const correlativo = await generarCorrelativoUnico();
+
+    // Crear la entrada en la base de datos
+    await db_support.ticketsDB.create({
+      correlativo,
+      familia: familia.nombre_familia,
+      nombre_completo,
+      tipo: 'General', // Ajusta según tu lógica
+      jornada: 'Mañana', // Ajusta según tu lógica
+      curso: familia.curso, // Ajusta según tu lógica
+      bloque: familia.bloque, // Ajusta según tu lógica
+      num_listado: familia.num_listado, // Ajusta según tu lógica
+      total: familia.total, // Ajusta según tu lógica
+      fecha_generacion: new Date(),
+      usado: false,
+      validado_por: null,
+      imagen_ticket: null // Puedes generar la imagen si es necesario
+    });
+
+    console.log(`Entrada generada para la familia: ${familia.nombre_familia}, estudiante: ${nombre_completo}`);
+  } catch (error) {
+    console.error(`Error al generar entrada para la familia del estudiante ${nombre_completo}:`, error);
+  }
+}
 
 //// Api Eventos
 router.post('/eventos/crear', async (req, res) => {

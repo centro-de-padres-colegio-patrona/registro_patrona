@@ -12,6 +12,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     setTimeout(listing_all_tipos_de_pago, delay_ms+1000, url_server);
     //setTimeout(test_api_pago_compromiso, delay_ms);
     setTimeout(test_api_eventos, delay_ms+1500, url_server);
+    setTimeout(test_api_pre_generate_entries, delay_ms+2000, url_server);
 }
 
 async function log_result(tag, result) {
@@ -244,6 +245,24 @@ async function test_api_db_connection(db_uri = '') {
     throw new Error('DB Connection URI test failed');
   }
   console.log(`${tag}: pass`);
+}
+
+
+/// Testear pre-generacion de entradas
+async function test_api_pre_generate_entries(url_server = 'http://localhost:5001') {
+  const tag = 'test /api/pre_generate_entries';
+  try {
+    const id_evento = 'fiesta_chilena_2026';
+    const result = await fetch(`${url_server}/api/entradas/pre_generar?id_evento=${id_evento}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const entradas = await result.json();
+    console.log('Entradas pre-generadas:', entradas);
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
 }
 
 module.exports.lauch_test_api = lauch_test_api;

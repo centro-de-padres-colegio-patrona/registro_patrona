@@ -416,7 +416,7 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
       const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
       const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
       // , , , , , , jornada, bloques
-      const result_create = await fetch(`/api/entradas/create`, {
+      const result_create = await fetch(`/api/entrada/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
         body: JSON.stringify({

@@ -21,20 +21,20 @@ router.post('/entrada/create', async (req, res) => {
             familia, 
             nombre_completo, 
             colores, 
-            correlativo, 
-            total, 
             num_listado, 
             curso, 
             jornada,
             bloque,
-            tipo 
+            tipo,
+            hash
           } = req.body;
 
+    // Verificar hash
     const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
 
     let buffer = null;
 
-    await db_support.ticketsDB.create({
+    const ticket = await db_support.ticketsDB.create({
       id_evento: id_evento,
       familia,
       nombre_completo,
@@ -49,9 +49,11 @@ router.post('/entrada/create', async (req, res) => {
       validado_por: null,
       imagen_ticket: buffer
     });
-    console.log(`[/api/entrada/create] Ticket ${correlativo} guardado en BD`);
+    const folio = ticket.folio || 0;
+    console.log(`[/api/entrada/create] Ticket ${folio} guardado en BD`);
 
-    buffer = await genEntradaCanvas(req.body);
+    const ticketInfo = {...req.body, folio };
+    buffer = await genEntradaCanvas(ticketInfo);
     // Update the ticket with the generated image
     await db_support.ticketsDB.findOneAndUpdate(
       { id_evento: id_evento, nombre_completo: nombre_completo },

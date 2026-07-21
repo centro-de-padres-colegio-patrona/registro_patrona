@@ -27,6 +27,8 @@ const cors = require('cors');
 const LOCAL_PORT = config_env.LOCAL_PORT;
 const PORT = process.env.PORT || LOCAL_PORT;
 
+const SECRET_API_KEY = config_env.API_KEY;
+
 // Si corre en local usa ngrok para callbacks de pago, si no usa la URL de producción (Render)
 const BASEURL = (PORT === LOCAL_PORT)
   ? 'https://unhappily-correct-squeeze.ngrok-free.dev'

@@ -1,4 +1,8 @@
 const db_support = require('../backend/db_support');
+const config_env = require('./setup/config/env.js');
+
+const SECRET_API_KEY = config_env.API_KEY;
+
 const test_result_array = {};
 
 class TestResult {
@@ -209,7 +213,7 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
       //const id_evento = 'fiesta_chilena_2026';
       const result = await fetch(`${url_server}/api/eventos/buscar?id_evento=${id_evento}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
       const eventos = await result.json();
       //console.log('Eventos encontrados:', eventos);
@@ -217,7 +221,7 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
         console.log(`Evento ${id_evento}, creando evento ...`);
         const result_create = await fetch(`${url_server}/api/eventos/crear`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
           body: JSON.stringify({
             id_evento,
             nombre: eventoData.nombre,
@@ -265,7 +269,7 @@ async function test_api_pre_generate_entries(url_server = 'http://localhost:5001
     const id_evento = 'fiesta_chilena_2026';
     const result = await fetch(`${url_server}/api/entradas/pre_generar?id_evento=${id_evento}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
     });
     const entradas = await result.json();
     console.log('Entradas pre-generadas:', entradas);
@@ -299,7 +303,7 @@ async function test_api_perfiles(url_server = 'http://localhost:5001') {
       //console.log(`${tag} Verificando perfil: ${email}`);
       const result = await fetch(`${url_server}/api/perfiles?email=${encodeURIComponent(email)}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
       const perfil = await result.json();
       if (!perfil || perfil.email !== perfilData.email || perfil.rut !== perfilData.rut || perfil.nombre_completo !== perfilData.nombre_completo || perfil.rol !== perfilData.rol) {
@@ -309,7 +313,7 @@ async function test_api_perfiles(url_server = 'http://localhost:5001') {
           console.log(`${tag} Perfil ${email} no encontrado. Creando perfil...`);
           const createResult = await fetch(`${url_server}/api/perfiles`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
             body: JSON.stringify(perfilData)
           });
           if (createResult.status !== 201) {

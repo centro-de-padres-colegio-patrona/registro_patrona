@@ -38,3 +38,5 @@ export const FLOW_API_KEY = process.env.FLOW_API_KEY || flow_api_key
 export const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY || flow_secret_key
 
 export const LOCAL_PORT = process.env.LOCAL_PORT || 5001
+
+export const API_KEY = process.env.API_KEY || '123456'

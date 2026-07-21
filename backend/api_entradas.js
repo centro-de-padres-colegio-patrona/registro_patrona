@@ -6,13 +6,14 @@ const path = require('path');
 // Requerir dependencias compartidas necesarias para las entradas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
 const { genEntradaCanvas } = require('../src/generateTicket'); 
+const apiKeyAuth = require('./apiKeyAuth');
 
 // Mapeo auxiliar de jornadas
 const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
 
   // 1. POST: Generar entrada Canvas
-router.post('/entrada/create', async (req, res) => {
+router.post('/entrada/create', apiKeyAuth, async (req, res) => {
   try {
     console.log(JSON.stringify(req.body));
     const { 
@@ -69,7 +70,7 @@ router.post('/entrada/create', async (req, res) => {
 });
 
 // 2. GET: Buscar Entradas (Supervisor)
-router.get('/entrada/buscar', async (req, res) => {
+router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2) {
@@ -98,7 +99,7 @@ router.get('/entrada/buscar', async (req, res) => {
   }
 });
 
-// 3. GET: Consultar estado de una entrada
+// 3. GET: Consultar estado de una entrada. Endpoint Publico. No requiere autenticación. Se puede usar para validar QR.
 router.get('/entrada/consultar', async (req, res) => {
   try {
     const { correlativo, familia } = req.query;
@@ -132,7 +133,7 @@ router.get('/entrada/consultar', async (req, res) => {
 });
 
 // 4. POST: Marcar ticket/entrada como usado (validar)
-router.post('/entrada/validar', async (req, res) => {
+router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
   try {
     const { correlativo, validado_por } = req.body;
     if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
@@ -165,7 +166,7 @@ router.post('/entrada/validar', async (req, res) => {
 });
 
 // 5. GET: Endpoint JSON para datos completos de una entrada (QR)
-router.get('/entrada/qr_data', async (req, res) => {
+router.get('/entrada/qr_data', apiKeyAuth, async (req, res) => {
   try {
     const { familia, jornada, tipo, correlativo } = req.query;
     const jornadaDisplay = JORNADA_MAP[jornada] || jornada;
@@ -193,7 +194,7 @@ router.get('/entrada/qr_data', async (req, res) => {
 });
 
 // 6. GET: Vista HTML presentable de la Entrada QR
-router.get('/entrada/qr', async (req, res) => {
+router.get('/entrada/qr', apiKeyAuth, async (req, res) => {
   try {
     const { familia, jornada, tipo, correlativo } = req.query;
     const jornadaDisplay = JORNADA_MAP[jornada] || jornada;
@@ -339,7 +340,7 @@ router.get('/entrada/qr', async (req, res) => {
   }
 });
 
-router.get('/entradas/pre_generar', async (req, res) => {
+router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entradas/pre_generar]';
   const nombres_estudiantes = [];
   try {
@@ -392,8 +393,13 @@ async function generarEntradaParaFamilia(id_evento, nombre_completo) {
   return [];
 }
 
+
+
+
+
+
 //// Api Eventos
-router.post('/eventos/crear', async (req, res) => {
+router.post('/eventos/crear', apiKeyAuth, async (req, res) => {
   try {
     const { id_evento, 
             nombre, 
@@ -430,7 +436,7 @@ router.post('/eventos/crear', async (req, res) => {
   }
 });
 
-router.get('/eventos/buscar', async (req, res) => {
+router.get('/eventos/buscar', apiKeyAuth, async (req, res) => {
   try {
     const { id_evento } = req.query;
     const evento = await db_support.EventDB.find({ id_evento });

@@ -28,7 +28,7 @@ function colores_to_bloques(colores) {
 }
 
 
-async function genEntrada({ nombre_evento, amilia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
+async function genEntrada({ id_evento, imagen_ticket_path, familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo }) {
   const bloques = colores_to_bloques(colores);
   const colorText = bloques.join('/');
   const serial = `${correlativo}/${total}`;

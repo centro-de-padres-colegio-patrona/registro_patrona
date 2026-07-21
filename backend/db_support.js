@@ -282,7 +282,7 @@ const ticketEventoSchema = new mongoose.Schema({
   num_listado: Number,
   total: Number,
   fecha_generacion: { type: Date, default: Date.now },
-  usado: { type: Boolean, default: false },
+  estado: { type: String, default: 'pendiente' },
   fecha_uso: Date,
   validado_por: String,
   imagen_ticket: Buffer
@@ -322,7 +322,7 @@ ticketEventoSchema.pre('save', async function (next) {
   }
 });
 
-const TicketEvento = mongoose.model('TicketEvento', ticketEventoSchema);
+const TicketEvento = mongoose.model('TicketEvento', ticketEventoSchema, 'ticketEventos');
 
 
 

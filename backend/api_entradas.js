@@ -15,13 +15,27 @@ const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 router.post('/entrada/create', async (req, res) => {
   try {
     console.log(JSON.stringify(req.body));
-    const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = req.body;
+    const { 
+            id_evento,
+            imagen_ticket_path,
+            familia, 
+            nombre_completo, 
+            colores, 
+            correlativo, 
+            total, 
+            num_listado, 
+            curso, 
+            jornada,
+            bloque,
+            tipo 
+          } = req.body;
 
     const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
-    const buffer = await genEntradaCanvas(req.body);
+
+    let buffer = null;
 
     await db_support.ticketsDB.create({
-      correlativo: parseInt(correlativo),
+      id_evento: id_evento,
       familia,
       nombre_completo,
       tipo,
@@ -36,6 +50,13 @@ router.post('/entrada/create', async (req, res) => {
       imagen_ticket: buffer
     });
     console.log(`[/api/entrada/create] Ticket ${correlativo} guardado en BD`);
+
+    buffer = await genEntradaCanvas(req.body);
+    // Update the ticket with the generated image
+    await db_support.ticketsDB.findOneAndUpdate(
+      { id_evento: id_evento, nombre_completo: nombre_completo },
+      { $set: { imagen_ticket: buffer } }
+    );
 
     res.set('Content-Type', 'image/png');
     res.send(buffer);

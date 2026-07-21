@@ -265,4 +265,61 @@ async function test_api_pre_generate_entries(url_server = 'http://localhost:5001
   }
 }
 
+/// Testear perfiles
+async function test_api_perfiles(url_server = 'http://localhost:5001') {
+  const tag = 'test /api/perfiles';
+  const perfiles_map = {
+    'morales.italo@gmail.com': {
+      email: 'morales.italo@gmail.com',
+      rut: '15.775.593-5',
+      nombre_completo: 'Italo Morales',
+      rol: 'administrador'
+    },
+    'l.herreramena@gmail.com': {
+      email: 'l.herreramena@gmail.com',
+      rut: '12.485.285-4',
+      nombre_completo: 'Luis Herreramena',
+      rol: 'administrador'
+    }
+  };
+  let test_result = 'PASS';
+  try {
+    // Iterar sobre los perfiles definidos en el mapa y verificar su existencia en la base de datos
+    for (const [email, perfilData] of Object.entries(perfiles_map)) {
+      const result = await fetch(`${url_server}/api/perfiles?email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const perfil = await result.json();
+      if (!perfil || perfil.email !== perfilData.email || perfil.rut !== perfilData.rut || perfil.nombre_completo !== perfilData.nombre_completo || perfil.rol !== perfilData.rol) {
+        console.log(`Perfil ${email} no encontrado o datos incorrectos. Creando perfil...`);
+        test_result = 'FAIL';
+        const createResult = await fetch(`${url_server}/api/perfiles`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(perfilData)
+        });
+        if (createResult.status !== 201) {
+          log_result(tag, `fail creating profile ${email}`);
+        }
+      }
+    }
+    log_result(tag, test_result);
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+    const result = await fetch(`${url_server}/api/perfiles`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const perfiles = await result.json();
+    console.log('Perfiles encontrados:', perfiles);
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+
 module.exports.lauch_test_api = lauch_test_api;

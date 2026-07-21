@@ -23,7 +23,8 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     ////setTimeout(test_api_pago_compromiso, delay_ms);
 
     //setTimeout(test_api_eventos, delay_ms+1500, url_server);
-    //setTimeout(test_api_pre_generate_entries, delay_ms+2000, url_server);
+    //setTimeout(test_api_pre_generate_entradas, delay_ms+2000, url_server);
+    setTimeout(test_api_entradas_familia, delay_ms+1000, url_server);
 }
 
 async function log_result(tag, result) {
@@ -263,8 +264,8 @@ async function test_api_db_connection(db_uri = '') {
 
 
 /// Testear pre-generacion de entradas
-async function test_api_pre_generate_entries(url_server = 'http://localhost:5001') {
-  const tag = 'test /api/pre_generate_entries';
+async function test_api_pre_generate_entradas(url_server = 'http://localhost:5001') {
+  const tag = 'test /api/pre_generate_entradas';
   try {
     const id_evento = 'fiesta_chilena_2026';
     const result = await fetch(`${url_server}/api/entradas/pre_generar?id_evento=${id_evento}`, {
@@ -278,6 +279,25 @@ async function test_api_pre_generate_entries(url_server = 'http://localhost:5001
     log_result(tag, 'fail');
   }
 }
+
+async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
+  const tag = 'test /api/entradas/generar/familia';
+  try {
+    const id_evento = 'fiesta_chilena_2026';
+    const nombre_completo = 'herrera messina florencia isidora';
+    const result = await fetch(`${url_server}/api/entradas/generar/familia?id_evento=${id_evento}&nombre_completo=${encodeURIComponent(nombre_completo)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    const entradas = await result.json();
+    console.log('Entradas generadas para la familia:', entradas);
+    log_result(tag, 'pass');
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 /// Testear perfiles
 async function test_api_perfiles(url_server = 'http://localhost:5001') {

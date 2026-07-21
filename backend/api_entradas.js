@@ -7,6 +7,7 @@ const path = require('path');
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
 const { genEntradaCanvas } = require('../src/generateTicket'); 
 const apiKeyAuth = require('./apiKeyAuth');
+const config_env = require('../src/setup/config/env.js');
 
 // Mapeo auxiliar de jornadas
 const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
@@ -14,6 +15,7 @@ const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
   // 1. POST: Generar entrada Canvas
 router.post('/entrada/create', apiKeyAuth, async (req, res) => {
+  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
   try {
     console.log(JSON.stringify(req.body));
     const { 
@@ -53,7 +55,7 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
     const folio = ticket.folio || 0;
     console.log(`[/api/entrada/create] Ticket ${folio} guardado en BD`);
 
-    const ticketInfo = {...req.body, folio };
+    const ticketInfo = {...req.body, folio, url_server };
     buffer = await genEntradaCanvas(ticketInfo);
     // Update the ticket with the generated image
     await db_support.ticketsDB.findOneAndUpdate(
@@ -393,7 +395,22 @@ async function generarEntradaParaFamilia(id_evento, nombre_completo) {
   return [];
 }
 
+router.get('/entradas/generar/familia', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entradas/generar/familia]';
+  try {
+    const { id_evento, nombre_completo } = req.query;
+    if (!id_evento || !nombre_completo) {
+      return res.status(400).json({ error: 'Faltan parámetros: id_evento y nombre_completo son requeridos' });
+    }
 
+    const nombres_estudiantes = await generarEntradaParaFamilia(id_evento, nombre_completo);
+    console.log(`${tag} Entradas generadas para la familia del estudiante ${nombre_completo}: ${nombres_estudiantes.join(', ')}`);
+    res.json({ status: 'ok', estudiantes: nombres_estudiantes });
+  } catch (error) {
+    console.error(`${tag} Error al generar entradas para la familia del estudiante ${req.query.nombre_completo}:`, error);
+    res.status(500).json({ error: 'Error al generar entradas para la familia' });
+  }
+});
 
 
 

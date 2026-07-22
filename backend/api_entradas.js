@@ -42,9 +42,10 @@ async function save_png(buffer, filename = null) {
 
   // 1. POST: Generar entrada Canvas
 router.post('/entrada/create', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entrada/create]';
   const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
   try {
-    console.log(JSON.stringify(req.body));
+    //console.log(JSON.stringify(req.body));
     const { 
             id_evento,
             imagen_ticket_path,
@@ -60,7 +61,7 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
 
     const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
 
-    console.log(`/api/entrada/create: ${JSON.stringify({
+    /*console.log(`/api/entrada/create: ${JSON.stringify({
       id_evento: id_evento,
       familia: familia || '',
       nombre_completo: nombre_completo || '',
@@ -73,7 +74,7 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
       usado: false,
       validado_por: null,
       imagen_ticket: null
-    })}`)
+    })}`)*/
    
     const ticket = await db_support.TicketEventoDB.create({
       id_evento: id_evento,
@@ -97,11 +98,13 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
 
     if (buffer) {
       // Update the ticket with the generated image
-      await db_support.ticketsDB.findOneAndUpdate(
+      await db_support.TicketEventoDB.findOneAndUpdate(
         { id_evento: id_evento, nombre_completo: nombre_completo },
         { $set: { imagen_ticket: buffer } }
       );
       await save_png(buffer);
+    } else {
+      console.log(`${tag} image buffer null`)
     }
     res.set('Content-Type', 'image/png');
     res.send(buffer);
@@ -121,7 +124,7 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
 
     const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const busqueda = normalizar(q.trim());
-    const todos = await db_support.ticketsDB.find({});
+    const todos = await db_support.TicketEventoDB.find({});
 
     const resultados = todos.filter(ticket => {
       const campos = [
@@ -147,7 +150,7 @@ router.get('/entrada/consultar', async (req, res) => {
     const { folio, familia } = req.query;
     if (!folio) return res.status(400).json({ error: 'Falta folio' });
 
-    const ticket = await db_support.ticketsDB.findOne({ correlativo: parseInt(correlativo) });
+    const ticket = await db_support.TicketEventoDB.findOne({ correlativo: parseInt(correlativo) });
 
     if (!ticket) {
       return res.json({ existe: false, mensaje: 'Ticket no registrado en el sistema' });
@@ -179,7 +182,7 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
     const { correlativo, validado_por } = req.body;
     if (!correlativo) return res.status(400).json({ error: 'Falta correlativo' });
 
-    const ticket = await db_support.ticketsDB.findOne({ correlativo: parseInt(correlativo) });
+    const ticket = await db_support.TicketEventoDB.findOne({ correlativo: parseInt(correlativo) });
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
@@ -193,7 +196,7 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
       });
     }
 
-    await db_support.ticketsDB.findOneAndUpdate(
+    await db_support.TicketEventoDB.findOneAndUpdate(
       { correlativo: parseInt(correlativo) },
       { $set: { usado: true, fecha_uso: new Date(), validado_por: validado_por || 'desconocido' } }
     );
@@ -421,7 +424,7 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
     ? config_env.URL_SERVER
     : `http://localhost:5001`;  
   //console.log(`generarEntradaParaFamilia: ${JSON.stringify({id_evento, imagen_ticket_path, nombre_completo})}`);
-  console.log(`${tag} url_server: ${baseUrl}`);
+  //console.log(`${tag} url_server: ${baseUrl}`);
   try {
     //console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
     // Buscar la familia en la base de datos usando el nombre completo del estudiante
@@ -436,9 +439,9 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
       const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
       const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
       // , , , , , , jornada, bloques
-      const jornada = '';
+      const jornada = 'manana';
       const bloques = [];
-      console.log(`${tag} fetch /api/entrada/create -> ${JSON.stringify({
+      /*console.log(`${tag} fetch /api/entrada/create -> ${JSON.stringify({
           id_evento,
           imagen_ticket_path,
           familia: nombre_familia,
@@ -447,7 +450,7 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
           curso,
           num_listado,
           jornada
-      })}`);
+      })}`);*/
       const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },

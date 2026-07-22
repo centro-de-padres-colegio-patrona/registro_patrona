@@ -73,14 +73,22 @@ async function genEntrada({ url_server, id_evento, imagen_ticket_path, familia, 
 
 
 async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
+  const tag = '[genEntradaCanvas]';
   try {
+    console.log(`${tag} Starting`)
     const colorText = bloques.join('/');
+    console.log(`${tag} ${JSON.stringify({colorText})}`);
     const serial = String(folio).padStart(4, '0');
+    console.log(`${tag} ${JSON.stringify({serial})}`);
     const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
     const jornadaDisplay = jornadaMap[jornada] || jornada;
-    const qrData = `${url_server}/api/entrada/consultar?evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}&total=${total}`;
+    console.log(`${tag} ${JSON.stringify({jornadaDisplay})}`);
+    const qrData = `${url_server}/api/entrada/consultar?evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}`;
+    console.log(`${tag} ${JSON.stringify({qrData})}`);
 
+    console.log(`${tag} loading fondo png: ${path.join(__dirname, '../', imagen_ticket_path)}`);
     const fondo = await loadImage(path.join(__dirname, '../', imagen_ticket_path));
+    console.log(`${tag} fondo loaded: ${fondo? 'yes': 'failed'}`);
     const canvas = createCanvas(fondo.width, fondo.height);
     const ctx = canvas.getContext('2d');
 
@@ -130,9 +138,10 @@ async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, fam
     const qrImage = await loadImage(qrBuffer);
     ctx.drawImage(qrImage, 45, 528);
 
+    console.log(`genEntradaCanvas success`);
     return canvas.toBuffer('image/png');
   } catch (err) {
-    console.log(`genEntrada: error: ${JSON.stringify(err)}`);
+    console.log(`[genEntradaCanvas]: Error: `, err.stack || err.message || err);
     return null;
   }
 }

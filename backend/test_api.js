@@ -196,7 +196,7 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
       hora_termino: '17:00',
       hora_apertura_puertas: '08:15',
       descripcion: 'Evento de celebración cultural',
-      imagen_ticket_path: `./img/ticket_fiesta_chilena_2026.jpg`
+      imagen_ticket_path: `./img/ticket_fiesta_chilena_2026.png`
     },
     'bingo_familiar_2026': {
       nombre: 'Bingo Familiar 2026',
@@ -205,7 +205,7 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
       hora_termino: '20:00',
       hora_apertura_puertas: '13:30',
       descripcion: 'Evento solidario de recaudación de fondos',
-      imagen_ticket_path: `./img/ticket_bingo_familiar_2026.jpg`
+      imagen_ticket_path: `./img/ticket_bingo_familiar_2026.png`
     }
   }
   let test_result = 'pass';

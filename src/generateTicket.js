@@ -31,41 +31,35 @@ function colores_to_bloques(colores) {
 async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
   const tag = '[genEntradaCanvas]';
   try {
-    //console.log(`${tag} Starting`)
     const colorText = bloques.join('/');
-    //console.log(`${tag} ${JSON.stringify({colorText})}`);
     const serial = String(folio).padStart(4, '0');
-    //console.log(`${tag} ${JSON.stringify({serial})}`);
     const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
     const jornadaDisplay = jornadaMap[jornada] || jornada;
-    //console.log(`${tag} ${JSON.stringify({jornadaDisplay})}`);
     const qrData = `${url_server}/api/entrada/consultar?evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}`;
-    //console.log(`${tag} ${JSON.stringify({qrData})}`);
 
-    //console.log(`${tag} loading fondo png: ${path.join(__dirname, '../', imagen_ticket_path)}`);
     const fondo = await loadImage(path.join(__dirname, '../', imagen_ticket_path));
-    //console.log(`${tag} fondo loaded: ${fondo? 'yes': 'failed'}`);
     const canvas = createCanvas(fondo.width, fondo.height);
     const ctx = canvas.getContext('2d');
 
     ctx.drawImage(fondo, 0, 0);
 
     // Texto centrado arriba
-    ctx.font = '50px PottiSreeramulu';
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.fillText(tipo, canvas.width / 2, 144);
+    ctx.font = '40px PottiSreeramulu';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'left';
+    ctx.fillText(tipo, canvas.width / 2 +40, 690-30);
 
     // Textos laterales
     ctx.font = '30px PottiSreeramulu';
     ctx.fillStyle = 'black';
     ctx.textAlign = 'left';
 
+    const y_offset = 490;
     const textosMain = [
-      { text: familia, x: 190, y: 415 },
-      { text: nombre_completo, x: 58, y: 445 },
-      { text: `Bloques: ${colorText}`, x: 58, y: 475 },
-      { text: `Jornada: ${jornadaDisplay}`, x: 58, y: 505 },
+      { text: `Familia: ${familia}`, x: 58, y: y_offset },
+      { text: nombre_completo, x: 58, y: y_offset+30 },
+      { text: `Bloques: ${colorText}`, x: 58, y: y_offset+60 },
+      { text: `Jornada: ${jornadaDisplay}`, x: 58, y: y_offset+90 },
     ];
 
     textosMain.forEach(({ text, x, y }) => {
@@ -75,14 +69,15 @@ async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, fam
     // Textos zona ticket (font más pequeño para que quepa)
     ctx.font = '18px PottiSreeramulu';
 
+    const textosTicket_y_offset = 690;
     const textosTicket = [
-      { text: serial, x: 340, y: 645 }
+      { text: `Folio: ${serial}`, x: 340, y: textosTicket_y_offset }
     ];
     if (curso) {
-      textosTicket.push({ text: `Curso: ${curso}`, x: 340, y: 667 });
+      textosTicket.push({ text: `Curso: ${curso}`, x: 340, y: textosTicket_y_offset+22 });
     }
     if (num_listado) {
-      textosTicket.push({ text: `Nro List: ${num_listado}`, x: 340, y: 689 });
+      textosTicket.push({ text: `Nro List: ${num_listado}`, x: 340, y: textosTicket_y_offset+44 });
     }
 
     textosTicket.forEach(({ text, x, y }) => {
@@ -92,7 +87,7 @@ async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, fam
     // QR
     const qrBuffer = await QRCode.toBuffer(qrData, { width: 215 });
     const qrImage = await loadImage(qrBuffer);
-    ctx.drawImage(qrImage, 45, 528);
+    ctx.drawImage(qrImage, 45, 608);
 
     console.log(`genEntradaCanvas success`);
     return canvas.toBuffer('image/png');

@@ -42,8 +42,9 @@ async function save_png(buffer, filename = null) {
 
   // 1. POST: Generar entrada Canvas
 router.post('/entrada/create', apiKeyAuth, async (req, res) => {
+  console.log('POST /api/entrada/create:  started');
   const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
-  console.log('POST /api/entrada/create:  started')
+  console.log('POST /api/entrada/create:  started');
   try {
     console.log(JSON.stringify(req.body));
     const { 
@@ -61,40 +62,40 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
 
     const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
 
-    let buffer = null;
-
+   
     const ticket = await db_support.ticketsDB.create({
       id_evento: id_evento,
-      familia,
-      nombre_completo,
-      tipo,
-      jornada,
-      curso,
-      bloque: bloqueText,
+      familia: familia || '',
+      nombre_completo: nombre_completo || '',
+      tipo: tipo || '',
+      jornada: jornada || '',
+      curso: curso || '',
+      bloque: bloqueText || '',
       num_listado: parseInt(num_listado) || 0,
-      total: parseInt(total) || 0,
       fecha_generacion: new Date(),
       usado: false,
       validado_por: null,
-      imagen_ticket: buffer
+      imagen_ticket: null
     });
     const folio = ticket.folio || 0;
     console.log(`[/api/entrada/create] Ticket ${folio} guardado en BD`);
 
     const ticketInfo = {...req.body, folio, url_server };
-    buffer = await genEntradaCanvas(ticketInfo);
-    // Update the ticket with the generated image
-    await db_support.ticketsDB.findOneAndUpdate(
-      { id_evento: id_evento, nombre_completo: nombre_completo },
-      { $set: { imagen_ticket: buffer } }
-    );
+    const buffer = await genEntradaCanvas(ticketInfo);
 
-    save_png(buffer);
+    if (buffer) {
+      // Update the ticket with the generated image
+      await db_support.ticketsDB.findOneAndUpdate(
+        { id_evento: id_evento, nombre_completo: nombre_completo },
+        { $set: { imagen_ticket: buffer } }
+      );
+      await save_png(buffer);
+    }
     res.set('Content-Type', 'image/png');
     res.send(buffer);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Error generando entrada' });
+    res.status(500).json({ error: 'POST /entrada/create Error no especifico' });
   }
 });
 
@@ -152,7 +153,6 @@ router.get('/entrada/consultar', async (req, res) => {
       curso: ticket.curso,
       bloque: ticket.bloque,
       num_listado: ticket.num_listado,
-      total: ticket.total,
       correlativo: ticket.correlativo
     });
   } catch (error) {
@@ -213,7 +213,6 @@ router.get('/entrada/qr_data', apiKeyAuth, async (req, res) => {
       curso: info?.curso || '—',
       bloque: info?.bloques ? (Array.isArray(info.bloques) ? info.bloques.join('/') : info.bloques) : '—',
       num_listado: info?.num_listado || '—',
-      total: info?.total || '—',
       correlativo: correlativo || '—'
     });
   } catch (error) {
@@ -402,12 +401,14 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
 });
 
 async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_completo) {
+  const tag = '[generarEntradaParaFamilia]';
   const lista_entradas = [];
   // Detecta si está en producción según NODE_ENV o si existe URL_SERVER
   const PORT = process.env.PORT;
   const baseUrl = PORT !== 5001 
     ? config_env.URL_SERVER
     : `http://localhost:5001`;  
+  //console.log(`generarEntradaParaFamilia: ${JSON.stringify({id_evento, imagen_ticket_path, nombre_completo})}`);
   try {
     //console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
     // Buscar la familia en la base de datos usando el nombre completo del estudiante
@@ -422,6 +423,17 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
       const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
       const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
       // , , , , , , jornada, bloques
+      const jornada = '';
+      console.log(`${tag} fetch /api/entrada/create -> ${JSON.stringify({
+          id_evento,
+          imagen_ticket_path,
+          familia: nombre_familia,
+          nombre_completo: nombre_estudiante,
+          tipo: 'estudiante',
+          curso,
+          num_listado,
+          jornada
+      })}`);
       const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
@@ -432,11 +444,14 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
           nombre_completo: nombre_estudiante,
           tipo: 'estudiante',
           curso,
-          num_listado
+          num_listado,
+          jornada
           })
         });
       if (result_create.status != 200 ) {
-        console.log(`La entrada para ${nombre_estudiante} no se pudo crear`);
+        const errBody = await result_create.json().catch(() => ({ error: 'Error no especificado' }));
+        console.log(`${tag} La entrada para ${nombre_estudiante} no se pudo crear. status: ${result_create.status} | error: ${errBody.error}`);
+        //console.log(`${tag} La entrada para ${nombre_estudiante} no se pudo crear. status: ${result_create.status} | error: ${result_create.error}`);
         continue;
       }
       lista_entradas.push(nombre_estudiante);
@@ -445,7 +460,7 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
     return hermanos;
     // Pending
   } catch (error) {
-    console.error(`Error al generar entrada para la familia del estudiante ${nombre_completo}:`, error);
+    console.error(`${tag} Error al generar entrada para la familia del estudiante ${nombre_completo}:`, error);
   }
   return [];
 }
@@ -512,6 +527,7 @@ router.post('/eventos/crear', apiKeyAuth, async (req, res) => {
 router.get('/eventos/buscar', apiKeyAuth, async (req, res) => {
   try {
     const { id_evento } = req.query;
+    console.log(`/api/eventos/buscar: id_evento: ${id_evento}`);
     const evento = await db_support.EventDB.find({ id_evento });
     if (evento.length === 0) {
       console.log(`Evento con id_evento ${id_evento} no encontrado.`);

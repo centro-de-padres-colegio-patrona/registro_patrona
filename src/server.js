@@ -1546,7 +1546,7 @@ app.post('/api/send_email_entradas', async (req, res) => {
 });
 });
 
-/*app.post('/api/generar_entrada_canvas', async (req, res) => {
+app.post('/api/generar_entrada_canvas', async (req, res) => {
     try {
       console.log(JSON.stringify(req.body));
       const { familia, nombre_completo, colores, correlativo, total, num_listado, curso, jornada, tipo } = req.body;
@@ -1575,7 +1575,7 @@ app.post('/api/send_email_entradas', async (req, res) => {
       console.error(err);
       res.status(500).json({ error: 'Error generando entrada' });
     }
-  });*/
+  });
 
 
 app.post('/api/enviarCodigo', express.json(), async (req, res) => {

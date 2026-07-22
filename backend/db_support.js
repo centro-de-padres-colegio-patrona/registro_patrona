@@ -322,7 +322,7 @@ ticketEventoSchema.pre('save', async function (next) {
   }
 });
 
-const TicketEvento = mongoose.model('TicketEvento', ticketEventoSchema, 'ticketEventos');
+const TicketEventoDB = mongoose.model('TicketEvento', ticketEventoSchema, 'ticketEventos');
 
 
 
@@ -364,7 +364,7 @@ module.exports.paymentOrdersDB = mongoose.model('paymentOrders', commerceSchema,
 module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderSchema, 'CommerceOrders');
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
 module.exports.EventDB = EventDB;
-module.exports.TicketEvento = TicketEvento;
+module.exports.TicketEventoDB = TicketEventoDB;
 module.exports.dbUri = dbUri;
 //module.exports.ticketsDB = mongoose.model('tickets', ticketSchema, 'tickets');
 

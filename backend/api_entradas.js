@@ -42,9 +42,7 @@ async function save_png(buffer, filename = null) {
 
   // 1. POST: Generar entrada Canvas
 router.post('/entrada/create', apiKeyAuth, async (req, res) => {
-  console.log('POST /api/entrada/create:  started');
   const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
-  console.log('POST /api/entrada/create:  started');
   try {
     console.log(JSON.stringify(req.body));
     const { 
@@ -62,8 +60,22 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
 
     const bloqueText = Array.isArray(colores) ? colores.join('/') : colores;
 
+    console.log(`/api/entrada/create: ${JSON.stringify({
+      id_evento: id_evento,
+      familia: familia || '',
+      nombre_completo: nombre_completo || '',
+      tipo: tipo || '',
+      jornada: jornada || '',
+      curso: curso || '',
+      bloque: bloqueText || '',
+      num_listado: parseInt(num_listado) || 0,
+      fecha_generacion: new Date(),
+      usado: false,
+      validado_por: null,
+      imagen_ticket: null
+    })}`)
    
-    const ticket = await db_support.ticketsDB.create({
+    const ticket = await db_support.TicketEventoDB.create({
       id_evento: id_evento,
       familia: familia || '',
       nombre_completo: nombre_completo || '',
@@ -404,11 +416,12 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
   const tag = '[generarEntradaParaFamilia]';
   const lista_entradas = [];
   // Detecta si está en producción según NODE_ENV o si existe URL_SERVER
-  const PORT = process.env.PORT;
-  const baseUrl = PORT !== 5001 
+  const localPort = process.env.PORT || 5001;
+  const baseUrl = localPort !== 5001 
     ? config_env.URL_SERVER
     : `http://localhost:5001`;  
   //console.log(`generarEntradaParaFamilia: ${JSON.stringify({id_evento, imagen_ticket_path, nombre_completo})}`);
+  console.log(`${tag} url_server: ${baseUrl}`);
   try {
     //console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
     // Buscar la familia en la base de datos usando el nombre completo del estudiante
@@ -424,6 +437,7 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
       const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
       // , , , , , , jornada, bloques
       const jornada = '';
+      const bloques = [];
       console.log(`${tag} fetch /api/entrada/create -> ${JSON.stringify({
           id_evento,
           imagen_ticket_path,
@@ -445,7 +459,8 @@ async function generarEntradaParaFamilia(id_evento, imagen_ticket_path, nombre_c
           tipo: 'estudiante',
           curso,
           num_listado,
-          jornada
+          jornada,
+          bloques
           })
         });
       if (result_create.status != 200 ) {

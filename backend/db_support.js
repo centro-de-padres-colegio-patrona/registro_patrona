@@ -269,6 +269,13 @@ EventoSchema.pre('save', async function (next) {
 
 const EventDB = mongoose.model('eventos', EventoSchema, 'eventos');
 
+const ticketAccionesSchema = new mongosee.Schema({
+  timestamp: { type: Date, default: Date.now },
+  accion : { 
+    type: String,
+    enum: ['consultar', 'ingresar'],
+    required: true }
+});
 
 const ticketEventoSchema = new mongoose.Schema({
   id_evento: { type: String, required: true },
@@ -282,10 +289,14 @@ const ticketEventoSchema = new mongoose.Schema({
   num_listado: Number,
   total: Number,
   fecha_generacion: { type: Date, default: Date.now },
-  estado: { type: String, default: 'pendiente' },
+  estado: { 
+    type: String,
+    enum: ['valida', 'usada', 'anulada'],
+     default: 'valida' },
   fecha_uso: Date,
   validado_por: String,
-  imagen_ticket: Buffer
+  imagen_ticket: Buffer,
+  historial: [ticketAccionesSchema]
 });
 
 // Forzamos que la combinación de id_evento y folio sea única en la BD

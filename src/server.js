@@ -18,7 +18,7 @@ const flow = new FlowApi();
 const MercadoPagoApi = require('./mercado_pago_api');
 const mp = new MercadoPagoApi('sandbox');
 
-const { genEntrada, genEntradaCanvas } = require('./generateTicket');
+const { genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 
 const nodemailer = require('nodemailer');

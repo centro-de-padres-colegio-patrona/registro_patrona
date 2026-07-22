@@ -28,67 +28,23 @@ function colores_to_bloques(colores) {
 }
 
 
-async function genEntrada({ url_server, id_evento, imagen_ticket_path, familia, nombre_completo, bloques, correlativo, total, num_listado, curso, jornada, tipo }) {
-  try {
-    //const bloques = colores_to_bloques(colores);
-    const colorText = bloques.join('/');
-    const serial = `${correlativo}/${total}`;
-    const qrData = `${url_server}/api/entrada/consultar?familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&correlativo=${correlativo}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colores_to_bloques(colores).join('/'))}&num_listado=${num_listado}&total=${total}`;
-
-    const fondo_path = `./img/${id_evento}.png`;
-    const fondo = await Jimp.read(fondo_path);
-    const qr = await QRCode.toBuffer(qrData, { width: 215 });
-
-    const qrImage = await Jimp.read(qr);
-    fondo.composite(qrImage, 45, 528);
-
-    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-    const fontBig = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
-
-    fondo.print(fontBig, 0, 104, {
-      text: tipo,
-      alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER
-    }, fondo.bitmap.width);
-
-    const textos = [
-      { text: familia, x: 190, y: 385 },
-      { text: nombre_completo, x: 58, y: 415 },
-      { text: `Bloques: ${colorText}`, x: 58, y: 445 },
-      { text: `Jornada: ${jornada}`, x: 58, y: 475 },
-      { text: serial, x: 375, y: 615 },
-      { text: `Curso: ${curso}`, x: 350, y: 655 },
-      { text: `Nro List: ${num_listado}`, x: 350, y: 690 }
-    ];
-
-    textos.forEach(({ text, x, y }) => {
-      fondo.print(font, x, y, text);
-    });
-
-    return await fondo.getBufferAsync(Jimp.MIME_PNG);
-  } catch (err) {
-    console.log(`genEntrada: error: ${JSON.stringify(err)}`);
-    return null;
-  }
-}
-
-
 async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
   const tag = '[genEntradaCanvas]';
   try {
-    console.log(`${tag} Starting`)
+    //console.log(`${tag} Starting`)
     const colorText = bloques.join('/');
-    console.log(`${tag} ${JSON.stringify({colorText})}`);
+    //console.log(`${tag} ${JSON.stringify({colorText})}`);
     const serial = String(folio).padStart(4, '0');
-    console.log(`${tag} ${JSON.stringify({serial})}`);
+    //console.log(`${tag} ${JSON.stringify({serial})}`);
     const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
     const jornadaDisplay = jornadaMap[jornada] || jornada;
-    console.log(`${tag} ${JSON.stringify({jornadaDisplay})}`);
+    //console.log(`${tag} ${JSON.stringify({jornadaDisplay})}`);
     const qrData = `${url_server}/api/entrada/consultar?evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloque=${encodeURIComponent(colorText)}&num_listado=${num_listado}`;
-    console.log(`${tag} ${JSON.stringify({qrData})}`);
+    //console.log(`${tag} ${JSON.stringify({qrData})}`);
 
-    console.log(`${tag} loading fondo png: ${path.join(__dirname, '../', imagen_ticket_path)}`);
+    //console.log(`${tag} loading fondo png: ${path.join(__dirname, '../', imagen_ticket_path)}`);
     const fondo = await loadImage(path.join(__dirname, '../', imagen_ticket_path));
-    console.log(`${tag} fondo loaded: ${fondo? 'yes': 'failed'}`);
+    //console.log(`${tag} fondo loaded: ${fondo? 'yes': 'failed'}`);
     const canvas = createCanvas(fondo.width, fondo.height);
     const ctx = canvas.getContext('2d');
 
@@ -169,4 +125,4 @@ async function genEntradaCanvas({ url_server, id_evento, imagen_ticket_path, fam
 
 setTimeout(test_brother, 2000);*/
 
-module.exports = { genEntrada, genEntradaCanvas };
+module.exports = { genEntradaCanvas };

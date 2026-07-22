@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
 
-const { genEntrada, genEntradaCanvas } = require('../src/generateTicket');
+const { genEntradaCanvas } = require('../src/generateTicket');
 const db_support = require('../backend/db_support');
 
 

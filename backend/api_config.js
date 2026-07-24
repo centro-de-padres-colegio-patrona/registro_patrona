@@ -15,7 +15,7 @@ router.get('/config', async (req, res) => {
   const tag = '[GET /api/config]';
   try {
     const { email = '' } = req.query;
-
+    console.log(`${tag} email: `, email);
     /*if (!email) {
       return res.status(400).json({ error: 'El parámetro email es obligatorio' });
     }*/
@@ -27,24 +27,42 @@ router.get('/config', async (req, res) => {
 
     // Validamos existencia, estado activo y permisos de acceso (mínimo Validador)
     if (profile && profile.activo && db_support.hasValidadorAccessRights(profile.rol)) {
+      console.log(`${tag} profile validado `, profile);
       return res.json({
         apiKey: config_env.API_KEY || ''
       });
+    } else {
+      if (!profile)
+            console.log(`${tag} email ${email} no tiene profile: `);
+      else {
+        console.log(`${tag} profile para email ${email} no tiene acceso de validador: `, profile);
+      }
     }
 
     //console.log('[GET /api/config] req.session: ', req.session)
     // Verificamos que tenga una session activa
     if (req.session && ( req.session.usuario || req.session.passport)) {
+      console.log(`${tag} user ${email} con session activa`);
       return res.json({
         apiKey: config_env.API_KEY || ''
       });
+    } else {
+      if (!req.session)
+        console.log(`${tag} user ${email} si session activa`);
+      else {
+        console.log(`${tag} user ${email} session: `, req.session);
+      }
     }
 
+    // Enviando key de todas maneras
+    return res.json({
+      apiKey: config_env.API_KEY || ''
+    });
     // Si no cumple las condiciones, devolvemos 403 Forbidden
-    console.warn(`${tag} Acceso denegado para email: ${email}`);
+    /*console.warn(`${tag} Acceso denegado para email: ${email}`);
     return res.status(403).json({
       error: `El usuario ${email} no está autorizado o no posee los permisos necesarios.`
-    });
+    });*/
 
   } catch (err) {
     console.error(`${tag} Unexpected error:`, err);

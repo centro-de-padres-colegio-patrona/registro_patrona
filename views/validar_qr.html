@@ -298,9 +298,60 @@
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
 <script>
+
   let videoStream = null;
   let animationId = null;
   let escaneando = false;
+  
+  let userEmail = null;
+
+  // Función de inicialización
+  async function init() {
+    userEmail = await getUserEmail();
+    console.log(`user email cargado: ${userEmail}`);
+  }
+
+  // Ejecutar inicialización al cargar el script
+  init();
+
+  async function getUserEmail() {
+    try {
+      // 1. Intentar obtener de los parámetros de la URL
+      const urlParams = new URLSearchParams(window.parent.location.search);
+      let user_email = urlParams.get('user_email');
+      console.log(`user_email: ${user_email}`);
+
+      // Si viene en la URL y no está vacío, lo retornamos inmediatamente
+      if (user_email && user_email.trim() !== '') {
+        return user_email;
+      }
+
+      // 2. Si no venía en la URL, consultamos a la API esperando la respuesta con await
+      const response = await fetch('/api/user');
+      
+      if (!response.ok) {
+        console.error('Usuario no autenticado');
+        return null;
+      }
+
+      const user = await response.json();
+      
+      if (user && user.user) {
+        const currentUser = user.user;
+        user_email = currentUser.email && currentUser.email.trim() !== "" 
+          ? currentUser.email 
+          : null;
+
+        console.log(`[/api/user] correo: ${user_email}`);
+        return user_email;
+      }
+
+    } catch (err) {
+      console.error('unexpected error: ', err);
+    }
+
+    return null;
+  }
 
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
@@ -399,30 +450,31 @@
 
     // Intentar parsear como URL con parámetros de entrada
     try {
+      console.log(`procesarQR: ${data}`);
       const url = new URL(data);
       const params = url.searchParams;
 
-      if (params.has('familia') || params.has('correlativo')) {
+      if (params.has('familia') || params.has('folio')) {
         // Es un QR de entrada válido
         const familia = params.get('familia') || '—';
         const jornada = params.get('jornada') || '—';
         const tipo = params.get('tipo') || '—';
-        const correlativo = params.get('correlativo') || '—';
+        const folio = params.get('folio') || '—';
         const nombre = params.get('nombre') || familia;
         const curso = params.get('curso') || '—';
-        const bloque = params.get('bloque') || '—';
+        const bloques = params.get('bloques') || '—';
         const numListado = params.get('num_listado') || '—';
         const total = params.get('total') || '—';
 
         const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
         const jornadaDisplay = jornadaMap[jornada] || jornada;
-        const serial = String(correlativo).padStart(4, '0');
+        const serial = String(folio).padStart(4, '0');
 
         // Consultar estado del ticket en BD
-        fetch(`/api/consultar_entrada?correlativo=${encodeURIComponent(correlativo)}`)
+        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}`)
           .then(res => res.json())
           .then(info => {
-            if (info.usado) {
+            if (info.usado || info.estado != 'activa') {
               // TICKET YA FUE USADO
               resultadoCard.className = 'resultado-card error';
               resultadoTitulo.textContent = '⚠ ENTRADA YA UTILIZADA';
@@ -446,12 +498,12 @@
                 <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
                 <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
                 <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
-                <div class="dato-row"><span class="dato-label">Bloque</span><span class="dato-value">${bloque}</span></div>
+                <div class="dato-row"><span class="dato-label">Bloque</span><span class="dato-value">${bloques}</span></div>
                 <div class="dato-row"><span class="dato-label">Curso</span><span class="dato-value">${curso}</span></div>
                 <div class="dato-row"><span class="dato-label">N° Listado</span><span class="dato-value">${numListado}</span></div>
                 <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
                 <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
-                <button id="btn-validar-entrada" onclick="validarEntrada(${correlativo})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+                <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
                   🎫 VALIDAR ENTRADA
                 </button>
               `;
@@ -468,7 +520,7 @@
               <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
               <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
               <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
-              <button id="btn-validar-entrada" onclick="validarEntrada(${correlativo})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
+              <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
                 🎫 VALIDAR ENTRADA
               </button>
             `;
@@ -491,45 +543,45 @@
     }
   }
 
-  async function validarEntrada(correlativo) {
+  async function validarEntrada(folio) {
     const btn = document.getElementById('btn-validar-entrada');
     btn.disabled = true;
     btn.textContent = '⏳ Validando...';
     btn.style.background = '#95a5a6';
 
-    // Obtener email del validador desde URL params del parent
-    let validadorEmail = 'validador';
     try {
-      const urlParams = new URLSearchParams(window.parent.location.search);
-      validadorEmail = urlParams.get('user_email') || 'validador';
-    } catch(e) {}
+      fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
+      .then ( res => res.json() )
+      .then ( async config_json => {
+        const res = await fetch('/api/entrada/validar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey },
+          body: JSON.stringify({ folio: parseInt(folio), validado_por: userEmail })
+        });
 
-    try {
-      const res = await fetch('/api/validar_entrada', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correlativo: parseInt(correlativo), validado_por: validadorEmail })
-      });
+        const data = await res.json();
 
-      const data = await res.json();
-
-      if (res.ok) {
-        btn.textContent = '✅ ENTRADA VALIDADA';
-        btn.style.background = '#2ecc71';
-        btn.onclick = null;
-      } else if (res.status === 409) {
-        btn.textContent = '🚫 YA FUE UTILIZADA';
-        btn.style.background = '#e74c3c';
-        btn.onclick = null;
-      } else {
-        btn.textContent = `❌ Error: ${data.error}`;
-        btn.style.background = '#e74c3c';
-        setTimeout(() => {
-          btn.disabled = false;
-          btn.textContent = '🎫 VALIDAR ENTRADA';
+        if (res.ok) {
+          btn.textContent = '✅ ENTRADA VALIDADA';
+          btn.style.background = '#2ecc71';
+          btn.onclick = null;
+        } else if (res.status === 409) {
+          btn.textContent = '🚫 YA FUE UTILIZADA';
           btn.style.background = '#e74c3c';
-        }, 3000);
-      }
+          btn.onclick = null;
+        } else {
+          btn.textContent = `❌ Error: ${data.error}`;
+          btn.style.background = '#e74c3c';
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = '🎫 VALIDAR ENTRADA';
+            btn.style.background = '#e74c3c';
+          }, 3000);
+        }
+      })
+      .catch( err => {
+        console.error(`User ${userEmail} has not access rights`);
+      });
     } catch (err) {
       btn.textContent = `❌ Error: ${err.message}`;
       btn.style.background = '#e74c3c';

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      padding: 24px;
+    }
+
+    .page-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #4A90E2;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+
+    .card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .form-field {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .form-field input,
+    .form-field select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      background: #fafafa;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .form-field input:focus,
+    .form-field select:focus {
+      border-color: #4A90E2;
+      background: white;
+    }
+
+    .btn-principal {
+      padding: 10px 24px;
+      background: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-principal:hover:not(:disabled) { background: #357abd; }
+    .btn-principal:disabled { background: #b0c4de; cursor: not-allowed; }
+
+    .table-container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      word-wrap: break-word;
+    }
+
+    thead { background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
+
+    th, td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 0.82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    th {
+      color: #495057;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    tr:hover { background: #f1f4f9; }
+
+    .badge-jornada {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-manana { background: #fff3e0; color: #e65100; }
+    .badge-tarde { background: #e3f2fd; color: #1565c0; }
+
+    .color-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #f0f0f0;
+    }
+
+    .color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
+    .btn-accion {
+      padding: 4px 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .btn-accion:hover { opacity: 0.8; }
+    .btn-editar { background: #fff3cd; color: #856404; }
+    .btn-eliminar { background: #f8d7da; color: #721c24; }
+
+    .estado-msg {
+      font-size: 0.88rem;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+
+    /* Responsive */
+    @media screen and (max-width: 768px) {
+      body { padding: 12px; }
+      .page-title { font-size: 1.05rem; }
+      .card { padding: 16px; }
+      .form-row { flex-direction: column; gap: 0; }
+      .form-field { min-width: 100%; }
+      .form-field input, .form-field select { font-size: 1rem; padding: 10px 12px; }
+      .btn-principal { width: 100%; }
+      table { min-width: 500px; }
+      th, td { padding: 8px 6px; font-size: 0.78rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">📚 Mantenedor de Cursos/Bloque</div>
+
+<!-- Formulario de creación -->
+<div class="card">
+  <h3>Agregar nuevo curso/bloque</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>Curso (ID)</label>
+      <select id="inp-id">
+        <option value="" disabled selected>Seleccione curso</option>
+        <option value="HA">HA - Huilen Adulto</option>
+        <option value="HI">HI - Huilen Infantil</option>
+        <option value="HJ">HJ - Huilen Juvenil</option>
+        <option value="PKA">PKA - Prekinder A</option>
+        <option value="PKB">PKB - Prekinder B</option>
+        <option value="KA">KA - Kinder A</option>
+        <option value="KB">KB - Kinder B</option>
+        <option value="1A">1A - Primero Básico A</option>
+        <option value="1B">1B - Primero Básico B</option>
+        <option value="2A">2A - Segundo Básico A</option>
+        <option value="2B">2B - Segundo Básico B</option>
+        <option value="3A">3A - Tercero Básico A</option>
+        <option value="3B">3B - Tercero Básico B</option>
+        <option value="4A">4A - Cuarto Básico A</option>
+        <option value="4B">4B - Cuarto Básico B</option>
+        <option value="5A">5A - Quinto Básico A</option>
+        <option value="5B">5B - Quinto Básico B</option>
+        <option value="6A">6A - Sexto Básico A</option>
+        <option value="6B">6B - Sexto Básico B</option>
+        <option value="7A">7A - Séptimo Básico A</option>
+        <option value="7B">7B - Séptimo Básico B</option>
+        <option value="8A">8A - Octavo Básico A</option>
+        <option value="8B">8B - Octavo Básico B</option>
+        <option value="1MA">1MA - Primero Medio A</option>
+        <option value="1MB">1MB - Primero Medio B</option>
+        <option value="2MA">2MA - Segundo Medio A</option>
+        <option value="2MB">2MB - Segundo Medio B</option>
+        <option value="3MA">3MA - Tercero Medio A</option>
+        <option value="3MB">3MB - Tercero Medio B</option>
+        <option value="4MA">4MA - Cuarto Medio A</option>
+        <option value="4MB">4MB - Cuarto Medio B</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Color</label>
+      <select id="inp-color">
+        <option value="" disabled selected>Seleccione color</option>
+        <option value="amarillo">Amarillo</option>
+        <option value="azul">Azul</option>
+        <option value="dorado">Dorado</option>
+        <option value="gris">Gris</option>
+        <option value="morado">Morado</option>
+        <option value="naranja">Naranja</option>
+        <option value="negro">Negro</option>
+        <option value="rojo">Rojo</option>
+        <option value="rosado">Rosado</option>
+        <option value="verde">Verde</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Jornada</label>
+      <select id="inp-jornada">
+        <option value="manana">Mañana</option>
+        <option value="tarde">Tarde</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Bloque</label>
+      <input type="text" id="inp-bloque" placeholder="Ej: bloque_01">
+    </div>
+  </div>
+  <button class="btn-principal" onclick="guardarCursoBloque()">Guardar</button>
+  <p class="estado-msg" id="estado-form"></p>
+</div>
+
+<!-- Tabla -->
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Curso</th>
+        <th>Color</th>
+        <th>Jornada</th>
+        <th>Bloque</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-cursos"></tbody>
+  </table>
+</div>
+
+<!-- Modal de edición -->
+<div class="modal-overlay" id="modal-editar" onclick="cerrarModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()" style="max-width:460px; padding:24px; border-radius:14px; background:white;">
+    <h3 style="font-size:0.85rem; font-weight:700; color:#888; text-transform:uppercase; margin-bottom:16px;">Editar Curso/Bloque</h3>
+    <input type="hidden" id="edit-original-id">
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Curso (ID)</label>
+      <select id="edit-id">
+        <option value="HA">HA - Huilen Adulto</option>
+        <option value="HI">HI - Huilen Infantil</option>
+        <option value="HJ">HJ - Huilen Juvenil</option>
+        <option value="PKA">PKA - Prekinder A</option>
+        <option value="PKB">PKB - Prekinder B</option>
+        <option value="KA">KA - Kinder A</option>
+        <option value="KB">KB - Kinder B</option>
+        <option value="1A">1A - Primero Básico A</option>
+        <option value="1B">1B - Primero Básico B</option>
+        <option value="2A">2A - Segundo Básico A</option>
+        <option value="2B">2B - Segundo Básico B</option>
+        <option value="3A">3A - Tercero Básico A</option>
+        <option value="3B">3B - Tercero Básico B</option>
+        <option value="4A">4A - Cuarto Básico A</option>
+        <option value="4B">4B - Cuarto Básico B</option>
+        <option value="5A">5A - Quinto Básico A</option>
+        <option value="5B">5B - Quinto Básico B</option>
+        <option value="6A">6A - Sexto Básico A</option>
+        <option value="6B">6B - Sexto Básico B</option>
+        <option value="7A">7A - Séptimo Básico A</option>
+        <option value="7B">7B - Séptimo Básico B</option>
+        <option value="8A">8A - Octavo Básico A</option>
+        <option value="8B">8B - Octavo Básico B</option>
+        <option value="1MA">1MA - Primero Medio A</option>
+        <option value="1MB">1MB - Primero Medio B</option>
+        <option value="2MA">2MA - Segundo Medio A</option>
+        <option value="2MB">2MB - Segundo Medio B</option>
+        <option value="3MA">3MA - Tercero Medio A</option>
+        <option value="3MB">3MB - Tercero Medio B</option>
+        <option value="4MA">4MA - Cuarto Medio A</option>
+        <option value="4MB">4MB - Cuarto Medio B</option>
+      </select>
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Color</label>
+      <select id="edit-color">
+        <option value="amarillo">Amarillo</option>
+        <option value="azul">Azul</option>
+        <option value="dorado">Dorado</option>
+        <option value="gris">Gris</option>
+        <option value="morado">Morado</option>
+        <option value="naranja">Naranja</option>
+        <option value="negro">Negro</option>
+        <option value="rojo">Rojo</option>
+        <option value="rosado">Rosado</option>
+        <option value="verde">Verde</option>
+      </select>
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Jornada</label>
+      <select id="edit-jornada">
+        <option value="manana">Mañana</option>
+        <option value="tarde">Tarde</option>
+      </select>
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Bloque</label>
+      <input type="text" id="edit-bloque">
+    </div>
+    <div style="display:flex; gap:12px;">
+      <button class="btn-principal" onclick="actualizarCursoBloque()">Guardar Cambios</button>
+      <button class="btn-principal" style="background:#95a5a6;" onclick="cerrarModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let cursosCache = [];
+
+  const jornadaLabels = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+
+  // Mapeo de ID a nombre de curso (glosa)
+  const cursoGlosa = {
+    'HA': 'Huilen Adulto',
+    'HI': 'Huilen Infantil',
+    'HJ': 'Huilen Juvenil',
+    'PKA': 'Prekinder A',
+    'PKB': 'Prekinder B',
+    'KA': 'Kinder A',
+    'KB': 'Kinder B',
+    '1A': 'Primero Básico A',
+    '1B': 'Primero Básico B',
+    '2A': 'Segundo Básico A',
+    '2B': 'Segundo Básico B',
+    '3A': 'Tercero Básico A',
+    '3B': 'Tercero Básico B',
+    '4A': 'Cuarto Básico A',
+    '4B': 'Cuarto Básico B',
+    '5A': 'Quinto Básico A',
+    '5B': 'Quinto Básico B',
+    '6A': 'Sexto Básico A',
+    '6B': 'Sexto Básico B',
+    '7A': 'Séptimo Básico A',
+    '7B': 'Séptimo Básico B',
+    '8A': 'Octavo Básico A',
+    '8B': 'Octavo Básico B',
+    '1MA': 'Primero Medio A',
+    '1MB': 'Primero Medio B',
+    '2MA': 'Segundo Medio A',
+    '2MB': 'Segundo Medio B',
+    '3MA': 'Tercero Medio A',
+    '3MB': 'Tercero Medio B',
+    '4MA': 'Cuarto Medio A',
+    '4MB': 'Cuarto Medio B',
+  };
+
+  // Orden predefinido para los IDs
+  const ordenIds = ['HA','HI','HJ','PKA','PKB','KA','KB','1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B','7A','7B','8A','8B','1MA','1MB','2MA','2MB','3MA','3MB','4MA','4MB'];
+
+  async function cargarCursos() {
+    try {
+      const res = await fetch('/api/cursos-bloque');
+      cursosCache = await res.json();
+      // Ordenar según el orden predefinido
+      cursosCache.sort((a, b) => {
+        const idxA = ordenIds.indexOf(a.id);
+        const idxB = ordenIds.indexOf(b.id);
+        const posA = idxA === -1 ? 999 : idxA;
+        const posB = idxB === -1 ? 999 : idxB;
+        return posA - posB;
+      });
+      renderTabla();
+    } catch (err) {
+      console.error('Error cargando cursos/bloque:', err);
+    }
+  }
+
+  // Mapeo de código de color a color real para el dot
+  const colorMap = {
+    'ama_m': '#FFD700',
+    'ama_t': '#FFD700',
+    'roj': '#E74C3C',
+    'nar': '#FF8C00',
+    'azul': '#2196F3',
+    'ros_m': '#FF69B4',
+    'ros_t': '#FF69B4',
+    'morado': '#8E44AD',
+    'rosado': '#FF69B4',
+    'dorado': '#FFD700',
+    'negro': '#2C3E50',
+    'gris': '#95A5A6',
+    'verde': '#27AE60',
+    'amarillo': '#F1C40F',
+    'rojo': '#E74C3C',
+    'naranja': '#FF8C00',
+  };
+
+  // Mapeo de código de color a nombre legible
+  const colorGlosa = {
+    'ama_m': 'Amarillo',
+    'ama_t': 'Amarillo',
+    'roj': 'Rojo',
+    'nar': 'Naranjo',
+    'azul': 'Azul',
+    'ros_m': 'Rosado',
+    'ros_t': 'Rosado',
+    'morado': 'Morado',
+    'rosado': 'Rosado',
+    'dorado': 'Dorado',
+    'negro': 'Negro',
+    'gris': 'Gris',
+    'verde': 'Verde',
+    'amarillo': 'Amarillo',
+    'rojo': 'Rojo',
+    'naranja': 'Naranja',
+  };
+
+  function getColorReal(codigo) {
+    return colorMap[codigo] || codigo;
+  }
+
+  function getColorNombre(codigo) {
+    return colorGlosa[codigo] || codigo;
+  }
+
+  function renderTabla() {
+    const tbody = document.getElementById('tabla-cursos');
+    tbody.innerHTML = '';
+    cursosCache.forEach(c => {
+      const row = document.createElement('tr');
+      const jornadaClass = c.jornada === 'tarde' ? 'badge-tarde' : 'badge-manana';
+      const glosa = c.descripcion || cursoGlosa[c.id] || c.id;
+      const colorReal = getColorReal(c.color);
+      const colorNombre = getColorNombre(c.color);
+      row.innerHTML = `
+        <td><strong>${c.id}</strong></td>
+        <td>${glosa}</td>
+        <td><span class="color-badge"><span class="color-dot" style="background:${colorReal};"></span>${colorNombre}</span></td>
+        <td><span class="badge-jornada ${jornadaClass}">${jornadaLabels[c.jornada] || c.jornada}</span></td>
+        <td>${c.bloque}</td>
+        <td>
+          <button class="btn-accion btn-editar" onclick="abrirEditar('${c.id}')">Editar</button>
+          <button class="btn-accion btn-eliminar" onclick="eliminarCurso('${c.id}')">Eliminar</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  async function guardarCursoBloque() {
+    const id = document.getElementById('inp-id').value.trim();
+    const color = document.getElementById('inp-color').value.trim();
+    const jornada = document.getElementById('inp-jornada').value;
+    const bloque = document.getElementById('inp-bloque').value.trim();
+    const descripcion = cursoGlosa[id] || '';
+    const estado = document.getElementById('estado-form');
+
+    if (!id || !color || !jornada || !bloque) {
+      estado.textContent = '❌ Todos los campos son requeridos';
+      estado.style.color = '#e74c3c';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/cursos-bloque', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, color, jornada, bloque, descripcion })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        estado.textContent = '✅ Curso/Bloque creado correctamente';
+        estado.style.color = '#2ecc71';
+        document.getElementById('inp-id').selectedIndex = 0;
+        document.getElementById('inp-color').selectedIndex = 0;
+        document.getElementById('inp-bloque').value = '';
+        cargarCursos();
+      } else {
+        estado.textContent = `❌ ${data.error}`;
+        estado.style.color = '#e74c3c';
+      }
+    } catch (err) {
+      estado.textContent = `❌ Error: ${err.message}`;
+      estado.style.color = '#e74c3c';
+    }
+  }
+
+  function abrirEditar(id) {
+    const curso = cursosCache.find(c => c.id === id);
+    if (!curso) return;
+    document.getElementById('edit-original-id').value = curso.id;
+    document.getElementById('edit-id').value = curso.id;
+    document.getElementById('edit-color').value = curso.color;
+    document.getElementById('edit-jornada').value = curso.jornada;
+    document.getElementById('edit-bloque').value = curso.bloque;
+    document.getElementById('modal-editar').classList.add('active');
+  }
+
+  function cerrarModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modal-editar').classList.remove('active');
+  }
+
+  async function actualizarCursoBloque() {
+    const originalId = document.getElementById('edit-original-id').value;
+    const id = document.getElementById('edit-id').value.trim();
+    const color = document.getElementById('edit-color').value.trim();
+    const jornada = document.getElementById('edit-jornada').value;
+    const bloque = document.getElementById('edit-bloque').value.trim();
+    const descripcion = cursoGlosa[id] || '';
+
+    try {
+      const res = await fetch(`/api/cursos-bloque/${encodeURIComponent(originalId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, color, jornada, bloque, descripcion })
+      });
+      if (res.ok) {
+        cerrarModal();
+        cargarCursos();
+      }
+    } catch (err) {
+      console.error('Error actualizando:', err);
+    }
+  }
+
+  async function eliminarCurso(id) {
+    if (!confirm(`¿Eliminar el curso/bloque "${id}"?`)) return;
+    try {
+      await fetch(`/api/cursos-bloque/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      cargarCursos();
+    } catch (err) {
+      console.error('Error eliminando:', err);
+    }
+  }
+
+  cargarCursos();
+</script>
+
+</body>
+</html>

@@ -111,37 +111,6 @@
         cursor: pointer;
       }
 
-      /* Tabs */
-      .mobile-tabs-row {
-        display: flex;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        background: #34495e;
-        padding: 0 8px;
-      }
-
-      .mobile-tabs-row::-webkit-scrollbar { display: none; }
-
-      .mobile-tabs-row button {
-        flex-shrink: 0;
-        padding: 10px 14px;
-        background: transparent;
-        border: none;
-        border-bottom: 3px solid transparent;
-        color: rgba(255,255,255,0.6);
-        font-size: 0.82rem;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: all 0.2s;
-      }
-
-      .mobile-tabs-row button.activo {
-        color: white;
-        border-bottom-color: #4A90E2;
-      }
-
       /* Content area */
       #mobile-content {
         display: block !important;
@@ -149,7 +118,7 @@
 
       #mobile-content iframe {
         width: 100%;
-        height: calc(100vh - 95px);
+        height: calc(100vh - 52px);
         border: none;
         display: block;
       }
@@ -166,19 +135,46 @@
   <!-- ─── Mobile Top Bar ─── -->
   <div id="mobile-topbar">
     <div style="display:flex; align-items:center; justify-content:space-between; background:#2c3e50; padding:8px 12px;">
-      <div style="display:flex; flex-direction:column; flex-shrink:0;">
+      <!-- Hamburger button -->
+      <button id="hamburger-btn" onclick="toggleMobileMenu()" style="flex-shrink:0; background:transparent; border:none; padding:8px; cursor:pointer; display:flex; flex-direction:column; gap:4px;">
+        <span style="display:block; width:22px; height:3px; background:white; border-radius:2px;"></span>
+        <span style="display:block; width:22px; height:3px; background:white; border-radius:2px;"></span>
+        <span style="display:block; width:22px; height:3px; background:white; border-radius:2px;"></span>
+      </button>
+      <div style="display:flex; flex-direction:column; flex:1; margin-left:12px;">
         <span style="font-size:0.85rem; font-weight:700; color:white;" id="mobile-nombre">cargando...</span>
         <span style="font-size:0.65rem; color:rgba(255,255,255,0.55);" id="mobile-correo"></span>
         <span style="font-size:0.6rem; color:rgba(255,255,255,0.4);" id="mobile-rol"></span>
       </div>
-      <div id="mobile-tabs" style="display:flex; overflow-x:auto; flex:1; margin:0 12px; gap:0;"></div>
       <button onclick="logout()" style="flex-shrink:0; background:transparent; border:1.5px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">Salir</button>
     </div>
   </div>
 
+  <!-- ─── Mobile Slide Menu (overlay) ─── -->
+  <div id="mobile-menu-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;" onclick="closeMobileMenu()"></div>
+  <div id="mobile-menu-panel" style="position:fixed; top:0; left:-280px; width:280px; height:100%; background:white; z-index:1000; transition:left 0.3s ease; overflow-y:auto; box-shadow:2px 0 10px rgba(0,0,0,0.3);">
+    <!-- Close button -->
+    <div style="display:flex; justify-content:flex-end; padding:12px 16px;">
+      <button onclick="closeMobileMenu()" style="background:transparent; border:none; font-size:1.8rem; color:#333; cursor:pointer; line-height:1;">&times;</button>
+    </div>
+    <!-- Logo -->
+    <div style="text-align:center; padding:0 20px 20px;">
+      <img src="./img/logo.png" alt="Logo" style="width:120px; height:auto;">
+    </div>
+    <!-- Menu items -->
+    <div id="mobile-menu-items" style="padding:0 20px;"></div>
+    <!-- Salir button -->
+    <div style="padding:20px; margin-top:20px;">
+      <button onclick="logout()" style="width:100%; padding:12px; background:#2c3e50; color:white; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer;">Salir</button>
+    </div>
+  </div>
+
+  <!-- Hidden tabs container (used by JS logic) -->
+  <div id="mobile-tabs" style="display:none;"></div>
+
   <!-- Mobile Content -->
   <div id="mobile-content">
-    <iframe id="mobile-visor" src="inicio_panel.html"></iframe>
+    <iframe id="mobile-visor" src="about:blank"></iframe>
   </div>
 
   <!-- ─── Desktop Sidebar ─── -->
@@ -195,7 +191,7 @@
 
   <!-- Desktop Content -->
   <div id="content">
-    <iframe id="visor" src="inicio_panel.html"></iframe>
+    <iframe id="visor" src="about:blank"></iframe>
   </div>
 
   <script>
@@ -225,10 +221,31 @@
       botones.forEach(boton => boton.classList.remove('activo'));
       if (botonPresionado) botonPresionado.classList.add('activo');
 
-      // Mobile tabs
-      const mobileTabs = document.querySelectorAll('#mobile-tabs button');
-      mobileTabs.forEach(tab => tab.classList.remove('activo'));
-      if (botonPresionado) botonPresionado.classList.add('activo');
+      // Mobile menu items
+      const mobileItems = document.querySelectorAll('#mobile-menu-items button');
+      mobileItems.forEach(item => item.classList.remove('mobile-menu-activo'));
+      if (botonPresionado && botonPresionado.closest('#mobile-menu-items')) {
+        botonPresionado.classList.add('mobile-menu-activo');
+      }
+
+      // Close mobile menu after selection
+      closeMobileMenu();
+    }
+
+    function toggleMobileMenu() {
+      const panel = document.getElementById('mobile-menu-panel');
+      const overlay = document.getElementById('mobile-menu-overlay');
+      panel.style.left = '0';
+      overlay.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileMenu() {
+      const panel = document.getElementById('mobile-menu-panel');
+      const overlay = document.getElementById('mobile-menu-overlay');
+      panel.style.left = '-280px';
+      overlay.style.display = 'none';
+      document.body.style.overflow = '';
     }
 
     function logout() {
@@ -249,13 +266,14 @@
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
         { label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'actividades_eventos.html' },
-        // { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
+        { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
         { label: '---', url: '' },
         { label: '::Mantenedores', url: '' },
         { label: '👤 Perfiles', url: 'mantenedores.html' },
         { label: '👨‍👩‍👧 Apoderados', url: 'apoderados.html' },
+        { label: '📚 Cursos/Bloque', url: 'cursos_bloque.html' },
       ],
       apoderado: [
         { label: '📋 Mis datos', url: 'mis_datos.html' },
@@ -265,10 +283,12 @@
       ],
       validador: [
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
+        { label: '📋 Mis datos', url: 'mis_datos.html' },
       ],
       supervisor: [
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
+        { label: '📋 Mis datos', url: 'mis_datos.html' },
       ],
     };
 
@@ -301,29 +321,41 @@
         console.log('Desktop btn agregado:', item.label);
       }
 
-      // Mobile tabs
+      // Mobile slide menu items
+      const mobileMenuItems = document.getElementById('mobile-menu-items');
+      if (mobileMenuItems) {
+        mobileMenuItems.innerHTML = '';
+        for (let i = 0; i < menus.length; i++) {
+          const item = menus[i];
+          if (item.label === '---') {
+            const hr = document.createElement('hr');
+            hr.style.cssText = 'border:none; border-top:1px solid #eee; margin:12px 0;';
+            mobileMenuItems.appendChild(hr);
+            continue;
+          }
+          if (item.label.startsWith('::')) {
+            const title = document.createElement('span');
+            title.textContent = item.label.slice(2);
+            title.style.cssText = 'display:block; padding:8px 0 4px; font-size:0.72rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:0.5px;';
+            mobileMenuItems.appendChild(title);
+            continue;
+          }
+          const btn = document.createElement('button');
+          btn.textContent = item.label;
+          btn.setAttribute('data-url', item.url);
+          btn.style.cssText = 'display:block; width:100%; text-align:left; padding:14px 12px; margin-bottom:4px; background:transparent; border:none; border-radius:8px; font-size:0.95rem; color:#333; cursor:pointer; transition:background 0.2s;';
+          btn.onmouseenter = function() { this.style.background = '#f0f0f0'; };
+          btn.onmouseleave = function() { if (!this.classList.contains('mobile-menu-activo')) this.style.background = 'transparent'; };
+          btn.onclick = function() { cargarContenido(item.url, this); };
+          mobileMenuItems.appendChild(btn);
+          console.log('Mobile menu btn agregado:', item.label);
+        }
+      }
+
+      // Hidden mobile tabs (keep for compatibility)
       const mobileTabs = document.getElementById('mobile-tabs');
       if (mobileTabs) {
         mobileTabs.innerHTML = '';
-        for (let i = 0; i < menus.length; i++) {
-          const item = menus[i];
-          if (item.label === '---') continue;
-          if (item.label.startsWith('::')) continue;
-          const btn = document.createElement('button');
-          btn.textContent = item.label;
-          btn.style.cssText = 'flex-shrink:0; padding:10px 14px; background:transparent; border:none; border-bottom:3px solid transparent; color:rgba(255,255,255,0.6); font-size:0.82rem; font-weight:600; cursor:pointer; white-space:nowrap;';
-          btn.onclick = function() {
-            mobileTabs.querySelectorAll('button').forEach(function(b) {
-              b.style.borderBottomColor = 'transparent';
-              b.style.color = 'rgba(255,255,255,0.6)';
-            });
-            btn.style.borderBottomColor = '#4A90E2';
-            btn.style.color = 'white';
-            cargarContenido(item.url, btn);
-          };
-          mobileTabs.appendChild(btn);
-          console.log('Mobile btn agregado:', item.label);
-        }
       }
     }
 
@@ -379,12 +411,14 @@
 
       // Obtener perfil/rol
       let rol = 'apoderado';
+      let paginaInicio = '';
       if (correo) {
         try {
           const resPerfil = await fetch(`/api/mi-perfil?email=${encodeURIComponent(correo)}`);
           if (resPerfil.ok) {
             const perfil = await resPerfil.json();
             rol = perfil.rol || 'apoderado';
+            paginaInicio = perfil.pagina_inicio || '';
           }
         } catch (err) {
           console.error('Error obteniendo perfil:', err);
@@ -399,12 +433,38 @@
       console.log('Construyendo menú para rol:', rol);
       construirMenu(rol);
 
-      // Si es validador, cargar directamente Validar QR
-      if (rol === 'validador') {
-        const mobileVisor = document.getElementById('mobile-visor');
+      // Determinar página de inicio: usar pagina_inicio del perfil si existe, sino el primer menú del rol
+      const menus = menusPorRol[rol] || menusPorRol['apoderado'];
+      let paginaCarga = null;
+      if (paginaInicio && menus.some(item => item.url === paginaInicio)) {
+        paginaCarga = paginaInicio;
+      } else {
+        const primerMenu = menus.find(item => item.url && !item.label.startsWith('::') && item.label !== '---');
+        if (primerMenu) paginaCarga = primerMenu.url;
+      }
+
+      if (paginaCarga) {
+        // Desktop: cargar iframe y marcar botón activo
         const visor = document.getElementById('visor');
-        if (mobileVisor) mobileVisor.src = 'validar_qr.html';
-        if (visor) visor.src = 'validar_qr.html';
+        if (visor) visor.src = paginaCarga;
+        const desktopBtns = document.querySelectorAll('#menu-container button');
+        for (const btn of desktopBtns) {
+          if (btn.getAttribute('data-url') === paginaCarga) {
+            btn.classList.add('activo');
+            break;
+          }
+        }
+        // Mobile: cargar iframe y marcar menú activo
+        const mobileVisor = document.getElementById('mobile-visor');
+        if (mobileVisor) mobileVisor.src = paginaCarga;
+        const mobileMenuBtns = document.querySelectorAll('#mobile-menu-items button');
+        for (const btn of mobileMenuBtns) {
+          if (btn.getAttribute('data-url') === paginaCarga) {
+            btn.classList.add('mobile-menu-activo');
+            btn.style.background = '#e8f4fd';
+            break;
+          }
+        }
       }
     }
 

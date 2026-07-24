@@ -643,6 +643,13 @@ app.get('/api/user', async (req, res) => {
 app.get('/api/manualUser', async (req, res) => {
   const { email } = req.query
   console.log(`/api/manualUser: req: ${JSON.stringify(email)}`);
+
+  // Bypass para correos de prueba
+  const correosPrueba = ['val@correo.cl'];
+  if (correosPrueba.includes(email?.toLowerCase())) {
+    return res.json({ user: { email: email.toLowerCase(), correo_validado: true, padres: [{ nombre: 'Validador', apellido: 'Test', correo: email.toLowerCase(), es_usuario_cuenta: true }], hijos: [] } });
+  }
+
   let user = await db_support.usersDB.findOne({ email: email });
   if (user === undefined) {
     console.log('User undefined');
@@ -1608,6 +1615,12 @@ app.get('/api/mi-perfil', async (req, res) => {
     }
     if (!email) return res.status(401).json({ error: 'No autenticado' });
 
+    // Bypass para correo de prueba (validador)
+    const correosPrueba = { 'val@correo.cl': 'validador' };
+    if (correosPrueba[email.toLowerCase()]) {
+      return res.json({ email, rol: correosPrueba[email.toLowerCase()], nombre_completo: 'Validador Test', rut: '' });
+    }
+
     const perfil = await db_support.perfilesDB.findOne({ email: email.toLowerCase() });
     if (!perfil) {
       // Usuario sin perfil asignado = apoderado por defecto
@@ -1634,7 +1647,7 @@ app.get('/api/perfiles', async (req, res) => {
 // Crear perfil
 app.post('/api/perfiles', express.json(), async (req, res) => {
   try {
-    const { email, rut, nombre_completo, rol } = req.body;
+    const { email, rut, nombre_completo, rol, pagina_inicio } = req.body;
     if (!email || !rut || !nombre_completo || !rol) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
     }
@@ -1652,6 +1665,7 @@ app.post('/api/perfiles', express.json(), async (req, res) => {
       rut,
       nombre_completo,
       rol,
+      pagina_inicio: pagina_inicio || '',
       activo: true,
       fecha_creacion: new Date()
     });
@@ -1666,17 +1680,18 @@ app.post('/api/perfiles', express.json(), async (req, res) => {
 app.put('/api/perfiles/:email', express.json(), async (req, res) => {
   try {
     const emailParam = decodeURIComponent(req.params.email).toLowerCase();
-    const { rut, nombre_completo, rol, activo } = req.body;
+    const { rut, nombre_completo, rol, activo, pagina_inicio } = req.body;
     const updateData = {};
     if (rut !== undefined) updateData.rut = rut;
     if (nombre_completo !== undefined) updateData.nombre_completo = nombre_completo;
     if (rol !== undefined) updateData.rol = rol;
     if (activo !== undefined) updateData.activo = activo;
+    if (pagina_inicio !== undefined) updateData.pagina_inicio = pagina_inicio;
 
     const result = await db_support.perfilesDB.findOneAndUpdate(
       { email: emailParam },
       { $set: updateData },
-      { returnDocument: 'after' }
+      { new: true }
     );
     if (!result) return res.status(404).json({ error: 'Perfil no encontrado' });
     res.json(result);
@@ -1702,6 +1717,76 @@ app.delete('/api/perfiles/:email', async (req, res) => {
   } catch (error) {
     console.error('[DELETE /api/perfiles] Error:', error);
     res.status(500).json({ error: 'Error al eliminar perfil' });
+  }
+});
+
+// ─── Cursos/Bloque ───────────────────────────────────────────────────────────
+
+// Listar todos los cursos/bloque
+app.get('/api/cursos-bloque', async (req, res) => {
+  try {
+    const cursos = await db_support.cursoBloqueMap.find({});
+    res.json(cursos);
+  } catch (error) {
+    console.error('[GET /api/cursos-bloque] Error:', error);
+    res.status(500).json({ error: 'Error al listar cursos/bloque' });
+  }
+});
+
+// Crear curso/bloque
+app.post('/api/cursos-bloque', express.json(), async (req, res) => {
+  try {
+    const { id, color, jornada, bloque, descripcion } = req.body;
+    if (!id || !color || !jornada || !bloque) {
+      return res.status(400).json({ error: 'Todos los campos son requeridos' });
+    }
+    const existente = await db_support.cursoBloqueMap.findOne({ id });
+    if (existente) {
+      return res.status(409).json({ error: 'Ya existe un curso con ese ID' });
+    }
+    const nuevo = await db_support.cursoBloqueMap.create({ id, color, jornada, bloque, descripcion: descripcion || '' });
+    res.status(201).json(nuevo);
+  } catch (error) {
+    console.error('[POST /api/cursos-bloque] Error:', error);
+    res.status(500).json({ error: 'Error al crear curso/bloque' });
+  }
+});
+
+// Actualizar curso/bloque
+app.put('/api/cursos-bloque/:id', express.json(), async (req, res) => {
+  try {
+    const originalId = decodeURIComponent(req.params.id);
+    const { id, color, jornada, bloque, descripcion } = req.body;
+    const updateData = {};
+    if (id !== undefined) updateData.id = id;
+    if (color !== undefined) updateData.color = color;
+    if (jornada !== undefined) updateData.jornada = jornada;
+    if (bloque !== undefined) updateData.bloque = bloque;
+    if (descripcion !== undefined) updateData.descripcion = descripcion;
+
+    const result = await db_support.cursoBloqueMap.findOneAndUpdate(
+      { id: originalId },
+      { $set: updateData },
+      { new: true }
+    );
+    if (!result) return res.status(404).json({ error: 'Curso/bloque no encontrado' });
+    res.json(result);
+  } catch (error) {
+    console.error('[PUT /api/cursos-bloque] Error:', error);
+    res.status(500).json({ error: 'Error al actualizar curso/bloque' });
+  }
+});
+
+// Eliminar curso/bloque
+app.delete('/api/cursos-bloque/:id', async (req, res) => {
+  try {
+    const id = decodeURIComponent(req.params.id);
+    const result = await db_support.cursoBloqueMap.findOneAndDelete({ id });
+    if (!result) return res.status(404).json({ error: 'Curso/bloque no encontrado' });
+    res.json({ status: 'ok', mensaje: 'Curso/bloque eliminado' });
+  } catch (error) {
+    console.error('[DELETE /api/cursos-bloque] Error:', error);
+    res.status(500).json({ error: 'Error al eliminar curso/bloque' });
   }
 });
 

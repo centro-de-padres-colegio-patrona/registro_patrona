@@ -266,7 +266,7 @@
 <div class="card">
   <h3>Escáner de código QR</h3>
 
-  <div id="visor-camara" style="display:none;">
+  <div id="visor-camara">
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
     <div class="scan-overlay">
@@ -275,15 +275,15 @@
     </div>
   </div>
 
-  <button class="btn-principal" id="btn-iniciar" onclick="iniciarEscaneo()">
+  <button class="btn-principal" id="btn-iniciar" style="display:none;" onclick="iniciarEscaneo()">
     📷 Abrir cámara y escanear
   </button>
 
-  <button class="btn-detener" id="btn-detener" style="display:none;" onclick="detenerEscaneo()">
+  <button class="btn-detener" id="btn-detener" onclick="detenerEscaneo()">
     ⏹ Detener cámara
   </button>
 
-  <p class="estado-msg" id="estado">Presione el botón para iniciar el escaneo</p>
+  <p class="estado-msg" id="estado">Apunte la cámara al código QR...</p>
 </div>
 
 <div class="resultado-card" id="resultado-card">
@@ -540,6 +540,10 @@
       }, 3000);
     }
   }
+  // Iniciar escaneo automáticamente al cargar la página
+  window.addEventListener('load', () => {
+    iniciarEscaneo();
+  });
 </script>
 
 </body>

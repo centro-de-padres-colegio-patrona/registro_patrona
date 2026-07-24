@@ -1,5 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const dns = require('dns');
+
+// Usar DNS de Google y Cloudflare para evitar bloqueos de ISP en consultas SRV
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 // Si existe db_support.local.js, usarlo como mock local (ignorado por Git)
 const localMockPath = path.join(__dirname, 'db_support.local.js');
@@ -186,6 +190,7 @@ const registradosSchema = new mongoose.Schema({
 
 const cursoBloqueMapSchema = new mongoose.Schema({
   id: String,
+  descripcion: String,
   bloque: String,
   jornada: String,
   color: String
@@ -206,6 +211,7 @@ const perfilSchema = new mongoose.Schema({
   rut: { type: String, required: true },
   nombre_completo: { type: String, required: true },
   rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor'] },
+  pagina_inicio: { type: String, default: '' },
   activo: { type: Boolean, default: true },
   fecha_creacion: { type: Date, default: Date.now }
 });
@@ -354,7 +360,7 @@ module.exports.connectToDB = connectToDB;
 module.exports.usersDB = mongoose.model('users', userSchema);
 module.exports.listadoCursosDB = mongoose.model('listado_cursos', cursoSchema);
 module.exports.pagosDB = mongoose.model('pagos', pagosSchema);
-module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapSchema);
+module.exports.cursoBloqueMap = mongoose.model('cursoBloqueMap', cursoBloqueMapSchema, 'cursoBloqueMap');
 module.exports.registroEntradasDB = mongoose.model('registro_entradas', registroEntradasSchema);
 module.exports.deliveryDB = mongoose.model('delivery_entradas', deliverySchema);
 module.exports.hermanosMapDB = mongoose.model('nombreHermanosMap', hermanosMapSchema, 'nombreHermanosMap');

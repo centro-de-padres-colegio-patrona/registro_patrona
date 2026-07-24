@@ -232,6 +232,21 @@
       <input type="email" id="inp-email" placeholder="correo@ejemplo.cl">
     </div>
     <div class="form-field">
+      <label>Página de inicio</label>
+      <select id="inp-pagina-inicio">
+        <option value="">— Por defecto del rol —</option>
+        <option value="mis_datos.html">📋 Mis datos</option>
+        <option value="pagos_cpa.html">💰 Mis Pagos al CPA</option>
+        <option value="documentos_matricula.html">📄 Mis Documentos de Matrícula</option>
+        <option value="actividades_eventos.html">🎉 Actividades y Eventos</option>
+        <option value="validar_qr.html">🔍 Validar QR</option>
+        <option value="buscar_entradas.html">📋 Buscar Entradas</option>
+        <option value="mantenedores.html">👤 Perfiles</option>
+        <option value="apoderados.html">👨‍👩‍👧 Apoderados</option>
+        <option value="cursos_bloque.html">📚 Cursos/Bloque</option>
+      </select>
+    </div>
+    <div class="form-field">
       <label>Rol</label>
       <select id="inp-rol">
         <option value="apoderado">Apoderado</option>
@@ -255,6 +270,7 @@
         <th>Nombre</th>
         <th>Correo</th>
         <th>RUT</th>
+        <th>Página de inicio</th>
         <th>Rol</th>
         <th>Acciones</th>
       </tr>
@@ -279,6 +295,21 @@
     <div class="form-field" style="margin-bottom:14px;">
       <label>Correo (no editable)</label>
       <input type="email" id="edit-email" readonly style="background:#eee;">
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Página de inicio</label>
+      <select id="edit-pagina-inicio">
+        <option value="">— Por defecto del rol —</option>
+        <option value="mis_datos.html">📋 Mis datos</option>
+        <option value="pagos_cpa.html">💰 Mis Pagos al CPA</option>
+        <option value="documentos_matricula.html">📄 Mis Documentos de Matrícula</option>
+        <option value="actividades_eventos.html">🎉 Actividades y Eventos</option>
+        <option value="validar_qr.html">🔍 Validar QR</option>
+        <option value="buscar_entradas.html">📋 Buscar Entradas</option>
+        <option value="mantenedores.html">👤 Perfiles</option>
+        <option value="apoderados.html">👨‍👩‍👧 Apoderados</option>
+        <option value="cursos_bloque.html">📚 Cursos/Bloque</option>
+      </select>
     </div>
     <div class="form-field" style="margin-bottom:14px;">
       <label>Rol</label>
@@ -369,12 +400,26 @@
   function renderTabla() {
     const tbody = document.getElementById('tabla-perfiles');
     tbody.innerHTML = '';
+
+    const paginaLabels = {
+      'mis_datos.html': '📋 Mis datos',
+      'pagos_cpa.html': '💰 Mis Pagos al CPA',
+      'documentos_matricula.html': '📄 Documentos Matrícula',
+      'actividades_eventos.html': '🎉 Actividades y Eventos',
+      'validar_qr.html': '🔍 Validar QR',
+      'buscar_entradas.html': '📋 Buscar Entradas',
+      'mantenedores.html': '👤 Perfiles',
+      'apoderados.html': '👨‍👩‍👧 Apoderados',
+    };
+
     perfilesCache.filter(p => p.activo !== false).forEach(p => {
       const row = document.createElement('tr');
+      const paginaInicio = p.pagina_inicio ? (paginaLabels[p.pagina_inicio] || p.pagina_inicio) : '— Defecto —';
       row.innerHTML = `
         <td>${p.nombre_completo}</td>
         <td>${p.email}</td>
         <td>${formatRut(p.rut)}</td>
+        <td>${paginaInicio}</td>
         <td><span class="badge-rol badge-${p.rol}">${p.rol}</span></td>
         <td>
           <button class="btn-accion btn-editar" onclick="abrirEditar('${p.email}')">Editar</button>
@@ -389,6 +434,7 @@
     const nombre_completo = document.getElementById('inp-nombre').value.trim();
     const rut = document.getElementById('inp-rut').value.trim();
     const email = document.getElementById('inp-email').value.trim();
+    const pagina_inicio = document.getElementById('inp-pagina-inicio').value;
     const rol = document.getElementById('inp-rol').value;
     const estado = document.getElementById('estado-form');
 
@@ -402,7 +448,7 @@
       const res = await fetch('/api/perfiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, rut, nombre_completo, rol })
+        body: JSON.stringify({ email, rut, nombre_completo, rol, pagina_inicio })
       });
       const data = await res.json();
 
@@ -412,6 +458,7 @@
         document.getElementById('inp-nombre').value = '';
         document.getElementById('inp-rut').value = '';
         document.getElementById('inp-email').value = '';
+        document.getElementById('inp-pagina-inicio').value = '';
         cargarPerfiles();
       } else {
         estado.textContent = `❌ ${data.error}`;
@@ -429,6 +476,7 @@
     document.getElementById('edit-nombre').value = perfil.nombre_completo;
     document.getElementById('edit-rut').value = formatRut(perfil.rut);
     document.getElementById('edit-email').value = perfil.email;
+    document.getElementById('edit-pagina-inicio').value = perfil.pagina_inicio || '';
     document.getElementById('edit-rol').value = perfil.rol;
     document.getElementById('modal-editar').classList.add('active');
   }
@@ -442,13 +490,14 @@
     const email = document.getElementById('edit-email').value;
     const nombre_completo = document.getElementById('edit-nombre').value.trim();
     const rut = document.getElementById('edit-rut').value.trim();
+    const pagina_inicio = document.getElementById('edit-pagina-inicio').value;
     const rol = document.getElementById('edit-rol').value;
 
     try {
       const res = await fetch(`/api/perfiles/${encodeURIComponent(email)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre_completo, rut, rol })
+        body: JSON.stringify({ nombre_completo, rut, rol, pagina_inicio })
       });
       if (res.ok) {
         cerrarModalEditar();

@@ -674,6 +674,43 @@ router.get('/entrada/imagen', apiKeyAuth, async (req, res) => {
   }
 });
 
+// 7b. POST Imagen del Ticket (para test/preview sin API key)
+router.post('/entrada/imagen', async (req, res) => {
+  const tag = '[POST /api/entrada/imagen]';
+  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  try {
+    const { familia, nombre_completo, colores, folio, total, num_listado, curso, jornada, tipo } = req.body;
+
+    const ticketData = {
+      url_server,
+      id_organizacion: 'test',
+      id_evento: 'test',
+      imagen_ticket_path: './img/ticket_fiesta_chilena_2026.png',
+      familia,
+      nombre_completo,
+      folio: parseInt(folio),
+      num_listado: parseInt(num_listado) || 0,
+      curso,
+      jornada,
+      tipo,
+      bloques: colores
+    };
+
+    const result = await genEntradaCanvas(ticketData);
+
+    if (result && result[0]) {
+      res.set('Content-Type', 'image/png');
+      res.send(result[0]);
+    } else {
+      console.log(`${tag} image buffer null`);
+      res.status(500).json({ error: 'Error: imagen no disponible' });
+    }
+  } catch (err) {
+    console.error(`${tag}`, err);
+    res.status(500).json({ error: err.message || 'Error generando ticket' });
+  }
+});
+
 
 // 8. Get tickets de una familia
 router.get('/entrada/familia', apiKeyAuth, async (req, res) => {

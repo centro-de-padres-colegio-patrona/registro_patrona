@@ -315,12 +315,14 @@ const apiEntradasRouter = require('../backend/api_entradas');
 const apiPerfilesRouter = require('../backend/api_perfiles');
 const apiEventosRouter = require('../backend/api_eventos');
 const apiConfigRouter = require('../backend/api_config');
+const apiUpdateDBRouter = require('../backend/api_update_db');
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
 app.use('/api', apiEntradasRouter);
 app.use('/api', apiPerfilesRouter);
 app.use('/api', apiEventosRouter);
 app.use('/api', apiConfigRouter);
+app.use('/api', apiUpdateDBRouter);
 
 // Ruta para la página "hello world" (index.html)
 app.get('/', (req, res) => {

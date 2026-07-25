@@ -34,8 +34,8 @@ export const OAUTH_SHOPIFY_STORE = process.env.REACT_APP_OAUTH_SHOPIFY_STORE
 export const DATABASE_YEAR_NAME = process.env.DATABASE_YEAR_NAME || ''
 
 
-export const FLOW_API_KEY = process.env.FLOW_API_KEY || flow_api_key
-export const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY || flow_secret_key
+export const FLOW_API_KEY = process.env.FLOW_API_KEY 
+export const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY
 
 export const LOCAL_PORT = process.env.LOCAL_PORT || 5001
 

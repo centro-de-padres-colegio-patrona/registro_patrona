@@ -21,7 +21,7 @@ router.get('/config', async (req, res) => {
     }*/
 
     // Buscamos el perfil del usuario
-    const profile = await db_support.perfilesDB.findOne({ email: email.trim() });
+    const profile = email ? await db_support.perfilesDB.findOne({ email: email.trim() }) : null;
 
     //console.log(`${tag} ${JSON.stringify({email, profile})}`);
 

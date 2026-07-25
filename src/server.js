@@ -543,7 +543,9 @@ app.get('/api/user', async (req, res) => {
     }
 
     // 4. Último intento: buscar cualquier registro que tenga hijos y algún padre con nombre parcial del email
-    if (!relacionado) {
+    /////// Busqueda demasiado amplia, siempre encuentra un registo.
+    // Comentar esta parte por ahora.
+    /*if (!relacionado) {
       const emailPrefix = email.split('@')[0].replace(/[^a-z]/g, ''); // "moralesitalo"
       relacionado = todos.find(u => {
         if (u._id.toString() === user._id.toString()) return false;
@@ -562,7 +564,7 @@ app.get('/api/user', async (req, res) => {
       if (relacionado) {
         console.log(`[/api/user] Encontrado por búsqueda amplia en registro ${relacionado.email} (_id: ${relacionado._id})`);
       }
-    }
+    }*/
 
     if (relacionado) {
       user.hijos = relacionado.hijos;
@@ -853,6 +855,9 @@ app.post('/api/registro', express.json(), (req, res) => {
       console.error('Error al actualizar usuario:', err);
     });
 
+    // Obteniendo los correos de los padres
+    const correos_padres = padres.map(padre => padre.correo);
+
     // Actualizar nombreCursoMapDB para cada hijo con nombre y curso válido
     if (registro.hijos && Array.isArray(registro.hijos)) {
       registro.hijos.forEach(hijo => {
@@ -862,7 +867,7 @@ app.post('/api/registro', express.json(), (req, res) => {
             const value = cursoCode + hijo.seccion;
             db_support.nombreCursoMapDB.findOneAndUpdate(
               { id: hijo.nombre },
-              { $set: { id: hijo.nombre, value: value } },
+              { $set: { id: hijo.nombre, value: value, apoderado_email: correos_padres} },
               { upsert: true }
             ).then(() => {
               console.log(`[/api/registro] nombreCursoMap actualizado: ${hijo.nombre} -> ${value}`);

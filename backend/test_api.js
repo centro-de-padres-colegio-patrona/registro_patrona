@@ -512,4 +512,11 @@ async function test_send_entradas(url_server = 'http://localhost:5001') {
   log_result(tag, testResult);
 }
 
+/*async function test_actualizar_correos_padres_de_cada_estudiante(url_server = 'http://localhost:5001') {
+      const result = await fetch(`${url_server}/api/perfiles?email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+}*/
+
 module.exports.lauch_test_api = lauch_test_api;

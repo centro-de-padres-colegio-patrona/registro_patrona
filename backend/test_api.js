@@ -28,6 +28,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     
     //setTimeout(test_api_entradas_familia, delay_ms+1000, url_server);
     //setTimeout(test_send_entradas, delay_ms, url_server);
+    setTimeout(test_actualizar_correos_padres_de_cada_estudiante, delay_ms, url_server);
 }
 
 async function log_result(tag, result) {
@@ -516,18 +517,18 @@ async function test_actualizar_correos_padres_de_cada_estudiante(url_server = 'h
   const tag = '[test_actualizar_correos_padres_de_cada_estudiante]';
   try {
     const result = await fetch(`${url_server}/api/update/nombrehermanos`, {
-      method: 'POSTT',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
     });
     if ( result.status === 200 )
     {
-      log_result(tag, pass);
+      log_result(tag, 'pass');
     } else {
-      log_result(tag, fail);
+      log_result(tag, 'fail');
     }
   } catch (error) {
-    console.log(`&{tag} Unexpected error: `, error);
-    log_result(tag, fail);
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
   }
 }
 

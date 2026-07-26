@@ -387,7 +387,7 @@
         <div class="form-field">
           <label class="check-label">
             <input type="checkbox" class="usuario-cuenta-check" name="account_owner[]">
-            Usuaria/o de la cuenta
+            Representante de la familia
           </label>
         </div>
         <div class="form-row">
@@ -1226,6 +1226,31 @@
         }
     });          
 
+    async function getApiKey() {
+        try {
+            const config_response = await fetch('/api/config');
+            if (!config_response.ok) 
+                return null;
+            const data = await config_response.json();
+            if (data && data.apiKey)
+                return data.apiKey;
+            return null;
+        } catch (error) {
+            console.error('Unexpected Error: ', error);
+        }
+        return null;
+    }
+
+    async function getApoderadosList(brothersList) {
+      if (!brothersList)
+        return null;
+      const apiKey = await getApiKey();
+      const apoderados = await fetch('/api/consulta/apoderados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+      });
+    }
+
     function getBrothersList(brotherInfoMap) {
       if (!brotherInfoMap)
         return [];
@@ -1300,9 +1325,11 @@
       });
       const brotherInfoMap = await response.json();
       console.log('brotherInfoMap: ', brotherInfoMap);
-      const brothersList = getBrothersList(brotherInfoMap);
+      const brothersList = await getBrothersList(brotherInfoMap);
       console.log('brothers info: ', brotherInfoMap);
       console.log('brothersList: ', brothersList);
+      const apoderadosList = await getApoderadosList(brothersList);
+      console.log('Lista Apoderados: ', apoderadosList )
       isEqual = compareArrays(childrenList, brothersList);
       console.log('compareArrays: ', isEqual);
       if (!isEqual) {

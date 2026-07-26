@@ -280,9 +280,28 @@
       <label>Bloque</label>
       <input type="text" id="inp-bloque" placeholder="Ej: bloque_01">
     </div>
+    <div class="form-field">
+      <label>Pases Apoderados</label>
+      <input type="number" id="inp-pases-apoderados" value="2" min="0">
+    </div>
+    <div class="form-field">
+      <label>Pases Invitados</label>
+      <input type="number" id="inp-pases-invitados" value="2" min="0">
+    </div>
   </div>
   <button class="btn-principal" onclick="guardarCursoBloque()">Guardar</button>
   <p class="estado-msg" id="estado-form"></p>
+</div>
+
+<!-- Buscador -->
+<div class="card" style="border-left-color:#27AE60;">
+  <h3>Buscar</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>Buscar por cualquier campo</label>
+      <input type="text" id="inp-busqueda" placeholder="Ej: 4MA, Tarde, Rosado, bloque_08..." oninput="filtrarTabla()">
+    </div>
+  </div>
 </div>
 
 <!-- Tabla -->
@@ -295,6 +314,8 @@
         <th>Color</th>
         <th>Jornada</th>
         <th>Bloque</th>
+        <th style="text-align:center;">Pases Apoderados</th>
+        <th style="text-align:center;">Pases Invitados</th>
         <th>Acciones</th>
       </tr>
     </thead>
@@ -368,6 +389,14 @@
     <div class="form-field" style="margin-bottom:14px;">
       <label>Bloque</label>
       <input type="text" id="edit-bloque">
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Pases Apoderados</label>
+      <input type="number" id="edit-pases-apoderados" min="0">
+    </div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Pases Invitados</label>
+      <input type="number" id="edit-pases-invitados" min="0">
     </div>
     <div style="display:flex; gap:12px;">
       <button class="btn-principal" onclick="actualizarCursoBloque()">Guardar Cambios</button>
@@ -488,18 +517,23 @@
   function renderTabla() {
     const tbody = document.getElementById('tabla-cursos');
     tbody.innerHTML = '';
-    cursosCache.forEach(c => {
+    const filtrados = getFiltrados();
+    filtrados.forEach(c => {
       const row = document.createElement('tr');
       const jornadaClass = c.jornada === 'tarde' ? 'badge-tarde' : 'badge-manana';
       const glosa = c.descripcion || cursoGlosa[c.id] || c.id;
       const colorReal = getColorReal(c.color);
       const colorNombre = getColorNombre(c.color);
+      const pasesApoderados = c.pases_apoderados !== undefined ? c.pases_apoderados : 2;
+      const pasesInvitados = c.pases_invitados !== undefined ? c.pases_invitados : 2;
       row.innerHTML = `
         <td><strong>${c.id}</strong></td>
         <td>${glosa}</td>
         <td><span class="color-badge"><span class="color-dot" style="background:${colorReal};"></span>${colorNombre}</span></td>
         <td><span class="badge-jornada ${jornadaClass}">${jornadaLabels[c.jornada] || c.jornada}</span></td>
         <td>${c.bloque}</td>
+        <td style="text-align:center;">${pasesApoderados}</td>
+        <td style="text-align:center;">${pasesInvitados}</td>
         <td>
           <button class="btn-accion btn-editar" onclick="abrirEditar('${c.id}')">Editar</button>
           <button class="btn-accion btn-eliminar" onclick="eliminarCurso('${c.id}')">Eliminar</button>
@@ -509,11 +543,38 @@
     });
   }
 
+  function getFiltrados() {
+    const busqueda = (document.getElementById('inp-busqueda')?.value || '').trim().toLowerCase();
+    if (!busqueda) return cursosCache;
+    return cursosCache.filter(c => {
+      const glosa = (c.descripcion || cursoGlosa[c.id] || '').toLowerCase();
+      const colorNombre = getColorNombre(c.color).toLowerCase();
+      const jornadaNombre = (jornadaLabels[c.jornada] || c.jornada).toLowerCase();
+      const pasesApo = String(c.pases_apoderados !== undefined ? c.pases_apoderados : 2);
+      const pasesInv = String(c.pases_invitados !== undefined ? c.pases_invitados : 2);
+      return c.id.toLowerCase().includes(busqueda)
+        || glosa.includes(busqueda)
+        || colorNombre.includes(busqueda)
+        || c.color.toLowerCase().includes(busqueda)
+        || jornadaNombre.includes(busqueda)
+        || c.jornada.toLowerCase().includes(busqueda)
+        || (c.bloque || '').toLowerCase().includes(busqueda)
+        || pasesApo.includes(busqueda)
+        || pasesInv.includes(busqueda);
+    });
+  }
+
+  function filtrarTabla() {
+    renderTabla();
+  }
+
   async function guardarCursoBloque() {
     const id = document.getElementById('inp-id').value.trim();
     const color = document.getElementById('inp-color').value.trim();
     const jornada = document.getElementById('inp-jornada').value;
     const bloque = document.getElementById('inp-bloque').value.trim();
+    const pases_apoderados = parseInt(document.getElementById('inp-pases-apoderados').value) || 2;
+    const pases_invitados = parseInt(document.getElementById('inp-pases-invitados').value) || 2;
     const descripcion = cursoGlosa[id] || '';
     const estado = document.getElementById('estado-form');
 
@@ -527,7 +588,7 @@
       const res = await fetch('/api/cursos-bloque', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, color, jornada, bloque, descripcion })
+        body: JSON.stringify({ id, color, jornada, bloque, descripcion, pases_apoderados, pases_invitados })
       });
       const data = await res.json();
       if (res.ok) {
@@ -536,6 +597,8 @@
         document.getElementById('inp-id').selectedIndex = 0;
         document.getElementById('inp-color').selectedIndex = 0;
         document.getElementById('inp-bloque').value = '';
+        document.getElementById('inp-pases-apoderados').value = '2';
+        document.getElementById('inp-pases-invitados').value = '2';
         cargarCursos();
       } else {
         estado.textContent = `❌ ${data.error}`;
@@ -555,6 +618,8 @@
     document.getElementById('edit-color').value = curso.color;
     document.getElementById('edit-jornada').value = curso.jornada;
     document.getElementById('edit-bloque').value = curso.bloque;
+    document.getElementById('edit-pases-apoderados').value = curso.pases_apoderados !== undefined ? curso.pases_apoderados : 2;
+    document.getElementById('edit-pases-invitados').value = curso.pases_invitados !== undefined ? curso.pases_invitados : 2;
     document.getElementById('modal-editar').classList.add('active');
   }
 
@@ -569,13 +634,15 @@
     const color = document.getElementById('edit-color').value.trim();
     const jornada = document.getElementById('edit-jornada').value;
     const bloque = document.getElementById('edit-bloque').value.trim();
+    const pases_apoderados = parseInt(document.getElementById('edit-pases-apoderados').value) || 2;
+    const pases_invitados = parseInt(document.getElementById('edit-pases-invitados').value) || 2;
     const descripcion = cursoGlosa[id] || '';
 
     try {
       const res = await fetch(`/api/cursos-bloque/${encodeURIComponent(originalId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, color, jornada, bloque, descripcion })
+        body: JSON.stringify({ id, color, jornada, bloque, descripcion, pases_apoderados, pases_invitados })
       });
       if (res.ok) {
         cerrarModal();

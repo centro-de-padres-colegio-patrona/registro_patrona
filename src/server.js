@@ -1746,7 +1746,7 @@ app.get('/api/cursos-bloque', async (req, res) => {
 // Crear curso/bloque
 app.post('/api/cursos-bloque', express.json(), async (req, res) => {
   try {
-    const { id, color, jornada, bloque, descripcion } = req.body;
+    const { id, color, jornada, bloque, descripcion, pases_apoderados, pases_invitados } = req.body;
     if (!id || !color || !jornada || !bloque) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
     }
@@ -1754,7 +1754,12 @@ app.post('/api/cursos-bloque', express.json(), async (req, res) => {
     if (existente) {
       return res.status(409).json({ error: 'Ya existe un curso con ese ID' });
     }
-    const nuevo = await db_support.cursoBloqueMap.create({ id, color, jornada, bloque, descripcion: descripcion || '' });
+    const nuevo = await db_support.cursoBloqueMap.create({ 
+      id, color, jornada, bloque, 
+      descripcion: descripcion || '',
+      pases_apoderados: pases_apoderados !== undefined ? pases_apoderados : 2,
+      pases_invitados: pases_invitados !== undefined ? pases_invitados : 2
+    });
     res.status(201).json(nuevo);
   } catch (error) {
     console.error('[POST /api/cursos-bloque] Error:', error);
@@ -1766,13 +1771,15 @@ app.post('/api/cursos-bloque', express.json(), async (req, res) => {
 app.put('/api/cursos-bloque/:id', express.json(), async (req, res) => {
   try {
     const originalId = decodeURIComponent(req.params.id);
-    const { id, color, jornada, bloque, descripcion } = req.body;
+    const { id, color, jornada, bloque, descripcion, pases_apoderados, pases_invitados } = req.body;
     const updateData = {};
     if (id !== undefined) updateData.id = id;
     if (color !== undefined) updateData.color = color;
     if (jornada !== undefined) updateData.jornada = jornada;
     if (bloque !== undefined) updateData.bloque = bloque;
     if (descripcion !== undefined) updateData.descripcion = descripcion;
+    if (pases_apoderados !== undefined) updateData.pases_apoderados = pases_apoderados;
+    if (pases_invitados !== undefined) updateData.pases_invitados = pases_invitados;
 
     const result = await db_support.cursoBloqueMap.findOneAndUpdate(
       { id: originalId },

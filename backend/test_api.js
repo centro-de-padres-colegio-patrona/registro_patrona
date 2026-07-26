@@ -230,8 +230,8 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
         '5B': {id: '5B', jornada: 'tarde', bloque: 'bloque_07', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_07', pases_apoderados: 2, pases_invitados: 2},
         '6A': {id: '6A', jornada: 'tarde', bloque: 'bloque_07', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_07', pases_apoderados: 2, pases_invitados: 2},
         '6B': {id: '6B', jornada: 'tarde', bloque: 'bloque_07', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_07', pases_apoderados: 2, pases_invitados: 2},
-        '4MA': {id: '4MA', jornada: 'tarde', bloque: 'bloque_08', color: 'ros_t', hash: 'fiesta_chilena_2026_bloque_08', pases_apoderados: 2, pases_invitados: 6},
-        '4MB': {id: '4MB', jornada: 'tarde', bloque: 'bloque_08', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_08', pases_apoderados: 2, pases_invitados: 6}
+        '4MA': {id: '4MA', jornada: 'tarde', bloque: 'bloque_08', color: 'ros_t', hash: 'fiesta_chilena_2026_bloque_08', pases_apoderados: 2, pases_invitados: 3},
+        '4MB': {id: '4MB', jornada: 'tarde', bloque: 'bloque_08', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_08', pases_apoderados: 2, pases_invitados: 3}
       }
     },
     'bingo_familiar_2026': {

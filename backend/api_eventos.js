@@ -67,6 +67,28 @@ router.get('/eventos/buscar', apiKeyAuth, async (req, res) => {
   }
 });
 
+router.put('/eventos/actualizar', apiKeyAuth, async (req, res) => {
+  try {
+    const { id_evento, ...campos } = req.body;
+    if (!id_evento) {
+      return res.status(400).json({ error: 'id_evento requerido' });
+    }
+    const resultado = await db_support.EventDB.findOneAndUpdate(
+      { id_evento },
+      { $set: campos },
+      { new: true }
+    );
+    if (!resultado) {
+      return res.status(404).json({ error: 'Evento no encontrado' });
+    }
+    console.log(`[/api/eventos/actualizar] Evento ${id_evento} actualizado.`);
+    res.json(resultado);
+  } catch (error) {
+    console.error('[/api/eventos/actualizar] Error:', error);
+    res.status(500).json({ error: 'Error al actualizar evento' });
+  }
+});
+
 
 
 

@@ -12,7 +12,33 @@ class TestResult {
 
 async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:5001', db_uri = '') {
   console.log('Launching Api Test...');
-    setTimeout(test_api_db_connection, delay_ms/2, db_uri);
+
+  const test_array = [];
+
+  test_array.push({test_fn: test_api_db_connection, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_api_perfiles, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_api_curso, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_api_email_update, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_api_pagos_cpa, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_api_compromisos_pago, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: listing_all_tipos_de_pago, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_api_eventos, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_actualizar_correos_padres_de_cada_estudiante, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_consultar_hijos, delay: delay_ms, arguments: db_uri});
+  test_array.push({test_fn: test_consultar_apoderados, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_consistencia_users_hijos, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_delete_user, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_consulta_hijos_registrados, delay: delay_ms, arguments: url_server});
+
+  let test_name = ''
+
+  try {
+    for( const test_info of test_array)
+
+  } catch (error) {
+    console.log('Unexpexted error running tests. Stopped at ')
+  }
+    /*setTimeout(test_api_db_connection, delay_ms/2, db_uri);
     setTimeout(test_api_perfiles, delay_ms, url_server);
     setTimeout(test_api_curso, delay_ms, url_server);
     setTimeout(test_api_email_update, delay_ms, url_server);
@@ -34,6 +60,8 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     setTimeout(test_consistencia_users_hijos, 3 * delay_ms, url_server);
 
     setTimeout(test_delete_user, 4 * delay_ms, url_server);
+    
+    setTimeout(test_consulta_hijos_registrados, 4 * delay_ms, url_server);*/
 }
 
 async function log_result(tag, result) {
@@ -632,6 +660,30 @@ async function test_delete_user(url_server = 'http://localhost:5001') {
     });
     if ( result.status === 200 )
     {
+      log_result(tag, 'pass');
+    } else {
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+
+async function test_consulta_hijos_registrados(url_server = 'http://localhost:5001') {
+  const tag = '[test DEL /api/consulta/hijos_registrados]';
+  const user_email = 'l.herreramena@gmail.com';
+
+  try {
+    const result = await fetch(`${url_server}/api/consulta/hijos_registrados}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if ( result.status === 200 )
+    {
+      const hijos_registrados = await result.json();
+      console.log(`${tag} hijos_registrados: `, hijos_registrados);
       log_result(tag, 'pass');
     } else {
       log_result(tag, 'fail');

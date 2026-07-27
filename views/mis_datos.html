@@ -368,7 +368,7 @@
           </div>
         </div>
         <button type="button" class="btn-eliminar-child btn-danger-outline">
-          🗑 Eliminar
+          🗑 Desvincular
         </button>
         <button type="button" class="btn-modificar-child" style="background:transparent; color:#4A90E2; border:1.5px solid #4A90E2; padding:6px 14px; border-radius:7px; font-size:0.85rem; cursor:pointer; margin-top:4px; margin-left:8px;">
           ✏️ Modificar
@@ -574,7 +574,7 @@
           const childForms = childrenSection.querySelectorAll('.child-form');
           childForm = e.target.closest('.child-form');
           const name = childForm.querySelector("select[name='childName[]']").value;
-          if (confirm(`¿Está seguro de que desea eliminar el registro ${name}?`)) {
+          if (confirm(`¿Desea desvincular a "${name}" de su registro?\n\n(El estudiante no será eliminado del sistema, solo dejará de estar asociado a su cuenta)`)) {
             if (childForms.length > 1) {
               e.target.closest('.child-form').remove();
             } else {
@@ -1086,6 +1086,7 @@
     }
 
     function compareArrays(arr1, arr2) {
+      if (!arr1 || !arr2) return false;
       if (arr1.length !== arr2.length) return false;
       for (let i = 0; i < arr1.length; i++) {
         const obj1 = arr1[i];
@@ -1171,27 +1172,11 @@
       if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
         return;
       }
-      currentUser.hijos = hijos;
-      currentUser.padres = padres;
 
-            fetch('/api/registro', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({...currentUser, hijos, padres})
-            })
-            .then(res => res.json())
-            .then(response => {
-              updateUserEmail();
-              mostrarEstado("✅ Datos actualizados correctamente", 0);
-              console.debug('Datos del usuario guardados ');
-            })
-            .catch(error => {
-              mostrarEstado("❌ Error al actualizar los datos", 1);
-              console.error('Error al registrar:', error);
-            });
-          });
+      // Mostrar modal de confirmacion antes de enviar
+      _datosParaEnviar = { hijos, padres };
+      mostrarModalConfirmacion(hijos, padres);
+    });
 
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('account_owner')) {
@@ -1335,5 +1320,215 @@
     }
 
   </script>
+
+<!-- Modal de confirmacion -->
+<div class="modal-confirmacion-overlay" id="modal-confirmacion" onclick="cerrarModalConfirmacion(event)">
+  <div class="modal-confirmacion-content" onclick="event.stopPropagation()">
+    <h3>Confirmar datos antes de guardar</h3>
+    <div class="modal-confirmacion-body" id="modal-confirmacion-body"></div>
+    <div class="modal-confirmacion-actions">
+      <button class="btn-confirmar-enviar" onclick="confirmarEnvio()">Enviar</button>
+      <button class="btn-confirmar-cancelar" onclick="cerrarModalConfirmacion()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .modal-confirmacion-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-confirmacion-overlay.active { display: flex; }
+
+  .modal-confirmacion-content {
+    background: white;
+    border-radius: 14px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 28px 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  }
+
+  .modal-confirmacion-content h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1A3A6B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .modal-confirmacion-body {
+    font-size: 0.9rem;
+    color: #333;
+    line-height: 1.6;
+  }
+
+  .modal-confirmacion-body .seccion-titulo {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #4A90E2;
+    text-transform: uppercase;
+    margin: 16px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .modal-confirmacion-body .item-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-left: 3px solid #4A90E2;
+  }
+
+  .modal-confirmacion-body .item-card .item-nombre {
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 2px;
+  }
+
+  .modal-confirmacion-body .item-card .item-detalle {
+    font-size: 0.82rem;
+    color: #666;
+  }
+
+  .modal-confirmacion-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+
+  .btn-confirmar-enviar {
+    padding: 12px 36px;
+    background: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-confirmar-enviar:hover { background: #357abd; }
+
+  .btn-confirmar-cancelar {
+    padding: 12px 36px;
+    background: transparent;
+    color: #888;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-confirmar-cancelar:hover { background: #f8f9fa; color: #555; border-color: #bbb; }
+
+  @media screen and (max-width: 768px) {
+    .modal-confirmacion-content {
+      max-width: 100%;
+      padding: 20px 16px;
+      max-height: 90vh;
+    }
+    .modal-confirmacion-actions {
+      flex-direction: column;
+    }
+    .btn-confirmar-enviar, .btn-confirmar-cancelar {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  let _datosParaEnviar = null;
+
+  function mostrarModalConfirmacion(hijos, padres) {
+    let html = '';
+
+    html += '<div class="seccion-titulo">Hijos / Estudiantes (' + hijos.length + ')</div>';
+    if (hijos.length === 0) {
+      html += '<p style="color:#e74c3c; font-size:0.85rem;">No hay estudiantes registrados</p>';
+    }
+    hijos.forEach((hijo, i) => {
+      html += '<div class="item-card">';
+      html += '<div class="item-nombre">' + (hijo.nombre || '(sin nombre)') + '</div>';
+      html += '<div class="item-detalle">' + (hijo.curso || '') + ' ' + (hijo.seccion || '') + (hijo.rut ? ' - RUT: ' + hijo.rut : '') + '</div>';
+      html += '</div>';
+    });
+
+    html += '<div class="seccion-titulo">Padres / Apoderados (' + padres.length + ')</div>';
+    if (padres.length === 0) {
+      html += '<p style="color:#e74c3c; font-size:0.85rem;">No hay apoderados registrados</p>';
+    }
+    padres.forEach((padre, i) => {
+      const nombreCompleto = ((padre.nombre || '') + ' ' + (padre.apellido || '')).trim() || '(sin nombre)';
+      const detalles = [
+        padre.parentesco || '',
+        padre.correo || '',
+        padre.telefono ? 'Tel: ' + padre.telefono : '',
+        padre.rut ? 'RUT: ' + padre.rut : '',
+        padre.es_usuario_cuenta ? 'Usuario cuenta' : ''
+      ].filter(Boolean).join(' - ');
+      html += '<div class="item-card">';
+      html += '<div class="item-nombre">' + nombreCompleto + '</div>';
+      html += '<div class="item-detalle">' + detalles + '</div>';
+      html += '</div>';
+    });
+
+    document.getElementById('modal-confirmacion-body').innerHTML = html;
+    document.getElementById('modal-confirmacion').classList.add('active');
+  }
+
+  function cerrarModalConfirmacion(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modal-confirmacion').classList.remove('active');
+    _datosParaEnviar = null;
+  }
+
+  function confirmarEnvio() {
+    if (!_datosParaEnviar) return;
+    document.getElementById('modal-confirmacion').classList.remove('active');
+
+    const { hijos, padres } = _datosParaEnviar;
+    currentUser.hijos = hijos;
+    currentUser.padres = padres;
+
+    fetch('/api/registro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({...currentUser, hijos, padres})
+    })
+    .then(res => res.json())
+    .then(response => {
+      if (response.error) {
+        mostrarEstado("Error: " + response.error, 1);
+      } else {
+        updateUserEmail();
+        mostrarEstado("Datos actualizados correctamente", 0);
+      }
+    })
+    .catch(error => {
+      mostrarEstado("Error al actualizar los datos", 1);
+      console.error('Error al registrar:', error);
+    });
+
+    _datosParaEnviar = null;
+  }
+</script>
+
 </body>
 </html>

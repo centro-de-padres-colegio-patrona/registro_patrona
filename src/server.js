@@ -308,6 +308,20 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Middleware de Log asociado a la sesión activa
+app.use((req, res, next) => {
+  // Extraer el correo según la estrategia de autenticación (Passport, Sesión manual o Header)
+  const sessionEmail = req.user?.emails?.[0]?.value 
+    || req.user?.email 
+    || req.session?.user?.email 
+    || 'ANÓNIMO';
+
+  const timestamp = new Date().toISOString();
+  console.log(`[LOG ${timestamp}] [Usuario: ${sessionEmail}] ${req.method} ${req.originalUrl}`);
+  
+  next();
+});
+
 app.set('view engine', 'ejs');
 
 app.use(cors());

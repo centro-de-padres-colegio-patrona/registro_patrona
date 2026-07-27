@@ -105,6 +105,61 @@ router.get('/consulta/apoderados', apiKeyAuth, async (req, res) => {
   }
 });
 
+router.get('/consulta/hijos_registrados', apiKeyAuth, async (req, res) => {
+    const tag = '[GET /api/consulta/hijos_registrados]';
+
+    try {
+        const { output } = req.query;
+
+        // Consulta DB
+        const familias = await db_support.hermanosMapDB.find({apoderado_email:{$exists:true}});
+        console.log(`${tag} familias: `, familias.length);
+
+        //const apoderados_emails = familias.map(familia => familia.apoderado_email);
+        // Usamos flatMap para aplanar arreglos (por si apoderado_email es Array o String) 
+        // y filtramos valores nulos/vacíos
+        const nombres_estudiantes = familias
+            .flatMap(familia => familia.id )
+            .filter(Boolean);
+        
+        // No debiera ser necesario esto
+        const estudiantes = [...new Set(nombres_estudiantes)];
+        if ( output === 'listado' ) {
+            res.json(estudiantes);
+            return;
+        }
+        const listados_curso = await db_support.listadoCursosDB.find({});
+
+        // 
+        const mapaCursos = listados_curso.reduce((acc, item) => {
+            if (Array.isArray(item.listaCurso)) {
+                item.listaCurso.forEach(nombre => {
+                acc[nombre] = item.id;
+                });
+            }
+            return acc;
+        }, {});
+
+        // Filtrar solo aquellos que estan en nombres_estudiantes
+        const mapaFiltrado = Object.fromEntries(
+            Object.entries(mapaCursos).filter(([nombre]) => nombres_estudiantes.includes(nombre))
+        );
+
+        // Mapa inverso
+        const mapaInversoObjeto = Object.entries(mapaFiltrado).reduce((acc, [estudiante, cursoId]) => {
+            acc[cursoId] = acc[cursoId] || [];
+            acc[cursoId].push(estudiante);
+            return acc;
+        }, {});
+
+        //console.log(`${tag} Cursos: `, mapaInversoObjeto);
+        res.json(mapaInversoObjeto);
+    } catch (err) {
+        console.log(`${tag} Unexpected error: `, err);
+        return res.status(500).json({ ok: false, error: 'Unexpected error' });
+  }
+});
+
 
 module.exports = router;
 

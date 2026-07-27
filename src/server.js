@@ -7,6 +7,8 @@ const CryptoJS = require("crypto-js");
 
 const config_env = require('./setup/config/env.js');
 
+const git_branch = require('../backend/git_branch');
+
 //const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
 //const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
 const flow_api_key = config_env.FLOW_API_KEY;
@@ -32,7 +34,7 @@ const PORT = process.env.PORT || LOCAL_PORT;
 // Si corre en local usa ngrok para callbacks de pago, si no usa la URL de producción (Render)
 const BASEURL = (PORT === LOCAL_PORT)
   ? 'https://unhappily-correct-squeeze.ngrok-free.dev'
-  : 'https://registro-patrona.onrender.com';
+  : git_branch.BASEURL;  //'https://registro-patrona.onrender.com';
 
 console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
 
@@ -228,7 +230,8 @@ const passport = require('passport');
 const { name } = require('ejs');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-const urlRender = 'https://registro-patrona.onrender.com'
+const urlRender = BASEURL
+
 const callbackURLLocal = '/auth/google/callback'
 passport.use(new GoogleStrategy({
   clientID: '547108669206-gt688r7nm2186tetj2jopln6nhghsmr5.apps.googleusercontent.com',
@@ -304,6 +307,20 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Middleware de Log asociado a la sesión activa
+app.use((req, res, next) => {
+  // Extraer el correo según la estrategia de autenticación (Passport, Sesión manual o Header)
+  const sessionEmail = req.user?.emails?.[0]?.value 
+    || req.user?.email 
+    || req.session?.user?.email 
+    || 'ANÓNIMO';
+
+  const timestamp = new Date().toISOString();
+  console.log(`[LOG ${timestamp}] [Usuario: ${sessionEmail}] ${req.method} ${req.originalUrl}`);
+  
+  next();
+});
 
 app.set('view engine', 'ejs');
 
@@ -512,8 +529,12 @@ app.get('/api/user', async (req, res) => {
       return u.padres.some(p => normalizar(p.correo) === emailNorm || normalizar(p.email) === emailNorm);
     });
 
+    if (relacionado) console.log(`[/api/user] #1 - relacionado:`, relacionado);
+
     // 2. Si no se encontró por correo, buscar por nombre del usuario en padres de otros registros
-    if (!relacionado) {
+    /// Se deja sin efecto esta relacion para evitar 
+    // que los usuarios utilicen varios correos de la misma persona
+    /*if (!relacionado) {
       const userGivenName = normalizar((req.user && req.user.name && req.user.name.givenName) || '');
       const userFamilyName = normalizar((req.user && req.user.name && req.user.name.familyName) || '');
       console.log(`[/api/user] Buscando por nombre: givenName="${userGivenName}", familyName="${userFamilyName}"`);
@@ -532,9 +553,12 @@ app.get('/api/user', async (req, res) => {
           console.log(`[/api/user] Encontrado por nombre (${userGivenName} ${userFamilyName}) en registro ${relacionado.email}`);
         }
       }
-    }
+    }*/
+    
+    if (relacionado) console.log(`[/api/user] #2 - relacionado:`, relacionado);
 
     // 3. Si aún no se encontró, buscar otro registro con mismo email pero diferente _id que sí tenga hijos
+    console.log('3. Si aún no se encontró, buscar otro registro con mismo email pero diferente _id que sí tenga hijos');
     if (!relacionado) {
       relacionado = todos.find(u => {
         if (u._id.toString() === user._id.toString()) return false;
@@ -569,6 +593,8 @@ app.get('/api/user', async (req, res) => {
         console.log(`[/api/user] Encontrado por búsqueda amplia en registro ${relacionado.email} (_id: ${relacionado._id})`);
       }
     }*/
+
+    if (relacionado) console.log(`[/api/user] #3 - relacionado:`, relacionado);
 
     if (relacionado) {
       user.hijos = relacionado.hijos;
@@ -872,23 +898,24 @@ app.post('/api/registro', express.json(), async (req, res) => {
     // Obteniendo los correos de los padres
     const correos_padres = userActualizado.padres.map(padre => padre.correo);
 
-    // Actualizar nombreCursoMapDB para cada hijo con nombre y curso válido
+    // Actualizar hermanosMapDB para cada hijo con nombre y curso válido
     if (registro.hijos && Array.isArray(registro.hijos)) {
       registro.hijos.forEach(hijo => {
         if (hijo.nombre && hijo.curso && hijo.seccion) {
-          const cursoCode = curso_map[hijo.curso];
-          if (cursoCode) {
-            const value = cursoCode + hijo.seccion;
-            db_support.nombreCursoMapDB.findOneAndUpdate(
+          //const cursoCode = curso_map[hijo.curso];
+          //if (cursoCode) {
+            //const value = cursoCode + hijo.seccion;
+            db_support.hermanosMapDB.findOneAndUpdate(
               { id: hijo.nombre },
-              { $set: { id: hijo.nombre, value: value, apoderado_email: correos_padres} },
+              //{ $set: { id: hijo.nombre, value: value, apoderado_email: correos_padres} },
+              { $set: { apoderado_email: correos_padres} },
               { upsert: true }
             ).then(() => {
-              console.log(`[/api/registro] nombreCursoMap actualizado: ${hijo.nombre} -> ${value}`);
+              console.log(`[/api/registro] hermanosMapDB actualizado: ${hijo.nombre} -> ${value}`);
             }).catch(err => {
-              console.error(`[/api/registro] Error actualizando nombreCursoMap:`, err);
+              console.error(`[/api/registro] Error actualizando hermanosMapDB:`, err);
             });
-          }
+          //}
         }
       });
     }
@@ -1018,7 +1045,8 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
       
       // Si el usuario no tiene hijos, buscar datos heredados (misma lógica que /api/user)
-      if (!user.hijos || user.hijos.length === 0) {
+      // Se deshabilita esta opcion por el riesgo de relacionar una cuenta de otra familia
+      /*if (!user.hijos || user.hijos.length === 0) {
         const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
         const email = user.email;
         const todos = await db_support.usersDB.find({});
@@ -1063,7 +1091,7 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
           user.hijos = relacionado.hijos;
           console.log(`[/api/estado_pago_cpa] Hijos heredados de ${relacionado.email}`);
         }
-      }
+      }*/
 
       const pagos = [];
       if (user.hijos !== undefined && user.hijos.length > 0) {

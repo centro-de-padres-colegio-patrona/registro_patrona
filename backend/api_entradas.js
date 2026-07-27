@@ -12,6 +12,7 @@ const config_env = require('../src/setup/config/env.js');
 //const { info } = require('console');
 const { send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 const { generarPdfDesdeBuffers, save_pdf } = require('./pdf_helper.js');
+const { BASEURL } = require('../backend/git_branch');
 
 
 const SECRET_API_KEY = config_env.API_KEY;
@@ -79,7 +80,7 @@ async function save_png(buffer, filename = null) {
   // 1. POST: Generar entrada Canvas
 router.post('/entrada/create', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entrada/create]';
-  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  const url_server = config_env.URL_SERVER || BASEURL;
   try {
     //console.log(JSON.stringify(req.body));
     const { 
@@ -696,7 +697,7 @@ router.get('/entrada/qr', apiKeyAuth, async (req, res) => {
 // 7. Get Imagen del Ticket
 router.get('/entrada/imagen', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entrada/imagen]';
-  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  const url_server = config_env.URL_SERVER || BASEURL;
   try {
     //console.log(JSON.stringify(req.body));
     const { 
@@ -742,7 +743,7 @@ router.get('/entrada/imagen', apiKeyAuth, async (req, res) => {
 // 7b. POST Imagen del Ticket (para test/preview sin API key)
 router.post('/entrada/imagen', async (req, res) => {
   const tag = '[POST /api/entrada/imagen]';
-  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  const url_server = config_env.URL_SERVER || BASEURL;
   try {
     const { familia, nombre_completo, colores, folio, total, num_listado, curso, jornada, tipo } = req.body;
 
@@ -780,7 +781,7 @@ router.post('/entrada/imagen', async (req, res) => {
 // 8. Get tickets de una familia
 router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entrada/familia]';
-  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  const url_server = config_env.URL_SERVER || BASEURL;
   try {
     console.log(`${tag} req.query`, JSON.stringify(req.query));
     let id_familia = null;
@@ -1011,7 +1012,7 @@ router.delete('/entradas', apiKeyAuth, async (req, res) => {
 
 router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
   const tag = '[POST /entradas/send_email]';
-  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  const url_server = config_env.URL_SERVER || BASEURL;
   try {
     const { email_destinatario, asuntoCorreo, mensajeCorreo, tickets, save_file, tipo_attachment = 'png'} = req.body;
 

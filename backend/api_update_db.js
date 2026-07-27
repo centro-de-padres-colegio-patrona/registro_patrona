@@ -7,13 +7,13 @@ const fs = require('fs').promises; // Usamos la versión basada en promesas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
-
+const { BASEURL } = require('../backend/git_branch');
 
 const SECRET_API_KEY = config_env.API_KEY;
 
 /*router.post('/update/nombrehermanos', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/update/nombrehermanos]';
-  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  const url_server = config_env.URL_SERVER || BASEURL;
   let mapaHijosPadres = null;
   try {
     // Iterar sobre cada item de db_support.hermanosMapDB => nombre_hijo
@@ -125,6 +125,39 @@ router.get('/hijos_padres', apiKeyAuth, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensaje: 'Error al obtener la relación de hijos y padres' });
+  }
+});
+
+
+router.delete('/update/user', apiKeyAuth, async (req, res) => {
+  const tag = '[DEL /api/update/user]';
+  try {
+    const { user_email } = req.query;
+    if ( !user_email ) {
+      const err_msg = `${tag} user_email parameter required`;
+      console.log(err_msg);  
+      res.status(400).json(err_msg);
+      return;
+    }
+
+    await db_support.hermanosMapDB.updateMany(
+      { apoderado_email: user_email },
+      { $pull: { apoderado_email: user_email } } // Remueve el email del arreglo
+    );
+
+    const deletedResult = await db_support.usersDB.deleteOne({email: user_email});
+
+    // Verificar si realmente se eliminó algún documento
+    if (deletedResult.deletedCount === 0) {
+      const error_msg = `${tag} user ${user_email} not found or could not be deleted`;
+      console.log(error_msg);
+      return res.status(404).json({ error: error_msg });
+    }
+
+    res.status(200).json(`user ${user_email} has been deleted`);
+
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
   }
 });
 

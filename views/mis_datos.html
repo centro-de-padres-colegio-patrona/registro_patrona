@@ -508,6 +508,17 @@
       return regex.test(value);
     }
 
+    let apiKey = ''
+
+    async function init() {
+      fetch(`/api/config?email=${encodeURIComponent(currentUser.email || '')}`)
+        .then(res => res.json())
+        .then(config => {
+          apiKey = config.apiKey;
+          //console.log(`ApiKey: ${apiKey}`);
+        });
+    }
+
     // ✅ Tests
     /*const tests = [
       "12345678", "1.2345678", "1.234.5678",
@@ -569,6 +580,8 @@
 
 
     document.addEventListener('DOMContentLoaded', () => {
+      init();
+
       const childrenSection = document.getElementById('children-section');
       const parentSection = document.getElementById('parent-section');
 
@@ -586,17 +599,28 @@
           const nombreActual = nombreSelect.value;
           
           if (curso && seccion) {
+            console.log(`#1 fetch(/api/alumnos?curso=`);
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
               .then(res => res.json())
               .then(alumnos => {
+                fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
+                  method: 'GET',
+                  headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+                })
+                .then(res => res.json())
+                .then( alumnos_ya_registrados => {
                 nombreSelect.innerHTML = '<option value="">Seleccione</option>';
                 alumnos.forEach(nombre => {
                   const option = document.createElement('option');
                   option.value = nombre;
                   option.textContent = nombre;
+                  console.log(`alumno ${nombre}, registrado: alumnos_ya_registrados.includes(nombre)`);
+                  if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
                   nombreSelect.appendChild(option);
                 });
                 nombreSelect.value = nombreActual;
+                })
+                .catch(err => console.error('Error al generar listado alumnos ya registrados:', err));
               })
               .catch(err => console.error('Error al cargar nombres:', err));
           }
@@ -743,16 +767,27 @@
           const rutInput = childForm.querySelector("input[name='childRut[]']");
 
           if (curso && seccion) {
+            console.log(`#2 fetch(/api/alumnos?curso=`);
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
               .then(res => res.json())
               .then(async alumnos => {
+                fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
+                  method: 'GET',
+                  headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+                })
+                .then(res => res.json())
+                .then( alumnos_ya_registrados => {
                 nombreSelect.innerHTML = '<option value="">Seleccione</option>';
                 alumnos.forEach(nombre => {
                   const option = document.createElement('option');
                   option.value = nombre;
                   option.textContent = nombre;
+                  //console.log(`alumnos_ya_registrados: `, alumnos_ya_registrados);
+                  if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
                   nombreSelect.appendChild(option);
                 });
+                })
+                .catch(err => console.error('Error al generar listado alumnos ya registrados:', err));
               })
               .catch(err => console.error('Error al obtener nombres:', err));
           }
@@ -885,9 +920,16 @@
       childForm.querySelector("select[name='childSeccion[]']").value = seccion;
       console.log(childInfo);
       if (curso && seccion) {
+        console.log(`#3 fetch(/api/alumnos?curso=`);
         fetch(`/api/alumnos?curso=${encodeURIComponent(selectCurso)}&seccion=${encodeURIComponent(seccion)}`)
           .then(res => res.json())
           .then(alumnos => {
+            fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+            })
+            .then(res => res.json())
+            .then( alumnos_ya_registrados => {
             const nombreSelect = childForm.querySelector("select[name='childName[]']");
             nombreSelect.innerHTML = '<option value="">Seleccione</option>';
             console.log(alumnos);
@@ -895,10 +937,13 @@
               const option = document.createElement('option');
               option.value = nombre;
               option.textContent = nombre;
+              if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
               nombreSelect.appendChild(option);
             });
             // Selecciona el nombre si está en la lista
             nombreSelect.value = nombre;
+            })
+            .catch(err => console.error('Error al generar listado alumnos ya registrados:', err));
           })
           .catch(err => console.error('Error al cargar nombres:', err));
       }
@@ -963,9 +1008,16 @@
 
         // Simula llamada a API para cargar nombres válidos
         if (cursoLargo && hijo.seccion) {
+          console.log(`#4 fetch(/api/alumnos?curso=`);
           fetch(`/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`)
             .then(res => res.json())
             .then(alumnos => {
+              fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+              })
+              .then(res => res.json())
+              .then( alumnos_ya_registrados => {
               const nombreSelect = form.querySelector("select[name='childName[]']");
               nombreSelect.innerHTML = '<option value="">Seleccione</option>';
               
@@ -981,6 +1033,7 @@
                 const option = document.createElement('option');
                 option.value = nombre;
                 option.textContent = nombre;
+                if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
                 nombreSelect.appendChild(option);
               });
 
@@ -988,6 +1041,8 @@
               if (hijo.nombre) {
                 nombreSelect.value = hijo.nombre;
               }
+              })
+              .catch(err => console.error('Error al generar listado alumnos ya registrados:', err));
             })
             .catch(err => console.error('Error al cargar nombres:', err));
         }

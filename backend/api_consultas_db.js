@@ -112,7 +112,7 @@ router.get('/consulta/hijos_registrados', apiKeyAuth, async (req, res) => {
         const { output } = req.query;
 
         // Consulta DB
-        const familias = await db_support.hermanosMapDB.find({apoderado_email:{$exists:true}});
+        const familias = await db_support.hermanosMapDB.find({apoderado_email:{$exists:true, $not: { $size: 0 }}});
         console.log(`${tag} familias: `, familias.length);
 
         //const apoderados_emails = familias.map(familia => familia.apoderado_email);

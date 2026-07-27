@@ -839,25 +839,35 @@ app.get('/api/correo_validado', async (req, res) => {
   }
 });
 
-app.post('/api/registro', express.json(), (req, res) => {
+app.post('/api/registro', express.json(), async (req, res) => {
   // Aquí puedes guardar los datos, enviarlos por correo, etc.
 
   const registro = req.body;
-  console.log('Datos recibidos:', registro);
+  console.log('Datos recibidos:', JSON.stringify({_id: registro._id, email: registro.email, hijos_count: registro.hijos?.length, padres_count: registro.padres?.length}));
 
-    db_support.usersDB.findOneAndUpdate(
-      { _id: registro._id },       // Filtro para encontrar el usuario
-      { $set: registro },          // Actualización: sobrescribe los campos con los de `registro`
-      { returnDocument: 'after' }  // Opcional: retorna el documento actualizado
-    )
-    .then(userActualizado => {
-      console.log('Usuario actualizado:', userActualizado);
-      let findone = db_support.registroEntradasDB.findOne({id:'estudiantes'});
-      console.log(`registros: ${JSON.stringify(findone.registros)}`);
-    })
-    .catch(err => {
-      console.error('Error al actualizar usuario:', err);
-    });
+  try {
+    // Determinar filtro de búsqueda: por _id si existe, si no por email
+    let filtro = null;
+    if (registro._id) {
+      filtro = { _id: registro._id };
+    } else if (registro.email) {
+      filtro = { email: registro.email };
+    } else {
+      return res.status(400).json({ error: 'No se pudo identificar al usuario (sin _id ni email)' });
+    }
+
+    const userActualizado = await db_support.usersDB.findOneAndUpdate(
+      filtro,
+      { $set: { hijos: registro.hijos, padres: registro.padres } },
+      { returnDocument: 'after' }
+    );
+
+    if (!userActualizado) {
+      console.error('[/api/registro] Usuario no encontrado con filtro:', filtro);
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    console.log('[/api/registro] Usuario actualizado:', userActualizado.email);
 
     // Obteniendo los correos de los padres
     const correos_padres = padres.map(padre => padre.correo);
@@ -883,8 +893,12 @@ app.post('/api/registro', express.json(), (req, res) => {
       });
     }
 
-    res.json({ status: 'ok', mensaje: 'Registro recibido'});
+    res.json({ status: 'ok', mensaje: 'Registro recibido' });
 
+  } catch (err) {
+    console.error('[/api/registro] Error:', err);
+    res.status(500).json({ error: 'Error al actualizar los datos' });
+  }
 });
 
 app.post('/api/send_notify_mail', async (req, res) => {

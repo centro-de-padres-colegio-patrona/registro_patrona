@@ -2,6 +2,7 @@
 
 // Imports
 import dotenv from 'dotenv'
+const { BASEURL } = requiere('../backend/git_branch');
 
 // Load .env
 dotenv.config({ path: './.env.local' })
@@ -41,7 +42,7 @@ export const LOCAL_PORT = process.env.LOCAL_PORT || 5001
 
 export const API_KEY = process.env.API_KEY || '123456'
 
-export const URL_SERVER = process.env.URL_SERVER || 'https://registro-patrona.onrender.com'
+export const URL_SERVER = process.env.URL_SERVER || BASEURL
 
 
 /// Database 

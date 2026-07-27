@@ -7,6 +7,8 @@ const CryptoJS = require("crypto-js");
 
 const config_env = require('./setup/config/env.js');
 
+const git_branch = requiere('../backend/git_branch');
+
 //const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
 //const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
 const flow_api_key = config_env.FLOW_API_KEY;
@@ -32,7 +34,7 @@ const PORT = process.env.PORT || LOCAL_PORT;
 // Si corre en local usa ngrok para callbacks de pago, si no usa la URL de producción (Render)
 const BASEURL = (PORT === LOCAL_PORT)
   ? 'https://unhappily-correct-squeeze.ngrok-free.dev'
-  : 'https://registro-patrona.onrender.com';
+  : git_branch.BASEURL;  //'https://registro-patrona.onrender.com';
 
 console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
 
@@ -228,7 +230,8 @@ const passport = require('passport');
 const { name } = require('ejs');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-const urlRender = 'https://registro-patrona.onrender.com'
+const urlRender = BASEURL
+
 const callbackURLLocal = '/auth/google/callback'
 passport.use(new GoogleStrategy({
   clientID: '547108669206-gt688r7nm2186tetj2jopln6nhghsmr5.apps.googleusercontent.com',

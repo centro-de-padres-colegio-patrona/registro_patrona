@@ -7,13 +7,13 @@ const fs = require('fs').promises; // Usamos la versión basada en promesas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
-
+const { BASEURL } = requiere('../backend/git_branch');
 
 const SECRET_API_KEY = config_env.API_KEY;
 
 /*router.post('/update/nombrehermanos', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/update/nombrehermanos]';
-  const url_server = config_env.URL_SERVER || 'https://registro-patrona.onrender.com';
+  const url_server = config_env.URL_SERVER || BASEURL;
   let mapaHijosPadres = null;
   try {
     // Iterar sobre cada item de db_support.hermanosMapDB => nombre_hijo

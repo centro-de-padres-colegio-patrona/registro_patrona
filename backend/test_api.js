@@ -652,7 +652,7 @@ async function test_delete_user(url_server = 'http://localhost:5001') {
 
 async function test_consulta_hijos_registrados(url_server = 'http://localhost:5001') {
   const tag = '[test GET /api/consulta/hijos_registrados]';
-  const user_email = 'l.herreramena@gmail.com';
+  ////////////////const user_email = 'l.herreramena@gmail.com';
 
   try {
     const result = await fetch(`${url_server}/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
@@ -664,7 +664,7 @@ async function test_consulta_hijos_registrados(url_server = 'http://localhost:50
     {
       const hijos_registrados = await result.json();
       //console.log(`${tag} hijos_registrados: `, Object.keys(hijos_registrados).length);
-      console.log(`${tag} hijos_registrados: `, hijos_registrados.length);
+      console.log(`${tag} hijos_registrados: `, hijos_registrados);
       log_result(tag, 'pass');
     } else {
       log_result(tag, 'fail');

@@ -852,7 +852,7 @@ app.post('/api/registro', express.json(), async (req, res) => {
 
     const userActualizado = await db_support.usersDB.findOneAndUpdate(
       filtro,
-      { $set: { hijos: registro.hijos, padres: registro.padres } },
+      { $set: { hijos: registro.hijos, padres: registro.padres, invitados: registro.invitados } },
       { returnDocument: 'after' }
     );
 

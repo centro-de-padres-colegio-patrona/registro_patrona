@@ -247,11 +247,11 @@
         console.log('Respuesta del servidor:', response);
         if (!response.ok) {
           throw new Error('Usuario no autenticado');
-          return_to_home();
         }
         return response.json();
       })
       .then(user => {
+        if (!user || !user.user) throw new Error('Datos de usuario vacíos');
         currentUser = user.user;
         console.log('[mis_datos] Hijos recibidos:', JSON.stringify(currentUser.hijos));
         console.log('[mis_datos] Padres recibidos:', JSON.stringify(currentUser.padres));
@@ -281,26 +281,47 @@
             : "ejemplo@correo.com";
 
         console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
-        //document.getElementById("correoUsuario").value = correo;
       })
       .catch(error => {
-        console.log('Fue ingresado manual:', error);
+        console.log('[mis_datos] Error /api/user, intentando vía manual:', error.message);
         
-          // Ocultar loading
-          document.getElementById('loading-state').style.display = 'none';
-          document.getElementById('registro-form').style.display = 'block';
+        // Ocultar loading
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('registro-form').style.display = 'block';
 
-          const params = new URLSearchParams(window.location.search);
-          const username = params.get('username');
-          const correoManual = params.get('correoManual');
+        const params = new URLSearchParams(window.location.search);
+        const userEmailParam = params.get('user_email');
+        console.log('[mis_datos] user_email desde URL:', userEmailParam);
 
+        // Si tiene user_email en el URL, intentar cargar datos manualmente
+        if (userEmailParam) {
+          fetch('/api/manualUser?email=' + encodeURIComponent(userEmailParam))
+            .then(res => { if (!res.ok) throw new Error('No encontrado'); return res.json(); })
+            .then(data => {
+              currentUser = data.user;
+              console.log('[mis_datos] Datos cargados vía user_email param:', currentUser.email);
+              console.log('[mis_datos] Hijos:', currentUser.hijos?.length, 'Padres:', currentUser.padres?.length);
+              document.title = 'Cargado: ' + currentUser.email;
+              fillUserInfo(currentUser);
+              mostrarEstado("Datos obtenidos desde la base de datos", 0);
+              addBrothers();
+              // Ocultar label completitud si tiene datos
+              const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
+              if (tieneHijos) {
+                document.getElementById('completitudLabel').style.display = 'none';
+                window._ocultarCompletitud = true;
+              }
+            })
+            .catch(err2 => {
+              console.error('[mis_datos] Error cargando manual user:', err2);
+              mostrarEstado("Error al cargar datos del usuario", 1);
+            });
+        } else {
           const err_msg = String(error).toLowerCase();
           if (err_msg.includes('no autenticado') || err_msg.includes('unauthorize')) {
             return_to_home();
           }
-          //document.getElementById("correoUsuario").value =correoManual;
-
-
+        }
       });
   </script>
 
@@ -434,6 +455,18 @@
       </div>
     </div>
     <button type="button" class="btn-agregar" onclick="addParent()">+ Agregar otro padre/madre/apoderado</button>
+
+    <!-- Sección Invitados (informativa) -->
+    <div class="section-header" id="invitados-section-header">
+      <span class="section-icon">🎟</span>
+      <h3>Invitados al Evento</h3>
+    </div>
+    <div id="invitados-info-section">
+      <div class="form-card" id="invitados-info-card" style="border-left-color: #f39c12;">
+        <p style="color:#888; font-size:0.85rem;">Cargando información de invitados...</p>
+      </div>
+    </div>
+    <button type="button" class="btn-agregar" id="btn-agregar-invitados" style="display:none;" onclick="solicitarInvitado()">+ Solicitar Invitado</button>
 
     <br><br>
     <!--button type="submit">Enviar</button-->
@@ -1014,8 +1047,229 @@
 
 
     function fillUserInfo(user) {
-      fillChildrenSection(user);
-      fillParentSection(user);
+      try { fillChildrenSection(user); } catch(e) { console.error('[fillChildrenSection] Error:', e); }
+      try { fillParentSection(user); } catch(e) { console.error('[fillParentSection] Error:', e); }
+      try { fillInvitadosSection(user); } catch(e) { console.error('[fillInvitadosSection] Error:', e); }
+    }
+
+    function fillInvitadosSection(user) {
+      const container = document.getElementById('invitados-info-card');
+      const invitados = user.invitados || [];
+      const hijos = user.hijos || [];
+
+      // Consultar entradas de tipo invitado desde la API de entradas
+      if (hijos.length > 0 && hijos[0].nombre) {
+        fetch(`/api/config?email=${encodeURIComponent(user.email || '')}`)
+          .then(res => res.json())
+          .then(config => {
+            const apiKey = config.apiKey;
+            const nombreHijo = hijos[0].nombre;
+            return fetch(`/api/entrada/familia?id_organizacion=cpa_patrona&id_evento=fiesta_chilena_2026&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+            });
+          })
+          .then(res => {
+            if (!res.ok) throw new Error('No se pudieron obtener entradas');
+            return res.json();
+          })
+          .then(entradas => {
+            const entradasInvitados = Array.isArray(entradas) ? entradas.filter(e => (e.tipo || '').toLowerCase() === 'invitado') : [];
+            renderInvitadosInfo(container, entradasInvitados, invitados);
+          })
+          .catch(err => {
+            console.log('[fillInvitadosSection] Error consultando entradas:', err);
+            renderInvitadosInfo(container, [], invitados);
+          });
+      } else {
+        renderInvitadosInfo(container, [], invitados);
+      }
+    }
+
+    // Variable global para almacenar invitados cargados desde la API de entradas
+    let _invitadosCargados = [];
+
+    function renderInvitadosInfo(container, entradasInvitados, invitadosUser) {
+      // Guardar invitados para usarlos en el popup de confirmación
+      _invitadosCargados = entradasInvitados.length > 0 ? entradasInvitados : invitadosUser;
+
+      const maxInvitados = entradasInvitados.length || max_invitados;
+      const invitadosSolicitados = currentUser.invitados || [];
+
+      // Esperar a que se resuelva el estado de pago CPA antes de renderizar
+      const emailPago = currentUser.email || '';
+      fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(emailPago))
+        .then(res => res.json())
+        .then(pagos => {
+          window._cuotaCpaPagada = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
+          console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada);
+          renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
+        })
+        .catch(err => {
+          console.log('[mis_datos] Error consultando estado pago CPA:', err);
+          window._cuotaCpaPagada = false;
+          renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
+        });
+    }
+
+    function renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados) {
+      const cpaPagada = window._cuotaCpaPagada;
+      let html = '';
+
+      if (cpaPagada) {
+        html += `
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="color:#2ecc71; font-weight:700; font-size:0.9rem;">✓ Invitados permitidos: ${maxInvitados}</span>
+          </div>
+        `;
+
+        // Mostrar cajas de invitados ya solicitados
+        if (invitadosSolicitados.length > 0) {
+          invitadosSolicitados.forEach((inv, i) => {
+            const nombre = inv.nombre_completo || 'Invitado ' + (i + 1);
+            html += `
+              <div style="background:#f8f9fa; border-radius:6px; padding:10px 14px; margin-bottom:8px; border-left:3px solid #2ecc71; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-weight:600; font-size:0.88rem; color:#333;">${nombre}</div>
+                </div>
+                <button type="button" onclick="eliminarInvitado(${i})" style="background:#f8d7da; color:#721c24; border:none; border-radius:5px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">Quitar</button>
+              </div>
+            `;
+          });
+        }
+
+        html += '<div id="invitados-cajas-container"></div>';
+        container.innerHTML = html;
+        container.style.borderLeftColor = '#2ecc71';
+
+        // Mostrar/ocultar botón según máximo
+        const btnAgregar = document.getElementById('btn-agregar-invitados');
+        if (btnAgregar) {
+          if (invitadosSolicitados.length < maxInvitados) {
+            btnAgregar.style.display = '';
+            btnAgregar.textContent = '+ Solicitar Invitado';
+          } else {
+            btnAgregar.style.display = 'none';
+          }
+        }
+      } else {
+        // Cuota CPA pendiente
+        html += `
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <span style="color:#e74c3c; font-weight:700; font-size:0.9rem;">❌ Cuota CPA Pendiente</span>
+            <p style="color:#888; font-size:0.85rem; margin:0;">Debes pagar la Cuota del Centro de Padres para poder solicitar invitados.</p>
+          </div>
+        `;
+        container.innerHTML = html;
+        container.style.borderLeftColor = '#e74c3c';
+
+        // Ocultar botón solicitar y mostrar botón ir a pagos
+        const btnAgregar = document.getElementById('btn-agregar-invitados');
+        if (btnAgregar) {
+          btnAgregar.style.display = '';
+          btnAgregar.textContent = '💰 Ir a Mis Pagos';
+          btnAgregar.onclick = function() {
+            const url = 'pagos_cpa.html';
+            if (window.parent && window.parent.document.getElementById('visor')) {
+              const email = currentUser.email || '';
+              window.parent.document.getElementById('visor').src = url + '?user_email=' + encodeURIComponent(email);
+            } else {
+              window.location.href = url;
+            }
+          };
+        }
+      }
+    }
+
+    function solicitarInvitado() {
+      const invitados = currentUser.invitados || [];
+      const entradasInv = _invitadosCargados || [];
+      const maxInvitados = entradasInv.length || max_invitados;
+
+      // Validar si tiene cuota CPA pagada
+      if (!window._cuotaCpaPagada) {
+        if (confirm('Debes tener la Cuota CPA pagada para solicitar invitados.\n\n¿Ir a Mis Pagos?')) {
+          const url = 'pagos_cpa.html';
+          if (window.parent && window.parent.document.getElementById('visor')) {
+            window.parent.document.getElementById('visor').src = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(currentUser.email || '');
+          } else {
+            window.location.href = url;
+          }
+        }
+        return;
+      }
+
+      if (invitados.length >= maxInvitados) {
+        alert('Ya alcanzaste el máximo de invitados permitidos (' + maxInvitados + ')');
+        return;
+      }
+
+      const nuevoNum = invitados.length + 1;
+      const folio = entradasInv[nuevoNum - 1] ? entradasInv[nuevoNum - 1].folio : null;
+
+      invitados.push({
+        nombre_completo: 'Invitado ' + nuevoNum,
+        folio: folio,
+        jornada: entradasInv[nuevoNum - 1] ? entradasInv[nuevoNum - 1].jornada : '',
+        bloques: entradasInv[nuevoNum - 1] ? entradasInv[nuevoNum - 1].bloques : ''
+      });
+
+      currentUser.invitados = invitados;
+      _invitadosCargados = _invitadosCargados.length > 0 ? _invitadosCargados : invitados;
+
+      // Guardar en BD
+      fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...currentUser, invitados })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert('Error: ' + data.error);
+        } else {
+          // Re-renderizar
+          const container = document.getElementById('invitados-info-card');
+          renderInvitadosInfo(container, _invitadosCargados, invitados);
+        }
+      })
+      .catch(err => alert('Error de conexión'));
+    }
+
+    function eliminarInvitado(index) {
+      const invitados = currentUser.invitados || [];
+      if (!confirm('¿Quitar Invitado ' + (index + 1) + '?')) return;
+
+      invitados.splice(index, 1);
+      currentUser.invitados = invitados;
+
+      // Guardar en BD
+      fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...currentUser, invitados })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert('Error: ' + data.error);
+        } else {
+          const container = document.getElementById('invitados-info-card');
+          renderInvitadosInfo(container, _invitadosCargados, invitados);
+        }
+      })
+      .catch(err => alert('Error de conexión'));
+    }
+
+    function irAgregarInvitados() {
+      const url = 'entradas_eventos.html?id_evento=fiesta_chilena_2026';
+      if (window.parent && window.parent.document.getElementById('visor')) {
+        window.parent.document.getElementById('visor').src = url;
+      } else if (window.parent && window.parent.document.getElementById('mobile-visor')) {
+        window.parent.document.getElementById('mobile-visor').src = url;
+      } else {
+        window.location.href = url;
+      }
     }
 
 
@@ -1486,6 +1740,21 @@
       html += '<div class="item-card">';
       html += '<div class="item-nombre">' + nombreCompleto + '</div>';
       html += '<div class="item-detalle">' + detalles + '</div>';
+      html += '</div>';
+    });
+
+    // Invitados
+    const invitados = currentUser.invitados || [];
+    html += '<div class="seccion-titulo">Invitados (' + invitados.length + ')</div>';
+    if (invitados.length === 0) {
+      html += '<p style="color:#888; font-size:0.85rem;">Sin invitados solicitados</p>';
+    }
+    invitados.forEach((inv, i) => {
+      const nombre = inv.nombre_completo || 'Invitado ' + (i + 1);
+      const folio = inv.folio ? 'Folio: #' + String(inv.folio).padStart(4, '0') : '';
+      html += '<div class="item-card" style="border-left-color:#f39c12;">';
+      html += '<div class="item-nombre">' + nombre + '</div>';
+      if (folio) html += '<div class="item-detalle">' + folio + '</div>';
       html += '</div>';
     });
 

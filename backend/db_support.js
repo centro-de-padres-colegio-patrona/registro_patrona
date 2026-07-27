@@ -13,6 +13,7 @@ if (fs.existsSync(localMockPath)) {
 
 const mongoose = require('mongoose');
 const test_api = require('./test_api');
+const config_env = require('../src/setup/config/env.js');
 
 let dbUri = '';
 
@@ -419,11 +420,16 @@ function hasAdministradorAccessRights(rol) {
 async function connectToDB(year = '', url_server = 'http://localhost:5001') {
   //return;
   const db_year = year ? `_${year}` : '';
-  const db_password = 'tPyw2Cvb2Hco8HM3'
-  const db_user = 'lherreramena_db_user'
-  const db_uri = `mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/cpa_patrona${db_year}?retryWrites=true&w=majority&appName=old-data`
+  const db_password = config_env.DB_PASSWORD || 'tPyw2Cvb2Hco8HM3';
+  const db_user = config_env.DB_USER || 'lherreramena_db_user';
+  const db_url_template = config_env.DB_URL || 'mongodb+srv://${db_user}:${db_password}@old-data.g2qp95c.mongodb.net/${database_name}?retryWrites=true&w=majority&appName=old-data';
+  const database_name = `cpa_patrona${db_year}`;
+  const db_uri = db_url_template
+    .replace('${db_user}', db_user)
+    .replace('${db_password}', db_password)
+    .replace('${database_name}', database_name);
   dbUri = db_uri;
-  console.log(`Conectando a la base de datos url: ${db_uri}`);
+  console.log(`Conectando a la base de datos: ${database_name}`);
   try {
     await mongoose.connect(db_uri, {
       useNewUrlParser: true,

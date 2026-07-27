@@ -33,7 +33,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     setTimeout(test_consultar_apoderados, delay_ms / 4, url_server);
     setTimeout(test_consistencia_users_hijos, 3 * delay_ms, url_server);
 
-    setTimeout(test_delete_user, delay_ms, 4 * delay_ms, url_server);
+    setTimeout(test_delete_user, 4 * delay_ms, url_server);
 }
 
 async function log_result(tag, result) {
@@ -622,9 +622,11 @@ async function test_consistencia_users_hijos(url_server = 'http://localhost:5001
 
 
 async function test_delete_user(url_server = 'http://localhost:5001') {
-  const tag = '[test /api/update/user]';
+  const tag = '[test DEL /api/update/user]';
+  const user_email = 'l.herreramena@gmail.com';
+
   try {
-    const result = await fetch(`${url_server}/api/update/user`, {
+    const result = await fetch(`${url_server}/api/update/user?user_email=${encodeURIComponent(user_email)}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
     });

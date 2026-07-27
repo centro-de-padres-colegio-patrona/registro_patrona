@@ -1,8 +1,9 @@
 // Configurations
 
 // Imports
-import dotenv from 'dotenv'
-const { BASEURL } = requiere('../backend/git_branch');
+import dotenv from 'dotenv';
+
+import { BASEURL } from '../../../backend/git_branch.js';
 
 // Load .env
 dotenv.config({ path: './.env.local' })

@@ -7,7 +7,7 @@ const CryptoJS = require("crypto-js");
 
 const config_env = require('./setup/config/env.js');
 
-const git_branch = requiere('../backend/git_branch');
+const git_branch = require('../backend/git_branch');
 
 //const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
 //const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'

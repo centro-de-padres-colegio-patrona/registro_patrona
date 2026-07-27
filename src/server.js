@@ -840,6 +840,7 @@ app.get('/api/correo_validado', async (req, res) => {
 });
 
 app.post('/api/registro', express.json(), async (req, res) => {
+app.post('/api/registro', express.json(), async (req, res) => {
   // Aquí puedes guardar los datos, enviarlos por correo, etc.
 
   const registro = req.body;

@@ -315,12 +315,16 @@ const apiEntradasRouter = require('../backend/api_entradas');
 const apiPerfilesRouter = require('../backend/api_perfiles');
 const apiEventosRouter = require('../backend/api_eventos');
 const apiConfigRouter = require('../backend/api_config');
+const apiUpdateDBRouter = require('../backend/api_update_db');
+const apiConsultasDBRouter = require('../backend/api_consultas_db');
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
 app.use('/api', apiEntradasRouter);
 app.use('/api', apiPerfilesRouter);
 app.use('/api', apiEventosRouter);
 app.use('/api', apiConfigRouter);
+app.use('/api', apiUpdateDBRouter);
+app.use('/api', apiConsultasDBRouter);
 
 // Ruta para la página "hello world" (index.html)
 app.get('/', (req, res) => {
@@ -543,7 +547,9 @@ app.get('/api/user', async (req, res) => {
     }
 
     // 4. Último intento: buscar cualquier registro que tenga hijos y algún padre con nombre parcial del email
-    if (!relacionado) {
+    /////// Busqueda demasiado amplia, siempre encuentra un registo.
+    // Comentar esta parte por ahora.
+    /*if (!relacionado) {
       const emailPrefix = email.split('@')[0].replace(/[^a-z]/g, ''); // "moralesitalo"
       relacionado = todos.find(u => {
         if (u._id.toString() === user._id.toString()) return false;
@@ -562,7 +568,7 @@ app.get('/api/user', async (req, res) => {
       if (relacionado) {
         console.log(`[/api/user] Encontrado por búsqueda amplia en registro ${relacionado.email} (_id: ${relacionado._id})`);
       }
-    }
+    }*/
 
     if (relacionado) {
       user.hijos = relacionado.hijos;
@@ -872,7 +878,7 @@ app.post('/api/registro', express.json(), async (req, res) => {
             const value = cursoCode + hijo.seccion;
             db_support.nombreCursoMapDB.findOneAndUpdate(
               { id: hijo.nombre },
-              { $set: { id: hijo.nombre, value: value } },
+              { $set: { id: hijo.nombre, value: value, apoderado_email: correos_padres} },
               { upsert: true }
             ).then(() => {
               console.log(`[/api/registro] nombreCursoMap actualizado: ${hijo.nombre} -> ${value}`);

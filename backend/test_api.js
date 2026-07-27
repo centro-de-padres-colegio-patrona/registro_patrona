@@ -28,6 +28,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     
     //setTimeout(test_api_entradas_familia, delay_ms+1000, url_server);
     //setTimeout(test_send_entradas, delay_ms, url_server);
+    setTimeout(test_actualizar_correos_padres_de_cada_estudiante, delay_ms, url_server);
+    setTimeout(test_consultar_hijos, delay_ms, url_server);
+    setTimeout(test_consultar_apoderados, delay_ms / 4, url_server);
+    setTimeout(test_consistencia_users_hijos, 3 * delay_ms, url_server);
 }
 
 async function log_result(tag, result) {
@@ -471,7 +475,7 @@ async function test_send_entradas(url_server = 'http://localhost:5001') {
     'herrera messina'
   ]
 
-  destinatarios = {
+  const destinatarios = {
     'morales perez' : { email_destinatario: 'morales.italo@gmail.com', mensajeCorreo: 'Entrada Familia de Italo!'},
     'herrera messina': { email_destinatario: 'l.herreramena@gmail.com', mensajeCorreo: 'Entrada Familia de Leo!'},
     'alarcon salazar': { email_destinatario: 'patricio.alarcon.matus@gmail.com', mensajeCorreo: 'Entrada Familia de Pato!'}
@@ -511,5 +515,108 @@ async function test_send_entradas(url_server = 'http://localhost:5001') {
   );
   log_result(tag, testResult);
 }
+
+async function test_actualizar_correos_padres_de_cada_estudiante(url_server = 'http://localhost:5001') {
+  const tag = '[test_actualizar_correos_padres_de_cada_estudiante]';
+  try {
+    const result = await fetch(`${url_server}/api/update/nombrehermanos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if ( result.status === 200 )
+    {
+      log_result(tag, 'pass');
+    } else {
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+async function test_consultar_hijos(url_server = 'http://localhost:5001') {
+  const tag = '[test /api/consulta/hijos]';
+  const email_apoderados = [
+    'morales.italo@gmail.com',
+    'patricio.alarcon.matus@gmail.com',
+    'l.herreramena@gmail.com',
+    'leo.herrera.mena@gmail.com'
+  ]
+  for (const user_email of email_apoderados) {
+    try {
+      const result = await fetch(`${url_server}/api/consulta/hijos?user_email=${encodeURIComponent(user_email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 )
+      {
+        log_result(tag, 'pass');
+      } else {
+        log_result(tag, 'fail');
+      }
+    } catch (error) {
+      console.log(`${tag} Unexpected error: `, error);
+      log_result(tag, 'fail');
+    }
+  }
+}
+
+
+// /api/consulta/apoderados
+async function test_consultar_apoderados(url_server = 'http://localhost:5001') {
+  const tag = '[test /api/consulta/apoderados]';
+  const array_of_hijos = [
+    {hijos:[
+    'herrera messina florencia isidora',
+    'herrera messina cristobal nicolas',
+    ],
+    apoderados: 1
+    }
+  ];
+  for (const info of array_of_hijos) {
+    try {
+      const result = await fetch(`${url_server}/api/consulta/apoderados?hijos=${encodeURIComponent(JSON.stringify(info.hijos))}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 )
+      {
+        res_apoderados = await result.json();
+        if (res_apoderados.length === info.apoderados) {
+          log_result(tag, 'pass');
+        } else {
+          console.log(`${tag} apoderados ${JSON.stringify(info.hijos)}: expected: ${info.apoderados}, obteined: ${res_apoderados.length}: `);
+          log_result(tag, 'fail');
+        }
+      } else {
+        log_result(tag, 'fail');
+      }
+    } catch (error) {
+      console.log(`${tag} Unexpected error: `, error);
+      log_result(tag, 'fail');
+    }
+  }
+}
+
+async function test_consistencia_users_hijos(url_server = 'http://localhost:5001') {
+  const tag = '[test /api/update/consistencia]';
+  try {
+    const result = await fetch(`${url_server}/api/update/consistencia`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if ( result.status === 200 )
+    {
+      log_result(tag, 'pass');
+    } else {
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 module.exports.lauch_test_api = lauch_test_api;

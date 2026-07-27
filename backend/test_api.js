@@ -32,6 +32,8 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     setTimeout(test_consultar_hijos, delay_ms, url_server);
     setTimeout(test_consultar_apoderados, delay_ms / 4, url_server);
     setTimeout(test_consistencia_users_hijos, 3 * delay_ms, url_server);
+
+    setTimeout(test_delete_user, delay_ms, 4 * delay_ms, url_server);
 }
 
 async function log_result(tag, result) {
@@ -604,6 +606,26 @@ async function test_consistencia_users_hijos(url_server = 'http://localhost:5001
   try {
     const result = await fetch(`${url_server}/api/update/consistencia`, {
       method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if ( result.status === 200 )
+    {
+      log_result(tag, 'pass');
+    } else {
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+
+async function test_delete_user(url_server = 'http://localhost:5001') {
+  const tag = '[test /api/update/user]';
+  try {
+    const result = await fetch(`${url_server}/api/update/user`, {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
     });
     if ( result.status === 200 )

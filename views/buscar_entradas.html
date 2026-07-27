@@ -157,7 +157,11 @@
       border-radius: 6px;
       font-size: 0.78rem;
       font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
     }
+
+    .btn-validado:hover { background: #27ae60; }
 
     .estado-msg {
       font-size: 0.88rem;
@@ -226,6 +230,23 @@
         width: 100%;
       }
     }
+
+    /* Paginador */
+    .pag-btn {
+      padding: 6px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      color: #333;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pag-btn:hover:not(:disabled) { background: #4A90E2; color: white; border-color: #4A90E2; }
+    .pag-btn.active { background: #4A90E2; color: white; border-color: #4A90E2; }
+    .pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .pag-info { font-size: 0.82rem; color: #666; }
   </style>
 </head>
 <body>
@@ -239,6 +260,22 @@
     <button onclick="buscar()">🔍 Buscar</button>
   </div>
   <p class="search-hint">Busca por RUT del apoderado, RUT del estudiante, apellido paterno o materno, o nombre</p>
+</div>
+
+<!-- Listado completo de entradas (contadores) -->
+<div class="card" style="border-left-color: #27AE60;">
+  <h3>Todas las entradas generadas</h3>
+  <p id="listado-total-info" style="font-size:0.82rem; color:#666; margin-bottom:12px;">Cargando...</p>
+  <div style="display:flex; gap:14px; flex-wrap:wrap;">
+    <div id="contador-validadas" style="flex:1; min-width:140px; background:#e8f5e9; border-radius:8px; padding:12px 16px; text-align:center;">
+      <div style="font-size:0.75rem; font-weight:700; color:#2e7d32; text-transform:uppercase;">Entradas Validadas</div>
+      <div style="font-size:1.6rem; font-weight:800; color:#2e7d32;">-</div>
+    </div>
+    <div id="contador-porvalidar" style="flex:1; min-width:140px; background:#fef2f2; border-radius:8px; padding:12px 16px; text-align:center;">
+      <div style="font-size:0.75rem; font-weight:700; color:#c0392b; text-transform:uppercase;">Entradas por Validar</div>
+      <div style="font-size:1.6rem; font-weight:800; color:#c0392b;">-</div>
+    </div>
+  </div>
 </div>
 
 <p class="resultado-count" id="resultado-count" style="display:none;"></p>
@@ -266,6 +303,31 @@
 <div class="ticket-cards" id="cards-resultados"></div>
 
 <p class="estado-msg" id="estado-msg"></p>
+
+<div class="table-container visible" id="tabla-listado-all">
+  <table>
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Nombre</th>
+        <th>Familia</th>
+        <th>Tipo</th>
+        <th>Jornada</th>
+        <th>Curso</th>
+        <th>Estado</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-all-body"></tbody>
+  </table>
+</div>
+
+<!-- Mobile: cards listado -->
+<div class="ticket-cards" id="cards-all-resultados"></div>
+
+<!-- Paginador -->
+<div id="paginador" style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:16px; flex-wrap:wrap;">
+</div>
 
 <script>
 
@@ -327,11 +389,29 @@
     const tablaContainer = document.getElementById('tabla-resultados');
     const cardsContainer = document.getElementById('cards-resultados');
 
+    // Si el campo está vacío, mostrar listado completo
+    if (q.length === 0) {
+      tablaContainer.classList.remove('visible');
+      cardsContainer.innerHTML = '';
+      resultadoCount.style.display = 'none';
+      estadoMsg.textContent = '';
+      document.getElementById('tabla-listado-all').style.display = '';
+      document.getElementById('cards-all-resultados').style.display = '';
+      document.getElementById('paginador').style.display = 'flex';
+      cargarTodasEntradas(1);
+      return;
+    }
+
     if (q.length < 2) {
       estadoMsg.textContent = 'Ingrese al menos 2 caracteres';
       estadoMsg.style.color = '#e74c3c';
       return;
     }
+
+    // Ocultar listado completo al buscar
+    document.getElementById('tabla-listado-all').style.display = 'none';
+    document.getElementById('cards-all-resultados').style.display = 'none';
+    document.getElementById('paginador').style.display = 'none';
 
     estadoMsg.textContent = 'Buscando...';
     estadoMsg.style.color = '#888';
@@ -490,6 +570,199 @@
       btn.textContent = 'VALIDAR';
     }
   }
+  // ─── Listado completo con paginación ─────────────────────────────────────
+  let paginaActual = 1;
+  const ITEMS_POR_PAGINA = 20;
+
+  async function cargarTodasEntradas(page = 1) {
+    paginaActual = page;
+    const infoEl = document.getElementById('listado-total-info');
+    infoEl.textContent = 'Cargando entradas...';
+
+    try {
+      const configRes = await fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`);
+      const config = await configRes.json();
+
+      const res = await fetch(`/api/entrada/listar?page=${page}&limit=${ITEMS_POR_PAGINA}`, {
+        headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
+      });
+
+      if (!res.ok) throw new Error('Error al obtener entradas');
+      const data = await res.json();
+
+      infoEl.textContent = `Total: ${data.total} entradas | Página ${data.page} de ${data.totalPages}`;
+
+      // Actualizar contadores
+      document.getElementById('contador-validadas').querySelector('div:last-child').textContent = data.validadas || 0;
+      document.getElementById('contador-porvalidar').querySelector('div:last-child').textContent = data.porValidar || 0;
+
+      renderTablaAll(data.entradas);
+      renderCardsAll(data.entradas);
+      renderPaginador(data.page, data.totalPages);
+    } catch (err) {
+      console.error('[cargarTodasEntradas]', err);
+      infoEl.textContent = 'Error al cargar entradas';
+      infoEl.style.color = '#e74c3c';
+    }
+  }
+
+  function renderTablaAll(datos) {
+    const tbody = document.getElementById('tabla-all-body');
+    tbody.innerHTML = '';
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+
+    datos.forEach(t => {
+      const serial = String(t.folio).padStart(4, '0');
+      const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
+      const esUsado = t.usado === true;
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${serial}</td>
+        <td>${t.nombre_completo || '—'}</td>
+        <td>${t.familia || '—'}</td>
+        <td>${t.tipo || '—'}</td>
+        <td>${jornadaDisplay}</td>
+        <td>${t.curso || '—'}</td>
+        <td><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
+        <td id="all-accion-${t.folio}">
+          ${esUsado
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
+          }
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderCardsAll(datos) {
+    const container = document.getElementById('cards-all-resultados');
+    container.innerHTML = '';
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+
+    datos.forEach(t => {
+      const serial = String(t.folio).padStart(4, '0');
+      const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
+      const esUsado = t.usado === true;
+      const card = document.createElement('div');
+      card.className = `ticket-card-item ${esUsado ? 'usado' : ''}`;
+      card.innerHTML = `
+        <div class="card-row"><span class="card-label">N°</span><span class="card-value">${serial}</span></div>
+        <div class="card-row"><span class="card-label">Nombre</span><span class="card-value">${t.nombre_completo || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Familia</span><span class="card-value">${t.familia || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Tipo</span><span class="card-value">${t.tipo || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
+        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-actions" id="card-all-accion-${t.folio}">
+          ${esUsado
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
+          }
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function renderPaginador(paginaActual, totalPaginas) {
+    const paginador = document.getElementById('paginador');
+    paginador.innerHTML = '';
+
+    if (totalPaginas <= 1) return;
+
+    // Botón anterior
+    const btnPrev = document.createElement('button');
+    btnPrev.className = 'pag-btn';
+    btnPrev.textContent = '← Anterior';
+    btnPrev.disabled = paginaActual <= 1;
+    btnPrev.onclick = () => cargarTodasEntradas(paginaActual - 1);
+    paginador.appendChild(btnPrev);
+
+    // Números de página (mostrar máximo 5 alrededor de la actual)
+    const inicio = Math.max(1, paginaActual - 2);
+    const fin = Math.min(totalPaginas, paginaActual + 2);
+
+    if (inicio > 1) {
+      const btn1 = document.createElement('button');
+      btn1.className = 'pag-btn';
+      btn1.textContent = '1';
+      btn1.onclick = () => cargarTodasEntradas(1);
+      paginador.appendChild(btn1);
+      if (inicio > 2) {
+        const dots = document.createElement('span');
+        dots.className = 'pag-info';
+        dots.textContent = '...';
+        paginador.appendChild(dots);
+      }
+    }
+
+    for (let i = inicio; i <= fin; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'pag-btn' + (i === paginaActual ? ' active' : '');
+      btn.textContent = i;
+      btn.onclick = () => cargarTodasEntradas(i);
+      paginador.appendChild(btn);
+    }
+
+    if (fin < totalPaginas) {
+      if (fin < totalPaginas - 1) {
+        const dots = document.createElement('span');
+        dots.className = 'pag-info';
+        dots.textContent = '...';
+        paginador.appendChild(dots);
+      }
+      const btnLast = document.createElement('button');
+      btnLast.className = 'pag-btn';
+      btnLast.textContent = totalPaginas;
+      btnLast.onclick = () => cargarTodasEntradas(totalPaginas);
+      paginador.appendChild(btnLast);
+    }
+
+    // Botón siguiente
+    const btnNext = document.createElement('button');
+    btnNext.className = 'pag-btn';
+    btnNext.textContent = 'Siguiente →';
+    btnNext.disabled = paginaActual >= totalPaginas;
+    btnNext.onclick = () => cargarTodasEntradas(paginaActual + 1);
+    paginador.appendChild(btnNext);
+  }
+
+  // Cargar listado al iniciar (esperar a que init() termine)
+  setTimeout(() => cargarTodasEntradas(1), 1000);
+
+  async function revertirDesdeTabla(folio, btn) {
+    if (!confirm(`¿Revertir entrada N° ${String(folio).padStart(4, '0')} a PENDIENTE?`)) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    try {
+      const configRes = await fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`);
+      const config = await configRes.json();
+
+      const res = await fetch('/api/entrada/revertir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+        body: JSON.stringify({ folio: parseInt(folio), revertido_por: supervisorEmail })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Recargar la página actual para actualizar contadores y estado
+        cargarTodasEntradas(paginaActual);
+      } else {
+        alert(`Error: ${data.error}`);
+        btn.disabled = false;
+        btn.textContent = '✓ Validado';
+      }
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+      btn.disabled = false;
+      btn.textContent = '✓ Validado';
+    }
+  }
+
 </script>
 
 </body>

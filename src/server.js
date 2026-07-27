@@ -858,7 +858,7 @@ app.post('/api/registro', express.json(), async (req, res) => {
 
     const userActualizado = await db_support.usersDB.findOneAndUpdate(
       filtro,
-      { $set: { hijos: registro.hijos, padres: registro.padres } },
+      { $set: { hijos: registro.hijos, padres: registro.padres, invitados: registro.invitados } },
       { returnDocument: 'after' }
     );
 
@@ -870,7 +870,7 @@ app.post('/api/registro', express.json(), async (req, res) => {
     console.log('[/api/registro] Usuario actualizado:', userActualizado.email);
 
     // Obteniendo los correos de los padres
-    const correos_padres = padres.map(padre => padre.correo);
+    const correos_padres = userActualizado.padres.map(padre => padre.correo);
 
     // Actualizar nombreCursoMapDB para cada hijo con nombre y curso válido
     if (registro.hijos && Array.isArray(registro.hijos)) {

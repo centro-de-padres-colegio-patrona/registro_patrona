@@ -278,6 +278,23 @@
       }
     }
 
+    .btn-solicitar-invitados {
+      padding: 10px 20px;
+      background: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .btn-solicitar-invitados:hover {
+      background: #357abd;
+      transform: translateY(-1px);
+    }
+
   </style>
 </head>
 <body>
@@ -617,23 +634,32 @@
         }
 
         if (compromiso_status === 'activo') {
-          card.innerHTML = `
-            <h3>${item.descripcion}</h3>
-            <div class="value">${montoFormateado}</div>
-            <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
-            <!--button class="btn-pagar" onclick="iniciarPagoFlow('${item.id}')" style="width:100%; margin-top:10px;">
-              Iniciar Pago
-            </button-->
-            <!--td class="col-seleccion" style="text-align: left; padding-left: 20px;">
-              <input type="checkbox" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" onchange="actualizarTotal()">
-              Agregar para pagar
-            </td-->
-            <div style="margin-top: 10px;">
-              <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">
-              <span class="label-pago">Agregar para pagar</span>
-            </div>
-            ${cantidadHtml}
-          `;
+          // Detectar si es el compromiso de Cuota CPA
+          const esCompromisoCpa = item.nombre === 'cuota_cpa' || item.id === 'cuota_cpa' || 
+            (item.descripcion && item.descripcion.toLowerCase().includes('cuota')) ||
+            (item.nombre && item.nombre.toLowerCase().includes('cuota'));
+
+          if (esCompromisoCpa) {
+            card.innerHTML = `
+              <h3>${item.descripcion}</h3>
+              <div class="value">${montoFormateado}</div>
+              <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+              <div id="estado-cuota-cpa" style="margin-top: 10px;">
+                <span style="font-size: 0.9rem; color: #888;">Verificando estado...</span>
+              </div>
+            `;
+          } else {
+            card.innerHTML = `
+              <h3>${item.descripcion}</h3>
+              <div class="value">${montoFormateado}</div>
+              <p style="font-size: 0.8rem; color: #777;">Tipo: ${item.tipo}</p>
+              <div style="margin-top: 10px;">
+                <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">
+                <span class="label-pago">Agregar para pagar</span>
+              </div>
+              ${cantidadHtml}
+            `;
+          }
         } else {
           card.innerHTML = `
             <h3>${item.descripcion}</h3>
@@ -877,30 +903,57 @@
         console.log('[pagos_cpa] tieneCuotaCpaPagada:', tieneCuotaCpaPagada, 'pagos tipos:', pagos.map(p => ({tipo: p.tipo, cuota_cpa: p.cuota_cpa})));
         console.log('[pagos_cpa] compromisos ids/nombres:', compromisos.map(c => ({id: c.id, nombre: c.nombre, descripcion: c.descripcion})));
         if (tieneCuotaCpaPagada) {
-          // Buscar el compromiso de cuota CPA y bloquear su checkbox
+          // Actualizar estado visual en la tarjeta de Cuota CPA
+          const estadoCuotaEl = document.getElementById('estado-cuota-cpa');
+          if (estadoCuotaEl) {
+            estadoCuotaEl.innerHTML = `
+              <span style="color: #2ecc71; font-weight: bold; font-size: 0.95rem;">✅ Cuota CPA Pagada</span>
+            `;
+          }
+
+          // Ocultar Resumen de Selección si la cuota CPA está pagada
+          const resumenContainer = document.getElementById('resumen-pago-container');
+          if (resumenContainer) {
+            resumenContainer.style.display = 'none';
+          }
+
+          // Ocultar checkboxes de pago en invitaciones (ya son gratis con cuota pagada)
           compromisos.forEach(item => {
-            const esCompromisoCpa = item.nombre === 'cuota_cpa' || item.id === 'cuota_cpa' || 
-              (item.descripcion && item.descripcion.toLowerCase().includes('cuota')) ||
-              (item.nombre && item.nombre.toLowerCase().includes('cuota'));
-            if (esCompromisoCpa) {
-              console.log('[pagos_cpa] Bloqueando compromiso CPA:', item.id, item.nombre);
+            const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
+                                   (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
+                                   (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
+            if (esInvitaciones) {
               const checkbox = document.getElementById(`check-${item.id}`);
               if (checkbox) {
-                checkbox.checked = true;
-                checkbox.disabled = true;
                 const contenedorCheck = checkbox.parentNode;
                 if (contenedorCheck) {
                   contenedorCheck.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                       <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                        ✓ Cuota CPA Pagada
+                        ✓ Incluido con Cuota CPA
                       </span>
+                      <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
+                        ✓ Invitados solicitados
+                      </button>
                     </div>
                   `;
                 }
               }
+              // Ocultar control de cantidad
+              const cantControl = document.getElementById(`cant-${item.id}`);
+              if (cantControl && cantControl.closest('.cantidad-control')) {
+                cantControl.closest('.cantidad-control').style.display = 'none';
+              }
             }
           });
+        } else {
+          // Cuota CPA NO pagada - mostrar estado pendiente
+          const estadoCuotaEl = document.getElementById('estado-cuota-cpa');
+          if (estadoCuotaEl) {
+            estadoCuotaEl.innerHTML = `
+              <span style="color: #e74c3c; font-weight: bold; font-size: 0.95rem;">❌ Cuota CPA Pendiente</span>
+            `;
+          }
         }
 
         // Separar compromisos con y sin beneficios para procesarlos de manera diferenciada al mostrar la información
@@ -1215,6 +1268,19 @@
     }
 
     let pasarelaSeleccionada = null;
+
+    function solicitarInvitados() {
+      // Redirigir al formulario de entradas del evento
+      const urlEvento = 'entradas_eventos.html?id_evento=fiesta_chilena_2026';
+      // Si estamos en un iframe, navegar dentro del iframe padre
+      if (window.parent && window.parent.document.getElementById('visor')) {
+        window.parent.document.getElementById('visor').src = urlEvento;
+      } else if (window.parent && window.parent.document.getElementById('mobile-visor')) {
+        window.parent.document.getElementById('mobile-visor').src = urlEvento;
+      } else {
+        window.location.href = urlEvento;
+      }
+    }
 
     function seleccionarPasarela(metodo, elemento) {
       // Guardar la elección

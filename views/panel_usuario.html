@@ -196,12 +196,13 @@
 
   <script>
     function cargarContenido(url, botonPresionado) {
-      // Agregar user_email al URL si es login manual
+      // Agregar user_email al URL (del URL param o del correo del usuario en sidebar)
       const urlParams = new URLSearchParams(window.location.search);
       const emailFromUrl = urlParams.get('user_email');
+      const emailUsuario = emailFromUrl || document.getElementById('usuario-correo').textContent;
       let fullUrl = url;
-      if (emailFromUrl && !url.includes('user_email')) {
-        fullUrl = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailFromUrl);
+      if (emailUsuario && !url.includes('user_email')) {
+        fullUrl = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailUsuario);
       }
 
       // Desktop
@@ -265,7 +266,7 @@
         { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
         { label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
-        { label: '🎉 Actividades y Eventos', url: 'actividades_eventos.html' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026' },
         { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
@@ -279,7 +280,7 @@
         { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
         { label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
-        { label: '🎉 Actividades y Eventos', url: 'actividades_eventos.html' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026' },
       ],
       validador: [
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
@@ -444,9 +445,17 @@
       }
 
       if (paginaCarga) {
+        // Agregar user_email al iframe (del URL param o del correo obtenido del usuario)
+        const emailFromUrl = new URLSearchParams(window.location.search).get('user_email');
+        const emailParaIframe = emailFromUrl || correo;
+        let paginaUrl = paginaCarga;
+        if (emailParaIframe && !paginaCarga.includes('user_email')) {
+          paginaUrl = paginaCarga + (paginaCarga.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailParaIframe);
+        }
+
         // Desktop: cargar iframe y marcar botón activo
         const visor = document.getElementById('visor');
-        if (visor) visor.src = paginaCarga;
+        if (visor) visor.src = paginaUrl;
         const desktopBtns = document.querySelectorAll('#menu-container button');
         for (const btn of desktopBtns) {
           if (btn.getAttribute('data-url') === paginaCarga) {
@@ -456,7 +465,7 @@
         }
         // Mobile: cargar iframe y marcar menú activo
         const mobileVisor = document.getElementById('mobile-visor');
-        if (mobileVisor) mobileVisor.src = paginaCarga;
+        if (mobileVisor) mobileVisor.src = paginaUrl;
         const mobileMenuBtns = document.querySelectorAll('#mobile-menu-items button');
         for (const btn of mobileMenuBtns) {
           if (btn.getAttribute('data-url') === paginaCarga) {

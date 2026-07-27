@@ -171,6 +171,29 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
   }
 });
 
+// 2b. GET: Listar todas las entradas (paginado)
+router.get('/entrada/listar', apiKeyAuth, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const total = await db_support.TicketEventoDB.countDocuments({});
+    const validadas = await db_support.TicketEventoDB.countDocuments({ usado: true });
+    const porValidar = total - validadas;
+    const entradas = await db_support.TicketEventoDB.find({})
+      .sort({ folio: 1, familia: 1, nombre_completo: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    res.json({ entradas, total, validadas, porValidar, page, totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error('[/api/entrada/listar] Error:', error);
+    res.status(500).json({ error: 'Error al listar entradas' });
+  }
+});
+
 // 3. GET: Consultar estado de una entrada. Endpoint Publico. No requiere autenticación. Se puede usar para validar QR.
 router.get('/entrada/consultar', async (req, res) => {
   try {
@@ -451,6 +474,48 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
   } catch (error) {
     console.error('[/api/entrada/validar] Error:', error);
     res.status(500).json({ error: 'Error al validar entrada' });
+  }
+});
+
+// 4b. POST: Revertir validación (marcar como pendiente)
+router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
+  try {
+    const { folio, revertido_por } = req.body;
+    if (!folio) return res.status(400).json({ error: 'Falta folio' });
+
+    const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
+    }
+
+    if (!ticket.usado) {
+      return res.status(409).json({ error: 'Este ticket ya está pendiente' });
+    }
+
+    await db_support.TicketEventoDB.findOneAndUpdate(
+      { folio: parseInt(folio) },
+      { 
+        $set: { 
+          usado: false, 
+          fecha_uso: null, 
+          validado_por: null,
+          estado: 'activa'
+        },
+        $push: {
+          historial: {
+            accion: 'reversion',
+            descripcion: `revertido por ${revertido_por}`
+          }
+        }
+      }
+    );
+
+    console.log(`[/api/entrada/revertir] Ticket ${folio} revertido a pendiente por ${revertido_por}`);
+    res.json({ status: 'ok', mensaje: 'Ticket revertido a pendiente' });
+  } catch (error) {
+    console.error('[/api/entrada/revertir] Error:', error);
+    res.status(500).json({ error: 'Error al revertir entrada' });
   }
 });
 

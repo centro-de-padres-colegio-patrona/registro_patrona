@@ -7,7 +7,7 @@ const fs = require('fs').promises; // Usamos la versión basada en promesas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
-const { BASEURL } = requiere('../backend/git_branch');
+const { BASEURL } = require('../backend/git_branch');
 
 const SECRET_API_KEY = config_env.API_KEY;
 

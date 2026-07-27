@@ -12,7 +12,7 @@ const config_env = require('../src/setup/config/env.js');
 //const { info } = require('console');
 const { send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
 const { generarPdfDesdeBuffers, save_pdf } = require('./pdf_helper.js');
-const { BASEURL } = requiere('../backend/git_branch');
+const { BASEURL } = require('../backend/git_branch');
 
 
 const SECRET_API_KEY = config_env.API_KEY;

@@ -206,6 +206,12 @@
       const contenedor = document.getElementById('contenedor-entradas');
       const tituloHeader = document.getElementById('titulo-evento');
       
+      if (!nombres_hijos || !nombres_hijos.length ) {
+          contenedor.className = 'mensaje-info';
+          contenedor.innerHTML = '<p>No se encontraron entradas disponibles para esta actividad.</p>';
+          return;
+      }
+
       // 1. Obtener el id_evento de la URL
       const id_evento = getParametroURL('id_evento');
       const id_organizacion='cpa_patrona';
@@ -225,9 +231,9 @@
         //if (familia) params.append('familia', familia);
         //if (id_evento) params.append('id_evento', idEvento);
 
-        console.log(`fetching to /api/entrada/familia?nombre_completo=${encodeURIComponent(nombres_hijos[0].nombre)}`);
+        //console.log(`fetching to /api/entrada/familia?nombre_completo=${encodeURIComponent(nombres_hijos[0].nombre)}`);
         //const response = await fetch(`/api/entrada/familia?${params.toString()}`, {
-        const response = await fetch(`/api/entrada/familia?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&nombre_completo=${encodeURIComponent(nombres_hijos[0].nombre)}&id_evento=${encodeURIComponent(id_evento)}`, {
+        const response = await fetch(`/api/entrada/familia?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&nombre_completo=${encodeURIComponent(nombres_hijos[0].nombre)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

@@ -529,8 +529,12 @@ app.get('/api/user', async (req, res) => {
       return u.padres.some(p => normalizar(p.correo) === emailNorm || normalizar(p.email) === emailNorm);
     });
 
+    if (relacionado) console.log(`[/api/user] #1 - relacionado:`, relacionado);
+
     // 2. Si no se encontró por correo, buscar por nombre del usuario en padres de otros registros
-    if (!relacionado) {
+    /// Se deja sin efecto esta relacion para evitar 
+    // que los usuarios utilicen varios correos de la misma persona
+    /*if (!relacionado) {
       const userGivenName = normalizar((req.user && req.user.name && req.user.name.givenName) || '');
       const userFamilyName = normalizar((req.user && req.user.name && req.user.name.familyName) || '');
       console.log(`[/api/user] Buscando por nombre: givenName="${userGivenName}", familyName="${userFamilyName}"`);
@@ -549,9 +553,12 @@ app.get('/api/user', async (req, res) => {
           console.log(`[/api/user] Encontrado por nombre (${userGivenName} ${userFamilyName}) en registro ${relacionado.email}`);
         }
       }
-    }
+    }*/
+    
+    if (relacionado) console.log(`[/api/user] #2 - relacionado:`, relacionado);
 
     // 3. Si aún no se encontró, buscar otro registro con mismo email pero diferente _id que sí tenga hijos
+    console.log('3. Si aún no se encontró, buscar otro registro con mismo email pero diferente _id que sí tenga hijos');
     if (!relacionado) {
       relacionado = todos.find(u => {
         if (u._id.toString() === user._id.toString()) return false;
@@ -586,6 +593,8 @@ app.get('/api/user', async (req, res) => {
         console.log(`[/api/user] Encontrado por búsqueda amplia en registro ${relacionado.email} (_id: ${relacionado._id})`);
       }
     }*/
+
+    if (relacionado) console.log(`[/api/user] #3 - relacionado:`, relacionado);
 
     if (relacionado) {
       user.hijos = relacionado.hijos;
@@ -887,11 +896,7 @@ app.post('/api/registro', express.json(), async (req, res) => {
     console.log('[/api/registro] Usuario actualizado:', userActualizado.email);
 
     // Obteniendo los correos de los padres
-<<<<<<< HEAD
     const correos_padres = userActualizado.padres.map(padre => padre.correo);
-=======
-    const correos_padres = registro.padres.map(padre => padre.correo);
->>>>>>> e42fec1 (some fixes)
 
     // Actualizar hermanosMapDB para cada hijo con nombre y curso válido
     if (registro.hijos && Array.isArray(registro.hijos)) {
@@ -1040,7 +1045,8 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
       //console.log(`[/api/estado_pago_cpa] user: ${JSON.stringify(user.hijos)}`);
       
       // Si el usuario no tiene hijos, buscar datos heredados (misma lógica que /api/user)
-      if (!user.hijos || user.hijos.length === 0) {
+      // Se deshabilita esta opcion por el riesgo de relacionar una cuenta de otra familia
+      /*if (!user.hijos || user.hijos.length === 0) {
         const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
         const email = user.email;
         const todos = await db_support.usersDB.find({});
@@ -1085,7 +1091,7 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
           user.hijos = relacionado.hijos;
           console.log(`[/api/estado_pago_cpa] Hijos heredados de ${relacionado.email}`);
         }
-      }
+      }*/
 
       const pagos = [];
       if (user.hijos !== undefined && user.hijos.length > 0) {

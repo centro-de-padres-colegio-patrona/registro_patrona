@@ -106,11 +106,13 @@ router.get('/consulta/apoderados', apiKeyAuth, async (req, res) => {
 });
 
 router.get('/consulta/hijos_registrados', apiKeyAuth, async (req, res) => {
-    const tag = '[GET /api/consulta/apoderados]';
+    const tag = '[GET /api/consulta/hijos_registrados]';
 
     try {
+        const { output } = req.query;
+
         // Consulta DB
-        const familias = await db_support.hermanosMapDB.find({apoderado_email:{$exists:true},id:{$in:hijos}});
+        const familias = await db_support.hermanosMapDB.find({apoderado_email:{$exists:true}});
         console.log(`${tag} familias: `, familias.length);
 
         //const apoderados_emails = familias.map(familia => familia.apoderado_email);
@@ -122,11 +124,14 @@ router.get('/consulta/hijos_registrados', apiKeyAuth, async (req, res) => {
         
         // No debiera ser necesario esto
         const estudiantes = [...new Set(nombres_estudiantes)];
-
-        const listados_curso = db_support.listadoCursosDB.find({});
+        if ( output === 'listado' ) {
+            res.json(estudiantes);
+            return;
+        }
+        const listados_curso = await db_support.listadoCursosDB.find({});
 
         // 
-        const mapaCursos = listado_curso.reduce((acc, item) => {
+        const mapaCursos = listados_curso.reduce((acc, item) => {
             if (Array.isArray(item.listaCurso)) {
                 item.listaCurso.forEach(nombre => {
                 acc[nombre] = item.id;

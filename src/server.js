@@ -889,23 +889,24 @@ app.post('/api/registro', express.json(), async (req, res) => {
     // Obteniendo los correos de los padres
     const correos_padres = registro.padres.map(padre => padre.correo);
 
-    // Actualizar nombreCursoMapDB para cada hijo con nombre y curso válido
+    // Actualizar hermanosMapDB para cada hijo con nombre y curso válido
     if (registro.hijos && Array.isArray(registro.hijos)) {
       registro.hijos.forEach(hijo => {
         if (hijo.nombre && hijo.curso && hijo.seccion) {
-          const cursoCode = curso_map[hijo.curso];
-          if (cursoCode) {
-            const value = cursoCode + hijo.seccion;
-            db_support.nombreCursoMapDB.findOneAndUpdate(
+          //const cursoCode = curso_map[hijo.curso];
+          //if (cursoCode) {
+            //const value = cursoCode + hijo.seccion;
+            db_support.hermanosMapDB.findOneAndUpdate(
               { id: hijo.nombre },
-              { $set: { id: hijo.nombre, value: value, apoderado_email: correos_padres} },
+              //{ $set: { id: hijo.nombre, value: value, apoderado_email: correos_padres} },
+              { $set: { apoderado_email: correos_padres} },
               { upsert: true }
             ).then(() => {
-              console.log(`[/api/registro] nombreCursoMap actualizado: ${hijo.nombre} -> ${value}`);
+              console.log(`[/api/registro] hermanosMapDB actualizado: ${hijo.nombre} -> ${value}`);
             }).catch(err => {
-              console.error(`[/api/registro] Error actualizando nombreCursoMap:`, err);
+              console.error(`[/api/registro] Error actualizando hermanosMapDB:`, err);
             });
-          }
+          //}
         }
       });
     }

@@ -887,7 +887,11 @@ app.post('/api/registro', express.json(), async (req, res) => {
     console.log('[/api/registro] Usuario actualizado:', userActualizado.email);
 
     // Obteniendo los correos de los padres
+<<<<<<< HEAD
     const correos_padres = userActualizado.padres.map(padre => padre.correo);
+=======
+    const correos_padres = registro.padres.map(padre => padre.correo);
+>>>>>>> e42fec1 (some fixes)
 
     // Actualizar nombreCursoMapDB para cada hijo con nombre y curso válido
     if (registro.hijos && Array.isArray(registro.hijos)) {

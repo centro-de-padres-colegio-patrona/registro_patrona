@@ -1,0 +1,29 @@
+name: Guard - Bloquear PRs desde Sandbox
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # Permite publicar el comentario informativo en el PR
+
+    steps:
+      - name: Validar rama origen
+        if: github.head_ref == 'sandbox'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 1. Dejar un comentario informativo en el PR
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '⛔ **Pull Request Bloqueado**: La rama `sandbox` es solo para pruebas internas y no está permitida como origen de integraciones hacia otras ramas.'
+            });
+
+            // 2. Hacer fallar el job
+            core.setFailed('No se permiten Pull Requests creados desde la rama "sandbox".');
+            

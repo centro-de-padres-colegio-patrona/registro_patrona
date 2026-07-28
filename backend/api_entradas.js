@@ -553,17 +553,24 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       || req.session?.user?.email 
       || 'unknown';
 
-    if ( user_email !== sessionEmail ) {
+    // para efectos de debugging
+    console.log(`${tag} session comparison ${JSON.stringify({email, sessionEmail})}`);
+
+    /*if ( user_email !== sessionEmail ) {
       const err_msg = `unexpected email: ${JSON.stringify({email, sessionEmail})}`;
       console.log(`${tag} ${err_msg} `);
       res.status(400).json({ error: err_msg });
       return;
-    }
+    }*/
 
-    //if (!folio) return res.status(400).json({ error: 'Falta folio' });
-    let folios = [];
     if (folio) {
       const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
+
+      if (ticket.estado !== 'desactivo' || ticket.usado !== false) {
+        const err_msg = `ticket ${folio} no se puede activar porque ya ha sido usado`;
+        console.log(`${tag} Error: ${err_msg}`);
+        return res.status(404).json({ error: err_msg });
+      }
 
       if (!ticket) {
         return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
@@ -572,31 +579,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       if (!ticket.usado) {
         return res.status(409).json({ error: 'Este ticket ya está pendiente' });
       }
-      folios.push(folio)
-    } else {
-      const userInfo = await db_support.usersDB.findOne({email: user_email});
-      if (!userInfo) {
-        return res.status(404).json({ error: 'usuario no encontrado' });
-      }
-      const { hijos, padres, invitados }= userInfo;
-      if ( !hijos || !hijos.length) {
-        return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
-      }
-
-      // Obteniendo la informacion de los hermanos
-      const hermanosInfo = await db_support.hermanosMapDB.findOne({id: hijos[0].nombre});
-      const familia = hermanosInfo.nombre_familia;
-
-      // Searching for the tickets for the family
-      const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
-      folios_hijos = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante');
-      folios_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
-      folios_hijos = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
-      
-    }
-
-    folios.forEach( async serial => {
-      await db_support.TicketEventoDB.findOneAndUpdate(
+      const result = await db_support.TicketEventoDB.findOneAndUpdate(
         { folio: parseInt(folio), estado: 'desactivo' },
         { 
           $set: { 
@@ -608,15 +591,81 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
           $push: {
             historial: {
               accion: 'activacion',
-              descripcion: `revertido por ${email}`
+              descripcion: `activado por ${user_email}`
             }
           }
         }
       );
-    });
+      if (result) {
+        return res.status(200).json({status: 'updated'});
+      }
+    } else {
+      const userInfo = await db_support.usersDB.findOne({email: user_email});
+      if (!userInfo) {
+        return res.status(404).json({ error: 'usuario no encontrado' });
+      }
+      const { hijos, padres, invitados }= userInfo;
+      if ( !hijos || !hijos.length) {
+        return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
+      }
 
-    console.log(`[/api/entrada/revertir] Ticket ${folio} revertido a pendiente por ${revertido_por}`);
-    res.json({ status: 'ok', mensaje: 'Ticket revertido a pendiente' });
+      const nombres_hijos = hijos.flatMap(hijo => hijo.nombre);
+
+      // Obteniendo la informacion de los hermanos
+      const hermanosInfo = await db_support.hermanosMapDB.findOne({id: hijos[0].nombre});
+      if ( !hermanosInfo || !hermanosInfo.familia) return res.status(404).json({ error: 'no se encuentra famiia' });
+
+      const familia = hermanosInfo.nombre_familia;
+
+      // Searching for the tickets for the family
+      const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
+
+      const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.include(ticket.nombre_completo));
+      const tickets_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
+      const tickets_invitados = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
+
+      const tickets_activacion = [
+        ...tickets_estudiantes,
+        ...tickets_apoderados.slice(0,apoderados.length-1),
+        ...tickets_invitados.slice(0,invitados.length-1)
+      ];
+
+      if (!tickets_activacion.length) return res.status(200).json({ error: 'no hay tickets para activar' });
+
+      // Extraer folios que estén desactivados/inactivos
+      const foliosToUpdate = tickets_activacion
+        .filter(t => t.estado === 'inactiva')
+        .map(t => t.folio);
+
+      if (foliosToUpdate.length === 0) {
+        return res.status(200).json({ status: 'ok', mensaje: 'Todas las entradas correspondientes ya están activas', activadas: 0 });
+      }
+
+      // Actualización masiva (Bulk) para garantizar rendimiento
+      const updateResult = await db_support.TicketEventoDB.updateMany(
+        { folio: { $in: foliosToUpdate } },
+        { 
+          $set: { 
+            usado: false, 
+            fecha_uso: null, 
+            validado_por: null,
+            estado: 'activa'
+          },
+          $push: {
+            historial: {
+              accion: 'activacion',
+              descripcion: `activado en lote por ${user_email}`
+            }
+          }
+        }
+      );
+
+      return res.status(200).json({ 
+        status: 'ok', 
+        mensaje: 'Entradas de la familia activadas correctamente', 
+        activadas: updateResult.modifiedCount 
+      });
+    }
   } catch (error) {
     console.error('[/api/entrada/revertir] Error:', error);
     res.status(500).json({ error: 'Error al revertir entrada' });

@@ -435,7 +435,7 @@ const serial = String(folio).padStart(4, '0');
 // 4. POST: Marcar ticket/entrada como usado (validar)
 router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
   try {
-    const { folio, validado_por } = req.body;
+    const { folio, email } = req.body;
     if (!folio) return res.status(400).json({ error: 'Falta folio' });
 
     const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
@@ -458,13 +458,13 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
         $set: { 
           usado: true, 
           fecha_uso: new Date(), 
-          validado_por: validado_por || 'desconocido',
+          validado_por: email || 'desconocido',
           estado: 'usada'
         },
         $push: {
           historial: {
             accion: 'ingreso',
-            descripcion: `ingreso validado por ${validado_por}`
+            descripcion: `ingreso validado por ${email}`
           }
         }
       }
@@ -481,7 +481,7 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
 // 4b. POST: Revertir validación (marcar como pendiente)
 router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
   try {
-    const { folio, revertido_por } = req.body;
+    const { folio, email } = req.body;
     if (!folio) return res.status(400).json({ error: 'Falta folio' });
 
     const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
@@ -506,7 +506,7 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
         $push: {
           historial: {
             accion: 'reversion',
-            descripcion: `revertido por ${revertido_por}`
+            descripcion: `revertido por ${email}`
           }
         }
       }
@@ -519,6 +519,110 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
     res.status(500).json({ error: 'Error al revertir entrada' });
   }
 });
+
+
+
+// Activar entradas:
+// Se activan las entradas de la familia del user_email
+// Se activan solo aquellas que estan 'desativadas'. 
+// Si estan en otro estado, no se hace nada con la entrada
+// Busca las entradas por familia, y de acuerdo a la cantidad enrolada
+// y se activan solo esas. 
+// Podrian quedar entradas familiares sin activar, 
+// por ejemplo, si es solo una mama y un soo invitado, se activa solo eso.
+// Si, desde Mis Datos, se eliminan entradas, y se vuelven a activar, 
+// se debe usar este mismo endpoint
+//
+// Parametro de entrada: 
+//  - id_organizacion,
+//  - id_evento,
+//  - user_email,
+//  - folio (opcional)
+//
+router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entrada/activar]'
+  try {
+    const { id_organizacion, id_evento, folio, user_email } = req.body;
+
+    if (!id_organizacion) return res.status(400).json({ error: 'Falta id_organizacion' });
+    if (!id_evento) return res.status(400).json({ error: 'Falta id_evento' });
+    if (!user_email) return res.status(400).json({ error: 'Falta user_email' });
+
+    const sessionEmail = req.user?.emails?.[0]?.value 
+      || req.user?.email 
+      || req.session?.user?.email 
+      || 'unknown';
+
+    if ( user_email !== sessionEmail ) {
+      const err_msg = `unexpected email: ${JSON.stringify({email, sessionEmail})}`;
+      console.log(`${tag} ${err_msg} `);
+      res.status(400).json({ error: err_msg });
+      return;
+    }
+
+    //if (!folio) return res.status(400).json({ error: 'Falta folio' });
+    let folios = [];
+    if (folio) {
+      const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
+
+      if (!ticket) {
+        return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
+      }
+
+      if (!ticket.usado) {
+        return res.status(409).json({ error: 'Este ticket ya está pendiente' });
+      }
+      folios.push(folio)
+    } else {
+      const userInfo = await db_support.usersDB.findOne({email: user_email});
+      if (!userInfo) {
+        return res.status(404).json({ error: 'usuario no encontrado' });
+      }
+      const { hijos, padres, invitados }= userInfo;
+      if ( !hijos || !hijos.length) {
+        return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
+      }
+
+      // Obteniendo la informacion de los hermanos
+      const hermanosInfo = await db_support.hermanosMapDB.findOne({id: hijos[0].nombre});
+      const familia = hermanosInfo.nombre_familia;
+
+      // Searching for the tickets for the family
+      const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
+      folios_hijos = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante');
+      folios_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
+      folios_hijos = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
+      
+    }
+
+    folios.forEach( async serial => {
+      await db_support.TicketEventoDB.findOneAndUpdate(
+        { folio: parseInt(folio), estado: 'desactivo' },
+        { 
+          $set: { 
+            usado: false, 
+            fecha_uso: null, 
+            validado_por: null,
+            estado: 'activa'
+          },
+          $push: {
+            historial: {
+              accion: 'activacion',
+              descripcion: `revertido por ${email}`
+            }
+          }
+        }
+      );
+    });
+
+    console.log(`[/api/entrada/revertir] Ticket ${folio} revertido a pendiente por ${revertido_por}`);
+    res.json({ status: 'ok', mensaje: 'Ticket revertido a pendiente' });
+  } catch (error) {
+    console.error('[/api/entrada/revertir] Error:', error);
+    res.status(500).json({ error: 'Error al revertir entrada' });
+  }
+});
+
 
 // 5. GET: Endpoint JSON para datos completos de una entrada (QR)
 router.get('/entrada/qr_data', apiKeyAuth, async (req, res) => {

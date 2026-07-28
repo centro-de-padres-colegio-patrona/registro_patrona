@@ -29,6 +29,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_consistencia_users_hijos, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_delete_user, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_consulta_hijos_registrados, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_activar_entradas, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_desactivar_entradas, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_api_crear_perfiles, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 
@@ -458,6 +462,88 @@ async function test_api_perfiles(url_server = 'http://localhost:5001') {
   }
 }
 
+async function test_api_crear_perfiles(url_server = 'http://localhost:5001') {
+  const tag = 'test POST /api/perfiles';
+  const perfiles_map = {
+    /*'morales.italo@gmail.com': {
+      email: 'morales.italo@gmail.com',
+      rut: '15.775.593-5',
+      nombre_completo: 'Italo Morales',
+      rol: 'administrador'
+    },*/
+    'leo.herrera.mena@gmail.com': {
+      email: 'leo.herrera.mena@gmail.com',
+      rut: '12.485.285-4',
+      nombre_completo: 'Leo Herrera',
+      rol: 'administrador'
+    }
+  };
+
+  let test_result = 'pass';
+  try {
+    // Iterar sobre los perfiles definidos en el mapa y verificar su existencia en la base de datos
+    for (const [email, perfilData] of Object.entries(perfiles_map)) {
+      //console.log(`${tag} Verificando perfil: ${email}`);
+      const result = await fetch(`${url_server}/api/perfiles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify(perfilData)
+      });
+      const perfil = await result.json();
+      if (!perfil || perfil.email !== perfilData.email || perfil.rut !== perfilData.rut || perfil.nombre_completo !== perfilData.nombre_completo || perfil.rol !== perfilData.rol) {
+        //console.log(`Perfil ${email} no encontrado o datos incorrectos. Creando perfil...`);
+        test_result = 'fail';
+      }
+    }
+    log_result(tag, test_result);
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+
+async function test_api_eliminar_perfiles(url_server = 'http://localhost:5001') {
+  const tag = 'test DELETE /api/perfiles';
+  const user_email = 'l.herreramena@gmail.com';
+  const perfiles_map = {
+    /*'morales.italo@gmail.com': {
+      email: 'morales.italo@gmail.com',
+      rut: '15.775.593-5',
+      nombre_completo: 'Italo Morales',
+      rol: 'administrador'
+    },*/
+    'leo.herrera.mena@gmail.com': {
+      email: 'leo.herrera.mena@gmail.com',
+      rut: '12.485.285-4',
+      nombre_completo: 'Leo Herrera',
+      rol: 'administrador'
+    }
+  };
+
+  let test_result = 'pass';
+  try {
+    // Iterar sobre los perfiles definidos en el mapa y verificar su existencia en la base de datos
+    for (const [email, perfilData] of Object.entries(perfiles_map)) {
+      //console.log(`${tag} Verificando perfil: ${email}`);
+      const result = await fetch(`${url_server}/api/perfiles?email=${encodeURIComponent(user_email)}&email=${encodeURIComponent(user_email)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify(perfilData)
+      });
+      const deleteResult = await result.json();
+      if (result.status !== 200) {
+        //console.log(`Perfil ${email} no encontrado o datos incorrectos. Creando perfil...`);
+        test_result = 'fail';
+      }
+      console.log(`${tag} `, deleteResult);
+    }
+    log_result(tag, test_result);
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 async function test_send_entradas(url_server = 'http://localhost:5001') {
   const tag = '[test_send_entradas]';
@@ -675,5 +761,85 @@ async function test_consulta_hijos_registrados(url_server = 'http://localhost:50
   }
 }
 
+
+async function test_activar_entradas(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/entrada/activar]';
+
+  const email_apoderados = [
+    /*'morales.italo@gmail.com',
+    'patricio.alarcon.matus@gmail.com',
+    'l.herreramena@gmail.com',*/
+    'leo.herrera.mena@gmail.com'
+  ]
+
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+
+  email_apoderados.forEach( async user_email => {
+    try {
+      const result = await fetch(`${url_server}/api/entrada/activar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({id_organizacion, id_evento, user_email})
+      });
+      const resultados = await result.json();
+      if ( result.status === 200 )
+      {
+        //console.log(`${tag} hijos_registrados: `, Object.keys(hijos_registrados).length);
+        console.log(`${tag} `, resultados);
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} status: ${result.status}, `, resultados);
+        log_result(tag, 'fail');
+      }
+    } catch (error) {
+      console.log(`${tag} Unexpected error: `, error);
+      log_result(tag, 'fail');
+      return;
+    }
+  })
+}
+
+async function test_desactivar_entradas(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/entrada/desactivar]';
+
+  const email_apoderados = [
+    /*'morales.italo@gmail.com',
+    'patricio.alarcon.matus@gmail.com',*/
+    //'leo.herrera.mena@gmail.com'
+    'l.herreramena@gmail.com'
+  ]
+
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const user_email = 'l.herreramena@gmail.com';
+  const familias = [
+    "herrera messina"
+  ];
+
+  familias.forEach( async familia => {
+    try {
+      const result = await fetch(`${url_server}/api/entrada/desactivar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({id_organizacion, id_evento, familia, user_email})
+      });
+      const resultados = await result.json();
+      if ( result.status === 200 )
+      {
+        //console.log(`${tag} hijos_registrados: `, Object.keys(hijos_registrados).length);
+        console.log(`${tag} `, resultados);
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} status: ${result.status}, `, resultados);
+        log_result(tag, 'fail');
+      }
+    } catch (error) {
+      console.log(`${tag} Unexpected error: `, error);
+      log_result(tag, 'fail');
+      return;
+    }
+  })
+}
 
 module.exports.lauch_test_api = lauch_test_api;

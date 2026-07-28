@@ -48,9 +48,26 @@ router.post('/perfiles', async (req, res) => {
     const tag = '[POST /api/perfiles]';
     //console.log(`${tag} Creando nuevo perfil: ${JSON.stringify(req.body)}`);
     try {
-        const { email, rut, nombre_completo, rol } = req.body;
+        const { email, rut, nombre_completo, rol , use_email} = req.body;
         const nuevoPerfil = await db_support.perfilesDB.create({ email, rut, nombre_completo, rol, activo: true });
         res.status(201).json(nuevoPerfil);
+    } catch (error) {
+        console.error('Error creando el perfil:', error);
+        res.status(500).json({ error: 'Error creando el perfil' });
+    }
+});
+
+// Endpoint para eliminar un perfil
+router.delete('/perfiles', async (req, res) => {
+    const tag = '[POST /api/perfiles]';
+    //console.log(`${tag} Creando nuevo perfil: ${JSON.stringify(req.body)}`);
+    try {
+        const { email, rut, nombre_completo, use_email } = req.query;
+        const result = await db_support.perfilesDB.deleteMany({ email, rut, nombre_completo });
+        res.status(200).json({
+            message: 'perfil ${email} deleted',
+            deletedCount: drop_result.deletedCount
+        });
     } catch (error) {
         console.error('Error creando el perfil:', error);
         res.status(500).json({ error: 'Error creando el perfil' });

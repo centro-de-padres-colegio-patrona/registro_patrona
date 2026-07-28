@@ -324,7 +324,7 @@ const ticketAccionSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   accion : { 
     type: String,
-    enum: ['consulta', 'ingreso', 'anulacion', 'denegar_acceso', 'creacion', 'reversion', 'activacion'],
+    enum: ['consulta', 'ingreso', 'anulacion', 'denegar_acceso', 'creacion', 'reversion', 'activacion', 'desactivacion'],
     required: true },
   descripcion: String
 });

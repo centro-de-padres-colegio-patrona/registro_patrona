@@ -857,13 +857,15 @@ async function test_api_historial_ticket(url_server = 'http://localhost:5001') {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
-      const resultados = await result.json();
+      let resultados = null;
       if ( result.status === 200 )
       {
+         resultados = await result.json();
         //console.log(`${tag} hijos_registrados: `, Object.keys(hijos_registrados).length);
         console.log(`${tag} historial.length: `, resultados.historial.length);
         log_result(tag, 'pass');
       } else {
+        if (result.status === 400) resultados = await result.json();
         console.log(`${tag} status: ${result.status}, `, resultados);
         log_result(tag, 'fail');
       }

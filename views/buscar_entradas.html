@@ -535,10 +535,13 @@
       fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`)
       .then ( res => res.json() )
       .then ( async config_json => {
+        //console.log(`buscar_entrada: config_json: `, config_json);
+        //const apikey = config_json.apiKey;
+        //console.log(`buscar_entrada: config_json: `, apikey);
         const res = await fetch('/api/entrada/validar', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folio: parseInt(folio), validado_por: supervisorEmail, 'x-api-key': config_json.apiKey })
+          headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey  },
+          body: JSON.stringify({ folio: parseInt(folio), email: supervisorEmail})
         });
 
         const data = await res.json();

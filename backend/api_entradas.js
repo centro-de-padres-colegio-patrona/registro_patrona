@@ -464,7 +464,7 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
       return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
     }
 
-    if (ticket.usado) {
+    if (ticket.usado || ticket.estado !== 'activa' ) {
       return res.status(409).json({
         error: 'Este ticket ya fue utilizado',
         fecha_uso: ticket.fecha_uso,
@@ -490,7 +490,7 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
       }
     );
 
-    console.log(`[/api/entrada/validar] Ticket ${folio} marcado como usado por ${validado_por}`);
+    console.log(`[/api/entrada/validar] Ticket ${folio} marcado como usado por ${email}`);
     res.json({ status: 'ok', mensaje: 'Ticket validado correctamente' });
   } catch (error) {
     console.error('[/api/entrada/validar] Error:', error);
@@ -510,7 +510,7 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
       return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
     }
 
-    if (!ticket.usado) {
+    if (!ticket.usado || ticket.estado === 'activo') {
       return res.status(409).json({ error: 'Este ticket ya está pendiente' });
     }
 
@@ -546,6 +546,44 @@ async function hasSupervisorAccessRights(user_email) {
   if (!perfil) return false;
   return await db_support.hasSupervisorAccessRights(perfil.rol);
 }
+
+async function hasValidadorAccessRights(user_email) {
+  const perfil = await db_support.perfilesDB.findOne({email: user_email});
+  if (!perfil) return false;
+  return await db_support.hasValidadorAccessRights(perfil.rol);
+}
+
+
+// Devolver el historial de la entrada
+router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
+  const tag = 'GET /api/entrada/historial';
+  try {
+    // Obtener parametros de la consulta
+    const { id_organizacion, id_evento, folio, user_email } = req.query;
+
+    // Validar parametros
+    if (!folio) return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro folio' });
+
+    if (!user_email) return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro user_email' });
+
+    const isValidador = await hasSupervisorAccessRights(user_email);
+
+    if (!isValidador) return res.status(400).json({ error: 'Acceso denegado. Se requiere perfil de Validador o superior' });
+
+    // Buscar ticket
+    const ticket = await db_support.TicketEventoDB.findOne({id_organizacion, id_evento, folio})
+
+    const { familia, historial, estado, usado } = ticket;
+
+    return res.status(200).json({ id_organizacion, id_evento, familia, historial, estado, usado });
+
+  } catch(error) {
+    return res.status(500).json({error})
+  }
+});
+
+
+
 
 // Activar entradas:
 // Se activan las entradas de la familia del user_email

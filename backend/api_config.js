@@ -39,10 +39,16 @@ router.get('/config', async (req, res) => {
       }
     }
 
-    //console.log('[GET /api/config] req.session: ', req.session)
+    const sessionEmail = req.user?.emails?.[0]?.value 
+      || req.user?.email 
+      || req.session?.user?.email 
+      || 'unknown';
+
+    console.log(`${tag} ${JSON.stringify({sessionEmail})}`);
+        //console.log('[GET /api/config] req.session: ', req.session)
     // Verificamos que tenga una session activa
     if (req.session && ( req.session.usuario || req.session.passport)) {
-      console.log(`${tag} user ${email} con session activa`);
+      console.log(`${tag} user ${email} con session activa. req.session: `, req.session);
       return res.json({
         apiKey: config_env.API_KEY || ''
       });

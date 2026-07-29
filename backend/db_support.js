@@ -43,6 +43,11 @@ const invitadoSchema = new mongoose.Schema({
   parentesco: { type: String, required: true }
 });
 
+const familiasEstudiantesSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  integrantes: Array
+});
+
 const familiaSchema = new mongoose.Schema({
   hijos: [hijoSchema],
   padres: [padreSchema],
@@ -528,6 +533,7 @@ module.exports.paymentOrdersDB = mongoose.model('paymentOrders', commerceSchema,
 module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderSchema, 'CommerceOrders');
 module.exports.eventoCounterDB = mongoose.model('contador_eventos', eventoCounterSchema, 'contador_eventos');
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
+module.exports.familiasDB = mongoose.model('familias', familiasEstudiantesSchema, 'familias');
 module.exports.infoOrganizacionDB = infoOrganizacionDB
 module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;

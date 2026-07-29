@@ -769,18 +769,19 @@ async function test_activar_entradas(url_server = 'http://localhost:5001') {
     /*'morales.italo@gmail.com',
     'patricio.alarcon.matus@gmail.com',
     'l.herreramena@gmail.com',*/
-    'leo.herrera.mena@gmail.com'
+    {user_email: 'l.herreramena@gmail.com', familia: 'alarcon salazar'},
+    {user_email: 'l.herreramena@gmail.com', familia: 'herrera messina'}
   ]
 
   const id_organizacion = 'cpa_patrona';
   const id_evento = 'fiesta_chilena_2026';
 
-  email_apoderados.forEach( async user_email => {
+  email_apoderados.forEach( async ({user_email, familia}) => {
     try {
       const result = await fetch(`${url_server}/api/entrada/activar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-        body: JSON.stringify({id_organizacion, id_evento, user_email})
+        body: JSON.stringify({id_organizacion, id_evento, user_email, familia})
       });
       const resultados = await result.json();
       if ( result.status === 200 )

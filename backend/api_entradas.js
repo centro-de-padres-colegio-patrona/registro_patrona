@@ -561,6 +561,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
     // para efectos de debugging
     console.log(`${tag} session comparison ${JSON.stringify({user_email, sessionEmail})}`);
+    console.log(`${tag} familia: ${familia}`);
 
     const esSupervisor = await hasSupervisorAccessRights(user_email);
 
@@ -607,7 +608,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       if (result) {
         return res.status(200).json({status: 'updated'});
       }
-    } else {
+    } else if (!esSupervisor) {
       const userInfo = await db_support.usersDB.findOne({email: user_email});
       if (!userInfo) {
         return res.status(404).json({ error: 'usuario no encontrado' });
@@ -687,6 +688,111 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
         mensaje: `Entradas de la familia ${familia} activadas correctamente`, 
         activadas: updateResult.modifiedCount 
       });
+    } else if (familia) {
+      // Obtener informacion Familia
+      const familiaInfo = await db_support.hermanosMapDB.findOne({nombre_familia: familia});
+      if (!familiaInfo) 
+        return res.status(404).json({ error: `Informacion de familia ${familia} no fue encontrada` });
+
+      // Obtener emails apoderados
+      const emails_apoderados = familiaInfo.apoderado_email;
+      if (!emails_apoderados) return res.status(404).json({ error: `Informacion de apoderados de la familia ${familia} no fue encontrada` });
+
+      // Buscar usuarios 
+      const lista_users = await db_support.usersDB.find({email:{$in:emails_apoderados}});
+      if (!lista_users || !lista_users.length) return res.status(404).json({ error: `Apoderados de la familia ${familia} no se han registrado` });
+      
+      // Listar correos que son representantes de la familia
+      const lista_emails = lista_users.flatMap(user => 
+        (user.padres || [])
+          .filter(padre => padre.es_usuario_cuenta === true)
+          .map(padre => padre.correo)
+      );
+      if (!lista_emails || !lista_emails.length) return res.status(404).json({ error: `No se encontraron los correos de los Apoderados de la familia ${familia}` });
+
+      if (lista_emails.length > 1) return res.status(404).json({ error: `Existe mas de un representante por familia ${familia}: ${JSON.stringify(lista_emails)}` });
+
+      // Obtener el user representante de la familia
+      const userInfo = lista_users.filter( u => u.email === lista_emails[0])[0];
+
+      const { hijos, padres, invitados } = userInfo;
+      if ( !hijos || !hijos.length) {
+        return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
+      }
+
+      //console.log(`${tag} userInfo: `, userInfo);
+      //console.log(`${tag} `, { hijos, padres, invitados });
+      const nombres_hijos = hijos.flatMap(hijo => hijo.nombre);
+      //console.log(`${tag} nombres_hijos: `, nombres_hijos);
+
+      // Obteniendo la informacion de los hermanos
+      const hermanosInfo = await db_support.hermanosMapDB.findOne({id: hijos[0].nombre});
+      if ( !hermanosInfo || !hermanosInfo.nombre_familia) return res.status(404).json({ error: 'no se encuentra familia' });
+
+      if (familia !== hermanosInfo.nombre_familia) return res.status(404).json({ error: `Error al procesar familia ${familia}. Esta haciendo match con familia ${hermanosInfo.nombre_familia}` });
+
+      // Searching for the tickets for the family
+      const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
+
+      const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.includes(ticket.nombre_completo));
+      const tickets_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
+      const tickets_invitados = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
+
+      const folios_to_update_estudiantes = tickets_estudiantes.filter(t => t.estado === 'inactiva')
+                                            .map(t => t.folio);
+      const folios_to_update_apoderados = tickets_apoderados.filter(t => t.estado === 'inactiva')
+                                            .map(t => t.folio);
+      const folios_to_update_invitados = tickets_invitados.filter(t => t.estado === 'inactiva')
+                                            .map(t => t.folio);
+
+      console.log(`${tag} `, {folios_to_update_estudiantes, folios_to_update_apoderados, folios_to_update_invitados});
+
+      const cantidad_to_update_apoderados = Math.max(0, padres.length - (tickets_apoderados.length - folios_to_update_apoderados.length));
+      const cantidad_to_update_invitados = Math.max(0, invitados.length - (tickets_invitados.length - folios_to_update_invitados.length));
+
+      console.log(`${tag} `, {padres:padres.length, invitados:invitados.length});
+      console.log(`${tag} `, {tickets_apoderados:tickets_apoderados.length, tickets_invitados:tickets_invitados.length});
+      console.log(`${tag} `, {folios_to_update_apoderados:folios_to_update_apoderados.length, folios_to_update_invitados:folios_to_update_invitados.length});
+      console.log(`${tag} `, {cantidad_to_update_apoderados, cantidad_to_update_invitados});
+
+      const foliosToUpdate = [
+        ...folios_to_update_estudiantes,
+        ...folios_to_update_apoderados.slice(0, cantidad_to_update_apoderados),
+        ...folios_to_update_invitados.slice(0, cantidad_to_update_invitados)
+      ];
+      console.log(`${tag} foliosToUpdate: `, foliosToUpdate);
+
+      if (foliosToUpdate.length === 0) {
+        return res.status(200).json({ status: 'ok', mensaje: 'No hay entrdas que requieran activaciom', activadas: 0 });
+      }
+
+      // Actualización masiva (Bulk) para garantizar rendimiento
+      const updateResult = await db_support.TicketEventoDB.updateMany(
+        { folio: { $in: foliosToUpdate } },
+        { 
+          $set: { 
+            usado: false, 
+            fecha_uso: null, 
+            validado_por: null,
+            estado: 'activa'
+          },
+          $push: {
+            historial: {
+              accion: 'activacion',
+              descripcion: `activado en lote por ${user_email}`
+            }
+          }
+        }
+      );
+
+      return res.status(200).json({ 
+        status: 'ok', 
+        mensaje: `Entradas de la familia ${familia} activadas correctamente`, 
+        activadas: updateResult.modifiedCount 
+      });
+
+    } else {
+      return res.status(400).json({error: 'parameters insuficient for validate tickets'});
     }
   } catch (error) {
     console.error('[/api/entrada/activar] Error:', error);

@@ -561,7 +561,6 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
     // para efectos de debugging
     console.log(`${tag} session comparison ${JSON.stringify({user_email, sessionEmail})}`);
-    console.log(`${tag} familia: ${familia}`);
 
     const esSupervisor = await hasSupervisorAccessRights(user_email);
 
@@ -608,7 +607,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       if (result) {
         return res.status(200).json({status: 'updated'});
       }
-    } else if (!esSupervisor) {
+    } else if (user_email === sessionEmail) {
       const userInfo = await db_support.usersDB.findOne({email: user_email});
       if (!userInfo) {
         return res.status(404).json({ error: 'usuario no encontrado' });

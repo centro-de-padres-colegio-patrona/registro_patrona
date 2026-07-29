@@ -226,6 +226,12 @@
         const apiKey = await getApiKey();
         //const familia = localStorage.getItem('familia') || '';
 
+        const result_entradas = await fetch('/api/entrada/activar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({ id_organizacion, id_evento, user_email: userEmail })
+        });
+
         // 2. Construir la consulta a la API incorporando el id_evento
         //const params = new URLSearchParams();
         //if (familia) params.append('familia', familia);

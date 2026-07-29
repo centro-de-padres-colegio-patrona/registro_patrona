@@ -29,8 +29,8 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_consistencia_users_hijos, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_delete_user, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_consulta_hijos_registrados, delay: delay_ms, arguments: url_server});
-  test_array.push({test_fn: test_activar_entradas, delay: delay_ms, arguments: url_server});
-  //test_array.push({test_fn: test_desactivar_entradas, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_activar_entradas, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_desactivar_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_crear_perfiles, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
 

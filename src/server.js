@@ -40,7 +40,7 @@ console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
 
 const isRebasedWithDesarrollo = git_branch.isRebasedWith('origin/desarrollo');
 
-console.log('Varifying is Rebasing with dessarrollo: ', isRebasedWithDesarrollo);
+console.log('Verifying is Rebasing with dessarrollo: ', isRebasedWithDesarrollo);
 
 const database_year_name = config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');

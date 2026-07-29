@@ -251,7 +251,8 @@
           throw new Error('No se pudieron obtener las entradas.');
         }
 
-        let entradas = await response.json();
+        const entradas_sin_filtrar = await response.json();
+        const entradas = entradas_sin_filtrar.filter(e => e.estado !== 'inactiva');
 
         console.log('Entradas encontradas: ', entradas.length);
         // 3. Si la API devolviera todas las entradas del usuario, filtramos adicionalmente en el cliente

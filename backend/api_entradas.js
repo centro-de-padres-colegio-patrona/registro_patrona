@@ -371,6 +371,21 @@ const serial = String(folio).padStart(4, '0');
               color: #5d4037;
               margin-top: 15px;
             }
+            .footer-link {
+              text-align: center;
+              margin-top: 20px;
+              padding-top: 15px;
+              border-top: 1px dashed #e0e0e0;
+            }
+            .footer-link a {
+              color: #e53935;
+              font-size: 0.85rem;
+              font-weight: 600;
+              text-decoration: none;
+            }
+            .footer-link a:hover {
+              text-decoration: underline;
+            }
           </style>
         </head>
         <body>
@@ -420,6 +435,11 @@ const serial = String(folio).padStart(4, '0');
                 <small>N° FOLIO</small>
                 <span>${serial}</span>
               </div>
+
+              <div class="footer-link">
+                <a href="https://registro-patrona.onrender.com" target="_blank" rel="noopener noreferrer">Ir al Registro Patrona</a>
+              </div>
+
             </div>
           </div>
         </body>

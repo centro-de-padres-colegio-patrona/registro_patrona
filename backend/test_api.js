@@ -33,6 +33,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_desactivar_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_crear_perfiles, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 
@@ -842,5 +843,37 @@ async function test_desactivar_entradas(url_server = 'http://localhost:5001') {
     }
   })
 }
+
+async function test_api_historial_ticket(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/entrada/historial]';
+  const user_email = 'l.herreramena@gmail.com';
+  const folios = [2786, 2788];
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  
+  folios.forEach( async folio => {
+    try {
+      const result = await fetch(`${url_server}/api/entrada/historial?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&folio=${encodeURIComponent(folio)}&user_email=${encodeURIComponent(user_email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      const resultados = await result.json();
+      if ( result.status === 200 )
+      {
+        //console.log(`${tag} hijos_registrados: `, Object.keys(hijos_registrados).length);
+        console.log(`${tag} historial.length: `, resultados.historial.length);
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} status: ${result.status}, `, resultados);
+        log_result(tag, 'fail');
+      }
+    } catch (error) {
+      console.log(`${tag} Unexpected error: `, error);
+      log_result(tag, 'fail');
+      return;
+    }
+  });
+}
+
 
 module.exports.lauch_test_api = lauch_test_api;

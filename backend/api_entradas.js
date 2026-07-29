@@ -490,7 +490,7 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
       }
     );
 
-    console.log(`[/api/entrada/validar] Ticket ${folio} marcado como usado por ${validado_por}`);
+    console.log(`[/api/entrada/validar] Ticket ${folio} marcado como usado por ${email}`);
     res.json({ status: 'ok', mensaje: 'Ticket validado correctamente' });
   } catch (error) {
     console.error('[/api/entrada/validar] Error:', error);
@@ -555,11 +555,11 @@ async function hasValidadorAccessRights(user_email) {
 
 
 // Devolver el historial de la entrada
-router.post('/entrada/historial', apiKeyAuth, async (req, res) => {
-  const tag = 'POST /api/entrada/historial';
+router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
+  const tag = 'GET /api/entrada/historial';
   try {
     // Obtener parametros de la consulta
-    const { folio, user_email } = req.body;
+    const { id_organizacion, id_evento, folio, user_email } = req.query;
 
     // Validar parametros
     if (!folio) return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro folio' });
@@ -571,9 +571,9 @@ router.post('/entrada/historial', apiKeyAuth, async (req, res) => {
     if (!isValidador) return res.status(400).json({ error: 'Acceso denegado. Se requiere perfil de Validador o superior' });
 
     // Buscar ticket
-    const ticket = await db_support.TicketEventoDB.findOne({folio})
+    const ticket = await db_support.TicketEventoDB.findOne({id_organizacion, id_evento, folio})
 
-    const { id_organizacion, id_evento, familia, historial, estado, usado } = ticket;
+    const { familia, historial, estado, usado } = ticket;
 
     return res.status(200).json({ id_organizacion, id_evento, familia, historial, estado, usado });
 

@@ -38,6 +38,10 @@ const BASEURL = (PORT === LOCAL_PORT)
 
 console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
 
+const isRebasedWithDesarrollo = git_branch.isRebasedWith('origin/desarrollo');
+
+console.log('Verifying is Rebasing with dessarrollo: ', isRebasedWithDesarrollo);
+
 const database_year_name = config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');
 const url_api = (PORT === LOCAL_PORT) ? `http://localhost:${LOCAL_PORT}` : BASEURL;

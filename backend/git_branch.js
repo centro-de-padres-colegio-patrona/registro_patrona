@@ -34,6 +34,30 @@ function getGitLastCommit(short = true) {
   }
 }
 
+/**
+ * Verifica si la rama actual contiene el último commit de la rama objetivo (ej: 'desarrollo')
+ * @param {string} targetBranch Rama contra la cual verificar (por defecto 'origin/desarrollo')
+ * @returns {boolean} true si la rama actual está al día/rebaseada, false en caso contrario.
+ */
+function isRebasedWith(targetBranch = 'origin/desarrollo') {
+  try {
+    // 1. Si targetBranch no especifica remoto (ej: "desarrollo"), extraer el nombre para el fetch
+    const branchName = targetBranch.includes('/') 
+      ? targetBranch.split('/')[1] 
+      : targetBranch;
+
+    // 2. Fetch silencioso para tener los últimos commits de la rama remota
+    execSync(`git fetch origin ${branchName}`, { stdio: 'ignore' });
+
+    // 3. Ejecutar merge-base. Retorna exit status 0 (true) si targetBranch es ancestro de HEAD
+    execSync(`git merge-base --is-ancestor ${targetBranch} HEAD`, { stdio: 'ignore' });
+    return true;
+  } catch (e) {
+    // Si la rama no existe, no hay git o 'merge-base' falla (retorna exit code 1), no está rebaseado
+    return false;
+  }
+}
+
 const currentBranch = getGitBranch();
 // Si la rama es 'main' o 'master', usa la URL base. De lo contrario, inyecta la rama.
 const branchSubdomain = (currentBranch === 'produccion' )
@@ -48,3 +72,4 @@ const BASEURL = `https://${branchSubdomain}.onrender.com`;
 
 
 module.exports.BASEURL = BASEURL;
+module.exports.isRebasedWith = isRebasedWith;

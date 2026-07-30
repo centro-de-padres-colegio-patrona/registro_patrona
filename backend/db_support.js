@@ -348,6 +348,7 @@ const ticketEventoSchema = new mongoose.Schema({
   num_listado: Number,
   total: Number,
   fecha_generacion: { type: Date, default: Date.now },
+  usado: Boolean,
   estado: { 
     type: String,
     enum: ['inactiva', 'activa', 'usada', 'anulada'],

@@ -34,6 +34,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_api_crear_perfiles, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 
@@ -44,7 +45,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     }
 
   } catch (error) {
-    console.log('Unexpexted error running tests. Stopped at ')
+    console.log('Unexpexted error running tests. Error: ', error)
   }
 }
 
@@ -610,6 +611,35 @@ async function test_send_entradas(url_server = 'http://localhost:5001') {
     })
   );
   log_result(tag, testResult);
+}
+
+async function test_qr_entradas(url_server = 'http://localhost:5001') {
+
+  const tag = '[test_qr_entradas]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const folios = [2785, 2786, 2787, 2788, 2789, 2790];
+
+  let test_result = 'pass';
+  try {
+    await Promise.all(
+      folios.map( async (folio) => {
+
+        const result = await fetch(`${url_server}/api/entrada/qr/imagen?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&folio=${encodeURIComponent(folio)}&save_file=${encodeURIComponent(true)}&`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+        });
+        if ( result.status !== 200 )
+        {
+          test_result = 'fail';
+        }
+      }
+    ))
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+  log_result(tag, test_result);
 }
 
 async function test_actualizar_correos_padres_de_cada_estudiante(url_server = 'http://localhost:5001') {

@@ -6,7 +6,7 @@ const fs = require('fs').promises; // Usamos la versión basada en promesas
 
 // Requerir dependencias compartidas necesarias para las entradas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
-const { genEntradaCanvas } = require('../src/generateTicket'); 
+const { genEntradaCanvas, genQrEntradaCanvas } = require('../src/generateTicket'); 
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
 //const { info } = require('console');
@@ -269,10 +269,14 @@ const serial = String(folio).padStart(4, '0');
         : '—';
 
       // Configurar badges de estado
-      const isUsado = ticket.usado;
-      const statusBadge = isUsado 
-        ? `<span class="badge badge-usado">🚫 ENTRADA UTILIZADA</span>`
-        : `<span class="badge badge-valido">✅ ENTRADA VÁLIDA</span>`;
+      //const isUsado = ticket.usado || ticket.estado !== 'activo';
+      const estadoMap = {
+        'inactiva' : `<span class="badge badge-usado">⚪ ENTRADA INACTIVA</span>`,
+        'activa' : `<span class="badge badge-valido">🟢 ENTRADA VÁLIDA</span>`,
+        'usada' : `<span class="badge badge-valido">🔴 ENTRADA USADA</span>`,
+        'anulada' : `<span class="badge badge-valido">🚫 ENTRADA ANULADA</span>`
+      }
+      const statusBadge = estadoMap[ticket.estado];
 
       // Escenario 2 y 3: Renderizado de la tarjeta del ticket
       return res.send(`
@@ -1177,6 +1181,52 @@ router.get('/entrada/qr', apiKeyAuth, async (req, res) => {
   }
 });
 
+router.get('/entrada/qr/imagen', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entrada/imagen]';
+  const url_server = config_env.URL_SERVER || BASEURL;
+  try {
+    const { 
+            id_organizacion,
+            id_evento,
+            folio,
+            save_file
+          } = req.query;
+
+
+    const ticketInfo = await db_support.TicketEventoDB.findOne({
+      id_organizacion: id_organizacion,
+      id_evento: id_evento,
+      folio: folio
+    }).lean();
+    /*if (!ticketInfo) {
+      console.log(`${tag} Folio ${folio} no encontrado`);
+    } else {
+      const { id_organizacion, id_evento, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques } = ticketInfo;
+      console.log(`${tag} ticketInfo: `, { id_organizacion, id_evento, familia });
+    }*/
+
+    const [qr_buffer, qr_data] = await genQrEntradaCanvas({...ticketInfo, url_server});
+    //console.log(`${tag} qr_data: ${qr_data}`);
+
+    res.set('Content-Type', 'image/png');
+    if (qr_buffer) {
+      if (save_file) {
+        const tailoredName = ticketInfo.tipo === 'estudiante' ? ticketInfo.nombre_completo : `${ticketInfo.familia.replace(/ /g, "_")}_${ticketInfo.tipo}` ;
+        const nombreArchivo = `${id_evento.replace(/ /g, "_")}_${String(folio).padStart(4, '0')}_${tailoredName}.png`;
+        await save_png(qr_buffer, nombreArchivo);
+        await append_qr_data(qr_data, 'qr_send_email_png.txt');
+      }
+      res.send(qr_buffer);
+    } else {
+      console.log(`${tag} image buffer null. err_message: ${qr_data}`);
+      res.status(500).json({ error: 'POST /entrada/imagen Error imagen no disponible' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'POST /entrada/imagen Error no especifico', err });
+  }
+});
+
 // 7. Get Imagen del Ticket
 router.get('/entrada/imagen', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entrada/imagen]';
@@ -1289,9 +1339,9 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
       id_familia = ticketInfo.familia;
     }
     if (id_familia) {
-      const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia});
+      const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 });
       if (tickets) {
-        //console.log(`${tag} ${tickets.length} tickets encontrados para familia ${familia}`);
+        console.log(`${tag} folios: ${tickets.map(t => t.folio)}`);
         res.status(200).json(tickets);
       } else {
         console.log(`${tag} No se encontraron tickets asociados a familia ${familia}`);

@@ -161,5 +161,87 @@ router.get('/consulta/hijos_registrados', apiKeyAuth, async (req, res) => {
 });
 
 
+// Endpoint: Estado CPA por Curso (para presidentes de curso)
+router.get('/estado_cpa_curso', async (req, res) => {
+  const tag = '[GET /api/estado_cpa_curso]';
+  try {
+    const { curso, seccion } = req.query;
+
+    if (!curso) {
+      return res.status(400).json({ error: 'Parámetro "curso" es requerido' });
+    }
+
+    // Mapa de curso legible a código
+    const curso_map = {
+      "Prekínder": 'PK', "Kínder": 'K',
+      "1° Básico": '1', "2° Básico": '2', "3° Básico": '3', "4° Básico": '4',
+      "5° Básico": '5', "6° Básico": '6', "7° Básico": '7', "8° Básico": '8',
+      "I° Medio": '1M', "II° Medio": '2M', "III° Medio": '3M', "IV° Medio": '4M'
+    };
+
+    const cursoCode = curso_map[curso] || '';
+    const cursoId = cursoCode + (seccion || '');
+    console.log(`${tag} Buscando curso: ${curso} ${seccion || ''} -> id: ${cursoId}`);
+
+    if (!cursoId) {
+      return res.status(400).json({ error: 'Curso no válido' });
+    }
+
+    // 1. Obtener lista completa de alumnos del curso desde listado_cursos
+    const cursoDB = await db_support.listadoCursosDB.findOne({ id: cursoId });
+    if (!cursoDB || !cursoDB.listaCurso || cursoDB.listaCurso.length === 0) {
+      console.log(`${tag} No se encontró listado para curso ${cursoId}`);
+      return res.json([]);
+    }
+
+    const listaAlumnos = cursoDB.listaCurso;
+    console.log(`${tag} Total alumnos en ${cursoId}: ${listaAlumnos.length}`);
+
+    // 2. Para cada alumno, verificar si tiene pago CPA y buscar apoderado
+    const alumnos = [];
+    for (const nombreAlumno of listaAlumnos) {
+      // Verificar pago CPA
+      const pagos = await db_support.pagosDB.find({ id: nombreAlumno });
+      const cpaPagado = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
+
+      // Buscar apoderado (desde hermanosMapDB o users)
+      let apoderado = '—';
+      const hermanoInfo = await db_support.hermanosMapDB.findOne({ id: nombreAlumno });
+      if (hermanoInfo && hermanoInfo.apoderado_email && hermanoInfo.apoderado_email.length > 0) {
+        apoderado = hermanoInfo.apoderado_email[0];
+        // Intentar obtener nombre del apoderado desde users
+        const userApoderado = await db_support.usersDB.findOne({ email: hermanoInfo.apoderado_email[0] });
+        if (userApoderado && userApoderado.padres && userApoderado.padres.length > 0) {
+          const padre = userApoderado.padres.find(p => p.es_usuario_cuenta) || userApoderado.padres[0];
+          const nombrePadre = ((padre.nombre || '') + ' ' + (padre.apellido || '')).trim();
+          if (nombrePadre) apoderado = nombrePadre;
+        }
+      }
+
+      alumnos.push({
+        nombre: nombreAlumno,
+        curso: curso,
+        seccion: seccion || '',
+        apoderado,
+        cpa_pagado: cpaPagado
+      });
+    }
+
+    // 3. Ordenar: primero pendientes, luego pagados, alfabéticamente dentro de cada grupo
+    alumnos.sort((a, b) => {
+      if (a.cpa_pagado !== b.cpa_pagado) return a.cpa_pagado ? 1 : -1;
+      return (a.nombre || '').localeCompare(b.nombre || '');
+    });
+
+    console.log(`${tag} Total: ${alumnos.length}, Pagados: ${alumnos.filter(a => a.cpa_pagado).length}, Pendientes: ${alumnos.filter(a => !a.cpa_pagado).length}`);
+    res.json(alumnos);
+
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al consultar estado CPA del curso' });
+  }
+});
+
+
 module.exports = router;
 

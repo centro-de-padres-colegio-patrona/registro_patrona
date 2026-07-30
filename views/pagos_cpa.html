@@ -927,16 +927,61 @@
               if (checkbox) {
                 const contenedorCheck = checkbox.parentNode;
                 if (contenedorCheck) {
-                  contenedorCheck.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
-                      <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                        ✓ Incluido con Cuota CPA
-                      </span>
-                      <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
-                        ✓ Invitados solicitados
-                      </button>
-                    </div>
-                  `;
+                  // Validar invitados registrados en USER (misma lógica que mis_datos.html)
+                  const invitadosRegistrados = currentUser.invitados || [];
+                  const numInvitados = invitadosRegistrados.length;
+
+                  if (numInvitados > 0) {
+                    // Calcular máximo de invitaciones permitidas
+                    let maxInvPermitidos = 2;
+                    if (currentUser.hijos && currentUser.hijos.length > 0) {
+                      const tieneCuartoMedio = currentUser.hijos.some(h => {
+                        const curso = (h.curso || '').toLowerCase();
+                        return curso.includes('iv') || (curso.includes('4') && curso.includes('medio'));
+                      });
+                      if (tieneCuartoMedio) maxInvPermitidos = 6;
+                    }
+
+                    const alcanzoMaximo = numInvitados >= maxInvPermitidos;
+
+                    if (alcanzoMaximo) {
+                      // Máximo alcanzado - botón bloqueado
+                      contenedorCheck.innerHTML = `
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+                          <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                            ✓ Incluido con Cuota CPA
+                          </span>
+                          <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
+                            ✓ Invitados solicitados (${numInvitados}/${maxInvPermitidos})
+                          </button>
+                        </div>
+                      `;
+                    } else {
+                      // Aún puede solicitar más
+                      contenedorCheck.innerHTML = `
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+                          <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                            ✓ Incluido con Cuota CPA
+                          </span>
+                          <button type="button" class="btn-solicitar-invitados" onclick="solicitarInvitados()">
+                            Invitados solicitados (${numInvitados}/${maxInvPermitidos}) — Solicitar más
+                          </button>
+                        </div>
+                      `;
+                    }
+                  } else {
+                    // El usuario NO tiene invitados registrados aún
+                    contenedorCheck.innerHTML = `
+                      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+                        <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                          ✓ Incluido con Cuota CPA
+                        </span>
+                        <button type="button" class="btn-solicitar-invitados" onclick="solicitarInvitados()">
+                          Solicitar Invitados
+                        </button>
+                      </div>
+                    `;
+                  }
                 }
               }
               // Ocultar control de cantidad
@@ -1270,15 +1315,16 @@
     let pasarelaSeleccionada = null;
 
     function solicitarInvitados() {
-      // Redirigir al formulario de entradas del evento
-      const urlEvento = 'entradas_eventos.html?id_evento=fiesta_chilena_2026';
-      // Si estamos en un iframe, navegar dentro del iframe padre
+      // Redirigir a Mis Datos para solicitar invitados, con scroll a la sección de invitados
+      const urlMisDatos = 'mis_datos.html';
+      const email = currentUser.email || user_email || '';
+      const destino = urlMisDatos + '?user_email=' + encodeURIComponent(email) + '&scroll=invitados';
       if (window.parent && window.parent.document.getElementById('visor')) {
-        window.parent.document.getElementById('visor').src = urlEvento;
+        window.parent.document.getElementById('visor').src = destino;
       } else if (window.parent && window.parent.document.getElementById('mobile-visor')) {
-        window.parent.document.getElementById('mobile-visor').src = urlEvento;
+        window.parent.document.getElementById('mobile-visor').src = destino;
       } else {
-        window.location.href = urlEvento;
+        window.location.href = destino;
       }
     }
 

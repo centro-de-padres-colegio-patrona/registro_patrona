@@ -218,17 +218,26 @@ body.panel-usuario {
   color: white;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 12px 14px;
+}
+
+#sidebar .logo {
+  width: 80px;
+  height: auto;
+  display: block;
+  margin: 0 auto 8px;
 }
 
 #sidebar button {
   background: none;
   border: none;
   color: white;
-  padding: 10px;
+  padding: 7px 10px;
   text-align: left;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 13px;
+  display: block;
+  width: 100%;
 }
 
 #sidebar button:hover {

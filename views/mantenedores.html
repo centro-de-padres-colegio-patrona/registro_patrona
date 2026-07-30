@@ -144,6 +144,7 @@
     .badge-apoderado { background: #e8f5e9; color: #2e7d32; }
     .badge-validador { background: #e3f2fd; color: #1565c0; }
     .badge-supervisor { background: #fff3e0; color: #e65100; }
+    .badge-presidente { background: #f3e5f5; color: #7b1fa2; }
 
     .btn-accion {
       padding: 4px 10px;
@@ -239,6 +240,7 @@
         <option value="pagos_cpa.html">💰 Mis Pagos al CPA</option>
         <!--<option value="documentos_matricula.html">📄 Mis Documentos de Matrícula</option>-->
         <option value="actividades_eventos.html">🎉 Actividades y Eventos</option>
+        <option value="estado_cpa_curso.html">📊 Estado CPA Curso</option>
         <option value="validar_qr.html">🔍 Validar QR</option>
         <option value="buscar_entradas.html">📋 Buscar Entradas</option>
         <option value="mantenedores.html">👤 Perfiles</option>
@@ -253,6 +255,7 @@
         <option value="administrador">Administrador</option>
         <option value="validador">Validador</option>
         <option value="supervisor">Supervisor</option>
+        <option value="presidente">Presidente de Curso</option>
       </select>
     </div>
   </div>
@@ -264,6 +267,7 @@
 
 <!-- Tabla de perfiles existentes -->
 <div class="table-container">
+  <h3 style="font-size:0.85rem; font-weight:700; color:#888; text-transform:uppercase; margin-bottom:12px;">Todos los Perfiles</h3>
   <table>
     <thead>
       <tr>
@@ -276,6 +280,26 @@
       </tr>
     </thead>
     <tbody id="tabla-perfiles">
+    </tbody>
+  </table>
+</div>
+
+<!-- Tabla de Presidentes de Curso -->
+<div class="table-container" style="margin-top: 24px;">
+  <h3 style="font-size:0.85rem; font-weight:700; color:#888; text-transform:uppercase; margin-bottom:12px;">Presidentes de Curso</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>RUT</th>
+        <th>Curso Asignado</th>
+        <th>Página de inicio</th>
+        <th>Rol</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-presidentes">
     </tbody>
   </table>
 </div>
@@ -304,6 +328,7 @@
         <option value="pagos_cpa.html">💰 Mis Pagos al CPA</option>
         <!--<option value="documentos_matricula.html">📄 Mis Documentos de Matrícula</option>-->
         <option value="actividades_eventos.html">🎉 Actividades y Eventos</option>
+        <option value="estado_cpa_curso.html">📊 Estado CPA Curso</option>
         <option value="validar_qr.html">🔍 Validar QR</option>
         <option value="buscar_entradas.html">📋 Buscar Entradas</option>
         <option value="mantenedores.html">👤 Perfiles</option>
@@ -318,6 +343,7 @@
         <option value="administrador">Administrador</option>
         <option value="validador">Validador</option>
         <option value="supervisor">Supervisor</option>
+        <option value="presidente">Presidente de Curso</option>
       </select>
     </div>
     <div style="display:flex; gap:12px;">
@@ -399,13 +425,16 @@
 
   function renderTabla() {
     const tbody = document.getElementById('tabla-perfiles');
+    const tbodyPresidentes = document.getElementById('tabla-presidentes');
     tbody.innerHTML = '';
+    tbodyPresidentes.innerHTML = '';
 
     const paginaLabels = {
       'mis_datos.html': '📋 Mis datos',
       'pagos_cpa.html': '💰 Mis Pagos al CPA',
       'documentos_matricula.html': '📄 Documentos Matrícula',
       'actividades_eventos.html': '🎉 Actividades y Eventos',
+      'estado_cpa_curso.html': '📊 Estado CPA Curso',
       'validar_qr.html': '🔍 Validar QR',
       'buscar_entradas.html': '📋 Buscar Entradas',
       'mantenedores.html': '👤 Perfiles',
@@ -427,7 +456,48 @@
         </td>
       `;
       tbody.appendChild(row);
+
+      // Si es presidente, agregar también a la tabla de presidentes
+      if (p.rol === 'presidente') {
+        const rowPres = document.createElement('tr');
+        const cursoAsignado = p.curso_asignado || '';
+        const cursoOptions = ['', 'Prekínder', 'Kínder', '1° Básico', '2° Básico', '3° Básico', '4° Básico', '5° Básico', '6° Básico', '7° Básico', '8° Básico', 'I° Medio', 'II° Medio', 'III° Medio', 'IV° Medio'];
+        const seccionOptions = ['', 'A', 'B'];
+        const cursoSelect = cursoOptions.map(c => `<option value="${c}" ${c === (cursoAsignado.split(' - ')[0] || '') ? 'selected' : ''}>${c || '— Sin asignar —'}</option>`).join('');
+        const seccionActual = cursoAsignado.split(' - ')[1] || '';
+        const seccionSelect = seccionOptions.map(s => `<option value="${s}" ${s === seccionActual ? 'selected' : ''}>${s || '—'}</option>`).join('');
+
+        rowPres.innerHTML = `
+          <td>${p.nombre_completo}</td>
+          <td>${p.email}</td>
+          <td>${formatRut(p.rut)}</td>
+          <td>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <select onchange="asignarCursoPresidente('${p.email}', this.value, this.parentNode.querySelector('.sec-select').value)" style="font-size:0.8rem; padding:3px 6px; border-radius:4px; border:1px solid #ccc;">
+                ${cursoSelect}
+              </select>
+              <select class="sec-select" onchange="asignarCursoPresidente('${p.email}', this.parentNode.querySelector('select').value, this.value)" style="font-size:0.8rem; padding:3px 6px; border-radius:4px; border:1px solid #ccc; width:50px;">
+                ${seccionSelect}
+              </select>
+            </div>
+          </td>
+          <td>${paginaInicio}</td>
+          <td><span class="badge-rol badge-presidente">Presidente</span></td>
+          <td>
+            <button class="btn-accion btn-editar" onclick="abrirEditar('${p.email}', 'presidente')">Editar</button>
+            <button class="btn-accion btn-eliminar" onclick="eliminarPerfil('${p.email}', 'presidente')">Eliminar</button>
+          </td>
+        `;
+        tbodyPresidentes.appendChild(rowPres);
+      }
     });
+
+    // Mensaje si no hay presidentes
+    if (tbodyPresidentes.children.length === 0) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td colspan="6" style="text-align:center; color:#888; padding:20px;">No hay presidentes de curso asignados</td>';
+      tbodyPresidentes.appendChild(row);
+    }
   }
 
   async function guardarPerfil() {
@@ -470,8 +540,10 @@
     }
   }
 
-  function abrirEditar(email) {
-    const perfil = perfilesCache.find(p => p.email === email);
+  function abrirEditar(email, rol) {
+    const perfil = rol 
+      ? perfilesCache.find(p => p.email === email && p.rol === rol)
+      : perfilesCache.find(p => p.email === email);
     if (!perfil) return;
     document.getElementById('edit-nombre').value = perfil.nombre_completo;
     document.getElementById('edit-rut').value = formatRut(perfil.rut);
@@ -508,13 +580,35 @@
     }
   }
 
-  async function eliminarPerfil(email) {
-    if (!confirm(`¿Eliminar el perfil de ${email}?`)) return;
+  async function eliminarPerfil(email, rol) {
+    const rolMsg = rol ? ` (${rol})` : '';
+    if (!confirm(`¿Eliminar el perfil de ${email}${rolMsg}?`)) return;
     try {
-      await fetch(`/api/perfiles/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      const url = rol 
+        ? `/api/perfiles/${encodeURIComponent(email)}?rol=${encodeURIComponent(rol)}`
+        : `/api/perfiles/${encodeURIComponent(email)}`;
+      await fetch(url, { method: 'DELETE' });
       cargarPerfiles();
     } catch (err) {
       console.error('Error eliminando:', err);
+    }
+  }
+
+  async function asignarCursoPresidente(email, curso, seccion) {
+    const cursoAsignado = curso && seccion ? `${curso} - ${seccion}` : (curso || '');
+    try {
+      const res = await fetch(`/api/perfiles/${encodeURIComponent(email)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ curso_asignado: cursoAsignado })
+      });
+      if (res.ok) {
+        console.log(`Curso asignado a ${email}: ${cursoAsignado}`);
+      } else {
+        console.error('Error asignando curso');
+      }
+    } catch (err) {
+      console.error('Error asignando curso:', err);
     }
   }
 

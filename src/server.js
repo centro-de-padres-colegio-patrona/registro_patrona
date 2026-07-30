@@ -40,10 +40,6 @@ let BASEURL = (PORT === LOCAL_PORT)
 
 console.log(`Starting Server with PORT: ${PORT}`);
 
-const isRebasedWithDesarrollo = git_branch.isRebasedWith('origin/desarrollo');
-
-console.log('Verifying is Rebasing with dessarrollo: ', isRebasedWithDesarrollo);
-
 const database_year_name = config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');
 const url_api = (PORT == LOCAL_PORT) ? `http://localhost:${LOCAL_PORT}` : BASEURL;
@@ -1685,15 +1681,31 @@ app.get('/api/mi-perfil', async (req, res) => {
     // Bypass para correo de prueba (validador)
     const correosPrueba = { 'val@correo.cl': 'validador' };
     if (correosPrueba[email.toLowerCase()]) {
-      return res.json({ email, rol: correosPrueba[email.toLowerCase()], nombre_completo: 'Validador Test', rut: '' });
+      return res.json({ email, rol: correosPrueba[email.toLowerCase()], roles: ['validador'], nombre_completo: 'Validador Test', rut: '' });
     }
 
-    const perfil = await db_support.perfilesDB.findOne({ email: email.toLowerCase() });
-    if (!perfil) {
+    const perfiles = await db_support.perfilesDB.find({ email: email.toLowerCase() });
+    if (!perfiles || perfiles.length === 0) {
       // Usuario sin perfil asignado = apoderado por defecto
-      return res.json({ email, rol: 'apoderado', nombre_completo: '', rut: '' });
+      return res.json({ email, rol: 'apoderado', roles: ['apoderado'], nombre_completo: '', rut: '' });
     }
-    res.json(perfil);
+
+    // Determinar el rol principal por jerarquía
+    const jerarquia = ['administrador', 'supervisor', 'presidente', 'validador', 'apoderado'];
+    const roles = perfiles.filter(p => p.activo !== false).map(p => p.rol);
+    const rolPrincipal = jerarquia.find(r => roles.includes(r)) || 'apoderado';
+    const perfilPrincipal = perfiles.find(p => p.rol === rolPrincipal) || perfiles[0];
+
+    // Si tiene perfil de presidente, incluir curso_asignado
+    const perfilPresidente = perfiles.find(p => p.rol === 'presidente' && p.activo !== false);
+    const cursoAsignado = perfilPresidente ? (perfilPresidente.curso_asignado || '') : '';
+
+    res.json({ 
+      ...perfilPrincipal.toObject ? perfilPrincipal.toObject() : perfilPrincipal,
+      rol: rolPrincipal,
+      roles: roles,
+      curso_asignado: cursoAsignado
+    });
   } catch (error) {
     console.error('[/api/mi-perfil] Error:', error);
     res.status(500).json({ error: 'Error al obtener perfil' });
@@ -1718,14 +1730,14 @@ app.post('/api/perfiles', express.json(), async (req, res) => {
     if (!email || !rut || !nombre_completo || !rol) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
     }
-    const rolesValidos = ['administrador', 'apoderado', 'validador', 'supervisor'];
+    const rolesValidos = ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente'];
     if (!rolesValidos.includes(rol)) {
       return res.status(400).json({ error: `Rol inválido. Opciones: ${rolesValidos.join(', ')}` });
     }
-    // Verificar si ya existe
-    const existente = await db_support.perfilesDB.findOne({ email: email.toLowerCase() });
+    // Verificar si ya existe un perfil con ese correo Y ese mismo rol
+    const existente = await db_support.perfilesDB.findOne({ email: email.toLowerCase(), rol });
     if (existente) {
-      return res.status(409).json({ error: 'Ya existe un perfil con ese correo' });
+      return res.status(409).json({ error: 'Ya existe un perfil con ese correo y rol' });
     }
     const nuevo = await db_support.perfilesDB.create({
       email: email.toLowerCase(),
@@ -1747,16 +1759,26 @@ app.post('/api/perfiles', express.json(), async (req, res) => {
 app.put('/api/perfiles/:email', express.json(), async (req, res) => {
   try {
     const emailParam = decodeURIComponent(req.params.email).toLowerCase();
-    const { rut, nombre_completo, rol, activo, pagina_inicio } = req.body;
+    const { rut, nombre_completo, rol, activo, pagina_inicio, curso_asignado } = req.body;
     const updateData = {};
     if (rut !== undefined) updateData.rut = rut;
     if (nombre_completo !== undefined) updateData.nombre_completo = nombre_completo;
     if (rol !== undefined) updateData.rol = rol;
     if (activo !== undefined) updateData.activo = activo;
     if (pagina_inicio !== undefined) updateData.pagina_inicio = pagina_inicio;
+    if (curso_asignado !== undefined) updateData.curso_asignado = curso_asignado;
+
+    // Si se está actualizando curso_asignado, buscar específicamente el perfil de presidente
+    // Si se envía rol en el body, usarlo para encontrar el perfil correcto (usuario con múltiples perfiles)
+    const queryFilter = { email: emailParam };
+    if (curso_asignado !== undefined) {
+      queryFilter.rol = 'presidente';
+    } else if (rol !== undefined) {
+      queryFilter.rol = rol;
+    }
 
     const result = await db_support.perfilesDB.findOneAndUpdate(
-      { email: emailParam },
+      queryFilter,
       { $set: updateData },
       { new: true }
     );
@@ -1772,12 +1794,16 @@ app.put('/api/perfiles/:email', express.json(), async (req, res) => {
 app.delete('/api/perfiles/:email', async (req, res) => {
   try {
     const emailParam = decodeURIComponent(req.params.email).toLowerCase();
-    const perfiles = await db_support.perfilesDB.find({});
-    const idx = perfiles.findIndex(p => p.email === emailParam);
-    if (idx === -1) return res.status(404).json({ error: 'Perfil no encontrado' });
-    // En mock usamos findOneAndUpdate para desactivar, en prod podríamos borrar
+    const { rol } = req.query;
+    
+    const queryFilter = { email: emailParam };
+    if (rol) queryFilter.rol = rol;
+
+    const perfil = await db_support.perfilesDB.findOne(queryFilter);
+    if (!perfil) return res.status(404).json({ error: 'Perfil no encontrado' });
+    
     await db_support.perfilesDB.findOneAndUpdate(
-      { email: emailParam },
+      queryFilter,
       { $set: { activo: false } }
     );
     res.json({ status: 'ok', mensaje: 'Perfil desactivado' });
@@ -2463,16 +2489,32 @@ app.listen(PORT, async () => {
   // Si estamos en modo local, iniciar túnel ngrok automáticamente
   if (PORT == LOCAL_PORT) {
     try {
+      // Intentar desconectar sesiones previas de ngrok
+      try { await ngrok.disconnect(); } catch(e) {}
+      
       const listener = await ngrok.forward({
         addr: PORT,
-        authtoken_from_env: true, // Usa NGROK_AUTHTOKEN de .env o variable de entorno
+        authtoken_from_env: true,
       });
       BASEURL = listener.url();
       console.log(`ngrok túnel establecido: ${BASEURL}`);
     } catch (err) {
-      console.error('Error al iniciar ngrok:', err.message);
-      console.log('Continuando sin ngrok. Los callbacks de pago no funcionarán en local.');
-      BASEURL = `http://localhost:${PORT}`;
+      // Si el endpoint ya está online, intentar obtener la URL del error
+      if (err.message && err.message.includes('already online')) {
+        const match = err.message.match(/https:\/\/[^\s']+\.ngrok-free\.dev/);
+        if (match) {
+          BASEURL = match[0];
+          console.log(`ngrok ya estaba corriendo, reutilizando: ${BASEURL}`);
+        } else {
+          console.error('Error al iniciar ngrok:', err.message);
+          console.log('Continuando sin ngrok. Los callbacks de pago no funcionarán en local.');
+          BASEURL = `http://localhost:${PORT}`;
+        }
+      } else {
+        console.error('Error al iniciar ngrok:', err.message);
+        console.log('Continuando sin ngrok. Los callbacks de pago no funcionarán en local.');
+        BASEURL = `http://localhost:${PORT}`;
+      }
     }
   } else {
     console.log(`BASEURL (producción): ${BASEURL}`);

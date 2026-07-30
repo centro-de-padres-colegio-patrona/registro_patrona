@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estado CPA por Curso</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #f8f9fa;
+      padding: 20px;
+      color: #333;
+    }
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 16px;
+    }
+    .filtros {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .filtro-grupo {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .filtro-grupo label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+    }
+    .filtro-grupo select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      min-width: 150px;
+    }
+    .resumen {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .resumen-card {
+      background: white;
+      border-radius: 10px;
+      padding: 16px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      text-align: center;
+      min-width: 140px;
+    }
+    .resumen-card .valor {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+    .resumen-card .etiqueta {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .resumen-card.pagado .valor { color: #2ecc71; }
+    .resumen-card.pendiente .valor { color: #e74c3c; }
+    .resumen-card.total .valor { color: #3498db; }
+
+    .table-container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th {
+      background: #f1f4f9;
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #666;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tr:hover { background: #f8fbff; }
+
+    .badge-pagado {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .badge-pendiente {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 600px) {
+      .filtros { flex-direction: column; }
+      .resumen { flex-direction: column; }
+      .resumen-card { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<h2>Estado Cuota CPA por Curso</h2>
+
+<div class="filtros" id="filtros-container" style="display:none;">
+  <div class="filtro-grupo">
+    <label>Curso</label>
+    <select id="filtro-curso" onchange="cargarEstadoCPA()">
+      <option value="">— Seleccionar curso —</option>
+    </select>
+  </div>
+  <div class="filtro-grupo">
+    <label>Sección</label>
+    <select id="filtro-seccion" onchange="cargarEstadoCPA()">
+      <option value="">Todas</option>
+      <option value="A">A</option>
+      <option value="B">B</option>
+    </select>
+  </div>
+</div>
+
+<div class="resumen" id="resumen-container" style="display:none;">
+  <div class="resumen-card total">
+    <div class="valor" id="total-alumnos">0</div>
+    <div class="etiqueta">Total Alumnos</div>
+  </div>
+  <div class="resumen-card pagado">
+    <div class="valor" id="total-pagados">0</div>
+    <div class="etiqueta">CPA Pagado</div>
+  </div>
+  <div class="resumen-card pendiente">
+    <div class="valor" id="total-pendientes">0</div>
+    <div class="etiqueta">CPA Pendiente</div>
+  </div>
+</div>
+
+<div id="loading" class="loading" style="display:none;">⏳ Cargando datos...</div>
+
+<div class="table-container" id="tabla-container" style="display:none;">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Alumno</th>
+        <th>Curso</th>
+        <th>Apoderado</th>
+        <th>Estado CPA</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-estado-cpa">
+    </tbody>
+  </table>
+</div>
+
+<div id="mensaje-vacio" style="display:none; text-align:center; padding:40px; color:#888;">
+  Selecciona un curso para ver el estado de pagos CPA.
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const userEmail = params.get('user_email') || '';
+
+  const cursos = [
+    'Prekínder', 'Kínder',
+    '1° Básico', '2° Básico', '3° Básico', '4° Básico',
+    '5° Básico', '6° Básico', '7° Básico', '8° Básico',
+    'I° Medio', 'II° Medio', 'III° Medio', 'IV° Medio'
+  ];
+
+  // Llenar select de cursos
+  const selectCurso = document.getElementById('filtro-curso');
+  cursos.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    selectCurso.appendChild(opt);
+  });
+
+  // Mostrar mensaje inicial
+  document.getElementById('mensaje-vacio').style.display = 'block';
+
+  // Auto-cargar curso asignado del presidente
+  async function initCursoPresidente() {
+    if (!userEmail) {
+      // Sin email, mostrar filtros
+      document.getElementById('filtros-container').style.display = 'flex';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/mi-perfil?email=${encodeURIComponent(userEmail)}`);
+      if (!res.ok) {
+        document.getElementById('filtros-container').style.display = 'flex';
+        return;
+      }
+      const perfil = await res.json();
+
+      // Si tiene curso_asignado (es presidente), auto-cargar sin mostrar filtros
+      if (perfil.curso_asignado) {
+        const partes = perfil.curso_asignado.split(' - ');
+        const cursoAsignado = partes[0] || '';
+        const seccionAsignada = partes[1] || '';
+
+        if (cursoAsignado) {
+          document.querySelector('h2').textContent = `Estado Cuota CPA — ${cursoAsignado} ${seccionAsignada}`;
+          document.getElementById('filtro-curso').value = cursoAsignado;
+          document.getElementById('filtro-seccion').value = seccionAsignada;
+          cargarEstadoCPA();
+          return;
+        }
+      }
+
+      // Si es administrador sin curso asignado, mostrar filtros
+      document.getElementById('filtros-container').style.display = 'flex';
+    } catch (err) {
+      console.error('[initCursoPresidente] Error:', err);
+      document.getElementById('filtros-container').style.display = 'flex';
+    }
+  }
+
+  initCursoPresidente();
+
+  async function cargarEstadoCPA() {
+    const curso = document.getElementById('filtro-curso').value;
+    const seccion = document.getElementById('filtro-seccion').value;
+
+    if (!curso) {
+      document.getElementById('mensaje-vacio').style.display = 'block';
+      document.getElementById('tabla-container').style.display = 'none';
+      document.getElementById('resumen-container').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('mensaje-vacio').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('tabla-container').style.display = 'none';
+    document.getElementById('resumen-container').style.display = 'none';
+
+    try {
+      let url = `/api/estado_cpa_curso?curso=${encodeURIComponent(curso)}`;
+      if (seccion) url += `&seccion=${encodeURIComponent(seccion)}`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al consultar');
+      }
+
+      renderTabla(data);
+    } catch (err) {
+      console.error('[estado_cpa_curso] Error:', err);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('mensaje-vacio').style.display = 'block';
+      document.getElementById('mensaje-vacio').textContent = 'Error al cargar datos: ' + err.message;
+    }
+  }
+
+  function renderTabla(alumnos) {
+    const tbody = document.getElementById('tabla-estado-cpa');
+    tbody.innerHTML = '';
+
+    const totalAlumnos = alumnos.length;
+    const pagados = alumnos.filter(a => a.cpa_pagado).length;
+    const pendientes = totalAlumnos - pagados;
+
+    // Actualizar resumen
+    document.getElementById('total-alumnos').textContent = totalAlumnos;
+    document.getElementById('total-pagados').textContent = pagados;
+    document.getElementById('total-pendientes').textContent = pendientes;
+
+    // Renderizar filas
+    alumnos.forEach((alumno, idx) => {
+      const row = document.createElement('tr');
+      const estadoBadge = alumno.cpa_pagado
+        ? '<span class="badge-pagado">Pagado</span>'
+        : '<span class="badge-pendiente">Pendiente</span>';
+
+      row.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${alumno.nombre || '—'}</td>
+        <td>${alumno.curso || ''} ${alumno.seccion || ''}</td>
+        <td>${alumno.apoderado || '—'}</td>
+        <td>${estadoBadge}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('resumen-container').style.display = 'flex';
+    document.getElementById('tabla-container').style.display = 'block';
+  }
+</script>
+
+</body>
+</html>

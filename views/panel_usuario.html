@@ -17,13 +17,13 @@
       flex-direction: column;
       align-items: center;
       gap: 2px;
-      padding: 10px 8px;
-      margin-bottom: 8px;
+      padding: 6px 8px;
+      margin-bottom: 6px;
       border-bottom: 1px solid rgba(255,255,255,0.15);
     }
 
     #usuario-nombre {
-      font-size: 0.95rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: white;
       text-align: center;
@@ -31,7 +31,7 @@
     }
 
     #usuario-correo {
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       color: rgba(255,255,255,0.65);
       text-align: center;
       word-break: break-all;
@@ -158,8 +158,8 @@
       <button onclick="closeMobileMenu()" style="background:transparent; border:none; font-size:1.8rem; color:#333; cursor:pointer; line-height:1;">&times;</button>
     </div>
     <!-- Logo -->
-    <div style="text-align:center; padding:0 20px 20px;">
-      <img src="./img/logo.png" alt="Logo" style="width:120px; height:auto;">
+    <div style="text-align:center; padding:0 20px 12px;">
+      <img src="./img/logo.png" alt="Logo" style="width:80px; height:auto;">
     </div>
     <!-- Menu items -->
     <div id="mobile-menu-items" style="padding:0 20px;"></div>
@@ -303,13 +303,45 @@
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
       ],
+      presidente: [
+        { label: '📋 Mis datos', url: 'mis_datos.html' },
+        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
+        { label: '📊 Estado CPA Curso', url: 'estado_cpa_curso.html' },
+        { label: '---', url: '' },
+        { label: '::Ayuda', url: '' },
+        { label: '❓ Ayuda', url: 'ayuda.html' },
+      ],
     };
 
-    function construirMenu(rol) {
+    function construirMenu(rol, roles) {
+      // Combinar menús de todos los roles del usuario (sin duplicar items)
+      let menus = [...(menusPorRol[rol] || menusPorRol['apoderado'])];
+      if (roles && roles.length > 1) {
+        const urlsYaIncluidas = new Set(menus.filter(m => m.url).map(m => m.url));
+        for (const r of roles) {
+          if (r === rol) continue;
+          const menuExtra = menusPorRol[r] || [];
+          for (const item of menuExtra) {
+            if (item.url && !urlsYaIncluidas.has(item.url)) {
+              // Insertar después de "Mis Pagos al CPA" si existe, sino al final antes de Ayuda
+              const idxPagos = menus.findIndex(m => m.url === 'pagos_cpa.html');
+              const idxAyuda = menus.findIndex(m => m.label === '::Ayuda');
+              if (idxPagos !== -1) {
+                menus.splice(idxPagos + 1, 0, item);
+              } else if (idxAyuda !== -1) {
+                menus.splice(idxAyuda, 0, item);
+              } else {
+                menus.push(item);
+              }
+              urlsYaIncluidas.add(item.url);
+            }
+          }
+        }
+      }
+
       // Desktop sidebar
       const container = document.getElementById('menu-container');
       container.innerHTML = '';
-      const menus = menusPorRol[rol] || menusPorRol['apoderado'];
       console.log('Menus a construir:', menus.length, JSON.stringify(menus));
       for (let i = 0; i < menus.length; i++) {
         const item = menus[i];
@@ -424,6 +456,7 @@
 
       // Obtener perfil/rol
       let rol = 'apoderado';
+      let roles = ['apoderado'];
       let paginaInicio = '';
       if (correo) {
         try {
@@ -431,6 +464,7 @@
           if (resPerfil.ok) {
             const perfil = await resPerfil.json();
             rol = perfil.rol || 'apoderado';
+            roles = perfil.roles || [rol];
             paginaInicio = perfil.pagina_inicio || '';
           }
         } catch (err) {
@@ -438,13 +472,13 @@
         }
       }
 
-      const rolDisplay = rol.charAt(0).toUpperCase() + rol.slice(1);
+      const rolDisplay = roles.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(' / ');
       document.getElementById('usuario-rol').textContent = rolDisplay;
       document.getElementById('mobile-rol').textContent = rolDisplay;
       
-      // SIEMPRE construir menú al final
-      console.log('Construyendo menú para rol:', rol);
-      construirMenu(rol);
+      // SIEMPRE construir menú al final (combinando menús si tiene múltiples roles)
+      console.log('Construyendo menú para rol:', rol, 'roles:', roles);
+      construirMenu(rol, roles);
 
       // Determinar página de inicio: usar pagina_inicio del perfil si existe, sino el primer menú del rol
       const menus = menusPorRol[rol] || menusPorRol['apoderado'];

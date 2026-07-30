@@ -221,11 +221,12 @@ const eventoCounterSchema = new mongoose.Schema({
 });
 
 const perfilSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true },
   rut: { type: String, required: true },
   nombre_completo: { type: String, required: true },
-  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor'] },
+  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente'] },
   pagina_inicio: { type: String, default: '' },
+  curso_asignado: { type: String, default: '' },
   activo: { type: Boolean, default: true },
   fecha_creacion: { type: Date, default: Date.now }
 });
@@ -402,7 +403,7 @@ const infoOrganizacionDB = mongoose.model('organizacion', InfoOrganizacionSchema
 /////////////////////////////////////////////////
 
 // Definimos explícitamente los roles permitidos por nivel
-const ROLES_VALIDADOR = ['administrador', 'supervisor', 'validador'];
+const ROLES_VALIDADOR = ['administrador', 'supervisor', 'validador', 'presidente'];
 const ROLES_SUPERVISOR = ['administrador', 'supervisor'];
 const ROLES_ADMINISTRADOR = ['administrador'];
 

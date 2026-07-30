@@ -1028,6 +1028,9 @@
         document.getElementById('loading-state').style.display = 'none';
         document.getElementById('pagos-content').style.display = 'block';
 
+        // Auto-asignar invitados si pagó invitaciones pero no los tiene registrados
+        await autoAsignarInvitadosSiPago(pagos, tieneCuotaCpaPagada);
+
       } catch (error) {
         console.error("Error cargando pagos:", error);
         // Mostrar contenido aunque haya error
@@ -1123,7 +1126,22 @@
           // En sandbox usar sandbox_init_point, en producción usar init_point
           const redirectUrl = result.sandbox_init_point || result.init_point;
           console.log('Redireccionando a Mercado Pago:', redirectUrl);
-          window.location.href = redirectUrl;
+          
+          // Abrir en ventana completa del navegador (no dentro del iframe)
+          // para que el QR/código de barras se vea completo
+          if (window.top !== window.self) {
+            // Estamos dentro de un iframe, abrir en la ventana principal
+            window.top.open(redirectUrl, '_blank', 'width=' + screen.width + ',height=' + screen.height + ',left=0,top=0');
+          } else {
+            window.open(redirectUrl, '_blank', 'width=' + screen.width + ',height=' + screen.height + ',left=0,top=0');
+          }
+
+          if (boton) {
+            boton.disabled = false;
+            boton.style.backgroundColor = '#4A90E2';
+            boton.style.cursor = 'pointer';
+            boton.textContent = 'Pagar';
+          }
         } else {
           const errorMsg = result.error || JSON.stringify(result);
           console.error('Error MP:', errorMsg);
@@ -1325,6 +1343,100 @@
         window.parent.document.getElementById('mobile-visor').src = destino;
       } else {
         window.location.href = destino;
+      }
+    }
+
+    // Auto-asignar invitados cuando se pagó por invitaciones pero no están registrados en user
+    async function autoAsignarInvitadosSiPago(pagos, tieneCuotaCpaPagada) {
+      try {
+        const invitadosActuales = currentUser.invitados || [];
+
+        // Contar invitaciones pagadas (que no son cuota CPA)
+        // Si tiene CPA pagada, las invitaciones vienen incluidas (máximo 2 o 6)
+        // Si NO tiene CPA pagada, buscar pagos de tipo invitaciones/fiesta
+        let invitacionesPagadas = 0;
+
+        if (tieneCuotaCpaPagada) {
+          // Con CPA pagada, tiene derecho a 2 invitados (o 6 si tiene 4° medio)
+          let maxInv = 2;
+          if (currentUser.hijos && currentUser.hijos.length > 0) {
+            const tieneCuartoMedio = currentUser.hijos.some(h => {
+              const curso = (h.curso || '').toLowerCase();
+              return curso.includes('iv') || (curso.includes('4') && curso.includes('medio'));
+            });
+            if (tieneCuartoMedio) maxInv = 6;
+          }
+          invitacionesPagadas = maxInv;
+        } else {
+          // Sin CPA, contar pagos específicos de invitaciones/fiesta
+          if (Array.isArray(pagos)) {
+            pagos.forEach(p => {
+              const tipo = (p.tipo || '').toLowerCase();
+              const subtipo = (p.subtipo || '').toLowerCase();
+              if (tipo.includes('invitacion') || tipo.includes('fiesta') || subtipo.includes('invitacion') || subtipo.includes('fiesta')) {
+                // Cada pago de invitación = 1 invitado (o según cantidad pagada)
+                invitacionesPagadas += 1;
+              }
+            });
+          }
+        }
+
+        console.log('[autoAsignarInvitados] Invitaciones pagadas:', invitacionesPagadas, 'Invitados actuales:', invitadosActuales.length);
+
+        // Si ya tiene los invitados asignados, no hacer nada
+        if (invitadosActuales.length >= invitacionesPagadas || invitacionesPagadas === 0) {
+          return;
+        }
+
+        // Obtener entradas de invitado desde la API
+        let entradasInvitado = [];
+        if (currentUser.hijos && currentUser.hijos.length > 0 && currentUser.hijos[0].nombre) {
+          try {
+            const configRes = await fetch(`/api/config?email=${encodeURIComponent(currentUser.email || user_email || '')}`);
+            const config = await configRes.json();
+            const nombreHijo = currentUser.hijos[0].nombre;
+            const entRes = await fetch(`/api/entrada/familia?id_organizacion=cpa_patrona&id_evento=fiesta_chilena_2026&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
+            });
+            if (entRes.ok) {
+              const entradas = await entRes.json();
+              entradasInvitado = Array.isArray(entradas) ? entradas.filter(e => (e.tipo || '').toLowerCase() === 'invitado') : [];
+            }
+          } catch (err) {
+            console.log('[autoAsignarInvitados] Error obteniendo entradas:', err);
+          }
+        }
+
+        // Crear invitados faltantes
+        const faltantes = invitacionesPagadas - invitadosActuales.length;
+        const nuevosInvitados = [...invitadosActuales];
+        for (let i = 0; i < faltantes; i++) {
+          const idx = nuevosInvitados.length;
+          const entrada = entradasInvitado[idx] || null;
+          nuevosInvitados.push({
+            nombre_completo: 'Invitado ' + (idx + 1),
+            folio: entrada ? entrada.folio : null,
+            jornada: entrada ? entrada.jornada : '',
+            bloques: entrada ? entrada.bloques : ''
+          });
+        }
+
+        // Guardar en BD
+        currentUser.invitados = nuevosInvitados;
+        const regRes = await fetch('/api/registro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...currentUser, invitados: nuevosInvitados })
+        });
+        const regData = await regRes.json();
+        if (regData.error) {
+          console.error('[autoAsignarInvitados] Error guardando:', regData.error);
+        } else {
+          console.log(`[autoAsignarInvitados] Auto-asignados ${faltantes} invitados`);
+        }
+      } catch (err) {
+        console.error('[autoAsignarInvitados] Error:', err);
       }
     }
 

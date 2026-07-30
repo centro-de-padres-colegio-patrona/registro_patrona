@@ -1341,7 +1341,7 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
     if (id_familia) {
       const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 });
       if (tickets) {
-        //console.log(`${tag} ${tickets.length} tickets encontrados para familia ${familia}`);
+        console.log(`${tag} folios: ${tickets.map(t => t.folio)}`);
         res.status(200).json(tickets);
       } else {
         console.log(`${tag} No se encontraron tickets asociados a familia ${familia}`);

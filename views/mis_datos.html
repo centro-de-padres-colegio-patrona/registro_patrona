@@ -1068,6 +1068,7 @@
       const padres = currentUser.padres || [];
       const section = document.getElementById('parent-section');
       const baseForm = section.querySelector('.parent-form');
+      const button = document.querySelector("button[onclick='addParent()']");
 
       // Elimina formularios extra si ya hay más de uno
       section.querySelectorAll('.parent-form').forEach((form, index) => {
@@ -1098,6 +1099,13 @@
         }
         rut_status[padre.apellido + ' ' + padre.nombre] = {rut, is_valid};
       });
+
+      // Desactiva si ya se llegó al máximo
+      if (padres.length >= 2) {
+        button.disabled = true;
+        button.textContent = 'Máximo alcanzado';
+      }
+
     }
 
 

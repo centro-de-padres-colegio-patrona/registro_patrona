@@ -220,6 +220,21 @@
 <p class="estado-msg" id="estado-msg"></p>
 
 <script>
+  async function getApiKey() {
+    try {
+        const config_response = await fetch('/api/config');
+        if (!config_response.ok) 
+            return null;
+        const data = await config_response.json();
+        if (data && data.apiKey)
+            return data.apiKey;
+        return null;
+    } catch (error) {
+        console.error('Unexpected Error: ', error);
+    }
+    return null;
+  }
+
   async function buscar() {
     const q = document.getElementById('inp-busqueda').value.trim();
     const estadoMsg = document.getElementById('estado-msg');
@@ -545,9 +560,10 @@
     if (!confirm(`¿Eliminar todos los datos del apoderado ${email}? Esta acción no se puede deshacer.`)) return;
 
     try {
-      const res = await fetch(`/api/eliminar_apoderado`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const apiKey = await getApiKey();
+      const res = await fetch(`/api/update/user`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
         body: JSON.stringify({ email })
       });
       const data = await res.json();

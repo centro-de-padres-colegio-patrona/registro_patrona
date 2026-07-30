@@ -471,7 +471,16 @@
         const serial = String(folio).padStart(4, '0');
 
         // Consultar estado del ticket en BD
-        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}`)
+      fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
+      .then ( res => res.json() )
+      .then ( async config_json => {
+        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}`,{
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': config_json.apiKey
+          }
+        })
           .then(res => res.json())
           .then(info => {
             if (info.usado || info.estado != 'activa') {
@@ -526,6 +535,10 @@
             `;
             resultadoCard.style.display = 'block';
           });
+        })
+      .catch( err => {
+        console.error(`User ${userEmail} has not access rights`);
+      });
 
       } else {
         // URL válida pero no es entrada
@@ -556,7 +569,7 @@
         const res = await fetch('/api/entrada/validar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey },
-          body: JSON.stringify({ folio: parseInt(folio), validado_por: userEmail })
+          body: JSON.stringify({ folio: parseInt(folio), email: userEmail })
         });
 
         const data = await res.json();

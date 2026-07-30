@@ -99,6 +99,40 @@
       color: #666;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
+
+    /* Seccion del boton enviar correo */
+    .acciones-footer {
+      margin-top: 35px;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    .btn-enviar-correo {
+      background-color: #b22222;
+      color: #ffffff;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(178, 34, 34, 0.25);
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+    .btn-enviar-correo:hover {
+      background-color: #8b0000;
+    }
+    .btn-enviar-correo:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .mensaje-respuesta {
+      margin-top: 12px;
+      font-size: 0.95rem;
+      font-weight: bold;
+    }
+    .mensaje-exito { color: #2e7d32; }
+    .mensaje-error { color: #c62828; }
   </style>
 </head>
 <body>
@@ -118,14 +152,25 @@
     </div>
   </div>
 
+  <!-- Sección del botón al final de la página -->
+  <div class="acciones-footer">
+    <button id="btn-enviar-correo" class="btn-enviar-correo" onclick="enviarEntradasCorreo()">
+      Enviar entradas al correo
+    </button>
+    <div id="mensaje-envio" class="mensaje-respuesta"></div>
+  </div>
+
   <script>
     let userEmail = null;
     let nombres_hijos = null;
+    let entradas = null;
 
     // Función de inicialización
     async function init() {
+      if (!userEmail) {
         userEmail = await getUserEmail();
         console.log(`user email cargado: ${userEmail}`);
+      }
     }
 
     async function getApiKey() {
@@ -226,6 +271,12 @@
         const apiKey = await getApiKey();
         //const familia = localStorage.getItem('familia') || '';
 
+        const result_entradas = await fetch('/api/entrada/activar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({ id_organizacion, id_evento, user_email: userEmail })
+        });
+
         // 2. Construir la consulta a la API incorporando el id_evento
         //const params = new URLSearchParams();
         //if (familia) params.append('familia', familia);
@@ -245,7 +296,8 @@
           throw new Error('No se pudieron obtener las entradas.');
         }
 
-        let entradas = await response.json();
+        const entradas_sin_filtrar = await response.json();
+        entradas = entradas_sin_filtrar.filter(e => e.estado !== 'inactiva');
 
         console.log('Entradas encontradas: ', entradas.length);
         // 3. Si la API devolviera todas las entradas del usuario, filtramos adicionalmente en el cliente
@@ -305,6 +357,60 @@
         console.error('Error al cargar entradas:', error);
         contenedor.className = 'mensaje-info';
         contenedor.innerHTML = '<p>Ocurrió un error al cargar las entradas de la actividad.</p>';
+      }
+    }
+
+    /**
+     * Envía las entradas asociadas al email del usuario
+     */
+    async function enviarEntradasCorreo() {
+      const btn = document.getElementById('btn-enviar-correo');
+      const mensajeDiv = document.getElementById('mensaje-envio');
+
+      await init();
+
+      if (!userEmail) {
+        mensajeDiv.className = 'mensaje-respuesta mensaje-error';
+        mensajeDiv.textContent = 'No se encontró una dirección de correo válida para enviar.';
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Enviando entradas...';
+        mensajeDiv.textContent = '';
+
+        const apiKey = await getApiKey();
+
+        const asuntoCorreo = ' prueba de envio de entradas por correo';
+        const mensajeCorreo = `Entradas`;
+        const tipo_attachment = 'pdf';
+
+        const response = await fetch('/api/entradas/send_email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          },
+          body: JSON.stringify({ email_destinatario: userEmail, asuntoCorreo, mensajeCorreo, tickets: entradas, save_file: false, tipo_attachment})
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          mensajeDiv.className = 'mensaje-respuesta mensaje-exito';
+          mensajeDiv.textContent = '¡Entradas enviadas con éxito a tu correo!';
+        } else {
+          mensajeDiv.className = 'mensaje-respuesta mensaje-error';
+          mensajeDiv.textContent = data.error || 'Ocurrió un error al intentar enviar el correo.';
+        }
+      } catch (error) {
+        console.error('Error al enviar correo:', error);
+        mensajeDiv.className = 'mensaje-respuesta mensaje-error';
+        mensajeDiv.textContent = 'Ocurrió un error al conectar con el servidor.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar entradas al correo';
       }
     }
 

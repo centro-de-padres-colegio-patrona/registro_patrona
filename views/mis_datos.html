@@ -1177,7 +1177,15 @@
 
     function renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados) {
       const cpaPagada = window._cuotaCpaPagada;
+      const entradasInv = _invitadosCargados || [];
       let html = '';
+
+      // Enriquecer invitados con folios de las entradas (por posición)
+      invitadosSolicitados.forEach((inv, idx) => {
+        if (!inv.folio && entradasInv[idx] && entradasInv[idx].folio) {
+          inv.folio = entradasInv[idx].folio;
+        }
+      });
 
       if (cpaPagada) {
         html += `
@@ -1190,10 +1198,11 @@
         if (invitadosSolicitados.length > 0) {
           invitadosSolicitados.forEach((inv, i) => {
             const nombre = inv.nombre_completo || 'Invitado ' + (i + 1);
+            const folioText = inv.folio ? ' — Folio: #' + String(inv.folio).padStart(4, '0') : '';
             html += `
               <div style="background:#f8f9fa; border-radius:6px; padding:10px 14px; margin-bottom:8px; border-left:3px solid #2ecc71; display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                  <div style="font-weight:600; font-size:0.88rem; color:#333;">${nombre}</div>
+                  <div style="font-weight:600; font-size:0.88rem; color:#333;">${nombre}<span style="font-weight:400; font-size:0.8rem; color:#666;">${folioText}</span></div>
                 </div>
                 <button type="button" onclick="eliminarInvitado(${i})" style="background:#f8d7da; color:#721c24; border:none; border-radius:5px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">Quitar</button>
               </div>
@@ -1242,6 +1251,15 @@
           };
         }
       }
+
+      // Si viene con parámetro scroll=invitados, hacer scroll a la sección
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('scroll') === 'invitados') {
+        setTimeout(() => {
+          const seccion = document.getElementById('invitados-section-header');
+          if (seccion) seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
     }
 
     function solicitarInvitado() {
@@ -1268,17 +1286,25 @@
       }
 
       const nuevoNum = invitados.length + 1;
-      const folio = entradasInv[nuevoNum - 1] ? entradasInv[nuevoNum - 1].folio : null;
+      // Asignar folio por posición: Invitado N usa la entrada N-1
+      const entradaParaEsteInvitado = entradasInv[invitados.length] || null;
 
       invitados.push({
         nombre_completo: 'Invitado ' + nuevoNum,
-        folio: folio,
-        jornada: entradasInv[nuevoNum - 1] ? entradasInv[nuevoNum - 1].jornada : '',
-        bloques: entradasInv[nuevoNum - 1] ? entradasInv[nuevoNum - 1].bloques : ''
+        folio: entradaParaEsteInvitado ? entradaParaEsteInvitado.folio : null,
+        jornada: entradaParaEsteInvitado ? entradaParaEsteInvitado.jornada : '',
+        bloques: entradaParaEsteInvitado ? entradaParaEsteInvitado.bloques : ''
       });
 
       currentUser.invitados = invitados;
-      _invitadosCargados = _invitadosCargados.length > 0 ? _invitadosCargados : invitados;
+
+      // Reasignar folios a todos los invitados por orden (por si se eliminó uno intermedio)
+      currentUser.invitados.forEach((inv, idx) => {
+        const entrada = entradasInv[idx] || null;
+        inv.folio = entrada ? entrada.folio : null;
+        inv.jornada = entrada ? entrada.jornada : (inv.jornada || '');
+        inv.bloques = entrada ? entrada.bloques : (inv.bloques || '');
+      });
 
       // Guardar en BD
       fetch('/api/registro', {
@@ -1613,30 +1639,73 @@
     async function addBrothers() {
       const childrenData = retrieve_hijos();
       console.log('childrenData: ', childrenData);
-      //const childrenListNoFiltered = Array.from(childrenData).map(child => (child.nombre));
-      //const childrenList = childrenListNoFiltered.filter(name => name !== '');
       const childrenList = Array.from(childrenData).map(child => (child.nombre)).filter(name => name !== '');
       console.log('childrenList: ', childrenList);
       if (childrenList.length === 0)
         return;
-      childrenList.sort((a, b) => a.localeCompare(b));
+
+      // Solo buscar hermanos de los hijos que ya están registrados en la BD del usuario
+      const hijosRegistrados = (currentUser.hijos || []).map(h => (h.nombre || '').toLowerCase().trim());
+      const childrenListValidados = childrenList.filter(name => 
+        hijosRegistrados.includes(name.toLowerCase().trim())
+      );
+      console.log('[addBrothers] childrenList original:', childrenList);
+      console.log('[addBrothers] hijosRegistrados en BD:', hijosRegistrados);
+      console.log('[addBrothers] childrenListValidados:', childrenListValidados);
+
+      if (childrenListValidados.length === 0)
+        return;
+
+      childrenListValidados.sort((a, b) => a.localeCompare(b));
       const response = await fetch('/api/hermanos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brothers_list: childrenList })
+        body: JSON.stringify({ brothers_list: childrenListValidados })
       });
       const brotherInfoMap = await response.json();
       console.log('brotherInfoMap: ', brotherInfoMap);
-      const brothersList = await getBrothersList(brotherInfoMap);
-      console.log('brothers info: ', brotherInfoMap);
+
+      // Validar que los hermanos pertenezcan al apoderado actual
+      const emailActual = (currentUser.email || '').toLowerCase().trim();
+      const correosApoderado = [emailActual];
+      if (currentUser.padres && Array.isArray(currentUser.padres)) {
+        currentUser.padres.forEach(p => {
+          if (p.correo) correosApoderado.push(p.correo.toLowerCase().trim());
+        });
+      }
+
+      // Filtrar brotherInfoMap: solo considerar hermanos cuyo apoderado_email incluya al usuario
+      const brotherInfoMapFiltrado = {};
+      for (const [nombre, info] of Object.entries(brotherInfoMap)) {
+        if (!info) continue;
+        if (info.apoderado_email && Array.isArray(info.apoderado_email) && info.apoderado_email.length > 0) {
+          const emailsHermano = info.apoderado_email.map(e => (e || '').toLowerCase().trim());
+          const perteneceAlApoderado = correosApoderado.some(correo => emailsHermano.includes(correo));
+          if (perteneceAlApoderado) {
+            brotherInfoMapFiltrado[nombre] = info;
+          } else {
+            console.log(`[addBrothers] Hermano "${nombre}" NO pertenece al apoderado actual. Omitido.`);
+          }
+        } else {
+          // Sin apoderado_email: solo incluir si ya es un hijo registrado del usuario
+          if (hijosRegistrados.includes(nombre.toLowerCase().trim())) {
+            brotherInfoMapFiltrado[nombre] = info;
+          } else {
+            console.log(`[addBrothers] Hermano "${nombre}" sin apoderado_email y no registrado. Omitido.`);
+          }
+        }
+      }
+
+      const brothersList = await getBrothersList(brotherInfoMapFiltrado);
+      console.log('brothers info: ', brotherInfoMapFiltrado);
       console.log('brothersList: ', brothersList);
       const apoderadosList = await getApoderadosList(brothersList);
       console.log('Lista Apoderados: ', apoderadosList )
-      isEqual = compareArrays(childrenList, brothersList);
+      isEqual = compareArrays(childrenListValidados, brothersList);
       console.log('compareArrays: ', isEqual);
       if (!isEqual) {
-        const childrenSet = new Set(childrenList);
-        const newBrothersList = brothersList.filter(brother => !childrenSet.has(brother));
+        const childrenSet = new Set(childrenList.map(n => n.toLowerCase().trim()));
+        const newBrothersList = brothersList.filter(brother => !childrenSet.has(brother.toLowerCase().trim()));
         console.log('newBrothersList: ', newBrothersList);
         newBrothersList.forEach(childName => {
           console.log('fetching name ', childName);

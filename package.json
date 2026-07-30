@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@fdograph/rut-utilities": "^1.4.0",
+    "@ngrok/ngrok": "^1.7.0",
     "axios": "^1.15.2",
     "bcrypt": "^6.0.0",
     "canvas": "^3.2.0",

@@ -26,17 +26,19 @@ const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 
+const ngrok = require('@ngrok/ngrok');
+
 const LOCAL_PORT = config_env.LOCAL_PORT;
 const PORT = process.env.PORT || LOCAL_PORT;
 
 //const SECRET_API_KEY = config_env.API_KEY;
 
 // Si corre en local usa ngrok para callbacks de pago, si no usa la URL de producción (Render)
-const BASEURL = (PORT === LOCAL_PORT)
-  ? 'https://unhappily-correct-squeeze.ngrok-free.dev'
+let BASEURL = (PORT === LOCAL_PORT)
+  ? null  // Se asignará dinámicamente al iniciar ngrok
   : git_branch.BASEURL;  //'https://registro-patrona.onrender.com';
 
-console.log(`Starting Server with BASEURL: ${BASEURL}:${PORT}`);
+console.log(`Starting Server with PORT: ${PORT}`);
 
 const isRebasedWithDesarrollo = git_branch.isRebasedWith('origin/desarrollo');
 
@@ -44,7 +46,7 @@ console.log('Verifying is Rebasing with dessarrollo: ', isRebasedWithDesarrollo)
 
 const database_year_name = config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');
-const url_api = (PORT === LOCAL_PORT) ? `http://localhost:${LOCAL_PORT}` : BASEURL;
+const url_api = (PORT == LOCAL_PORT) ? `http://localhost:${LOCAL_PORT}` : BASEURL;
 db_support.connectToDB(database_year_name, url_api);
 
 //const listado_cursos = require('./backend/listadoCurso');
@@ -2454,7 +2456,25 @@ app.get('/api/mp/return', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Start the server on port 8080
-app.listen(PORT, () => {
+// Start the server
+app.listen(PORT, async () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
+
+  // Si estamos en modo local, iniciar túnel ngrok automáticamente
+  if (PORT == LOCAL_PORT) {
+    try {
+      const listener = await ngrok.forward({
+        addr: PORT,
+        authtoken_from_env: true, // Usa NGROK_AUTHTOKEN de .env o variable de entorno
+      });
+      BASEURL = listener.url();
+      console.log(`ngrok túnel establecido: ${BASEURL}`);
+    } catch (err) {
+      console.error('Error al iniciar ngrok:', err.message);
+      console.log('Continuando sin ngrok. Los callbacks de pago no funcionarán en local.');
+      BASEURL = `http://localhost:${PORT}`;
+    }
+  } else {
+    console.log(`BASEURL (producción): ${BASEURL}`);
+  }
 })

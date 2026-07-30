@@ -1,53 +1,82 @@
 // Configurations
 
 // Imports
-import dotenv from 'dotenv';
-
-import { BASEURL } from '../../../backend/git_branch.js';
+const dotenv = require('dotenv');
 
 // Load .env
-dotenv.config({ path: './.env.local' })
+dotenv.config({ path: './.env.local' });
 
 // URL
-export const URL_API = process.env.REACT_APP_URL_API
-export const URL_WEB = process.env.REACT_APP_URL_WEB
+const URL_API = process.env.REACT_APP_URL_API;
+const URL_WEB = process.env.REACT_APP_URL_WEB;
 
 // Oauth
-export const OAUTH_FACEBOOK_ID = process.env.REACT_APP_OAUTH_FACEBOOK_ID
-export const OAUTH_GOOGLE_ID = process.env.REACT_APP_OAUTH_GOOGLE_ID
-export const OAUTH_INSTAGRAM_ID = process.env.REACT_APP_OAUTH_INSTAGRAM_ID
-export const OAUTH_LINKEDIN_ID = process.env.REACT_APP_OAUTH_LINKEDIN_ID
-export const OAUTH_TWITTER_ID = process.env.REACT_APP_OAUTH_TWITTER_ID
-export const OAUTH_REDDIT_ID = process.env.REACT_APP_OAUTH_REDDIT_ID
-export const OAUTH_DISCORD_ID = process.env.REACT_APP_OAUTH_DISCORD_ID
-export const OAUTH_ZOOM_ID = process.env.REACT_APP_OAUTH_ZOOM_ID
+const OAUTH_FACEBOOK_ID = process.env.REACT_APP_OAUTH_FACEBOOK_ID;
+const OAUTH_GOOGLE_ID = process.env.REACT_APP_OAUTH_GOOGLE_ID;
+const OAUTH_INSTAGRAM_ID = process.env.REACT_APP_OAUTH_INSTAGRAM_ID;
+const OAUTH_LINKEDIN_ID = process.env.REACT_APP_OAUTH_LINKEDIN_ID;
+const OAUTH_TWITTER_ID = process.env.REACT_APP_OAUTH_TWITTER_ID;
+const OAUTH_REDDIT_ID = process.env.REACT_APP_OAUTH_REDDIT_ID;
+const OAUTH_DISCORD_ID = process.env.REACT_APP_OAUTH_DISCORD_ID;
+const OAUTH_ZOOM_ID = process.env.REACT_APP_OAUTH_ZOOM_ID;
 
-export const OAUTH_GITHUB_ID = process.env.REACT_APP_OAUTH_GITHUB_ID
-export const OAUTH_GITLAB_ID = process.env.REACT_APP_OAUTH_GITLAB_ID
-export const OAUTH_DIGITALOCEAN_ID = process.env.REACT_APP_OAUTH_DIGITALOCEAN_ID
-export const OAUTH_BITBUCKET_ID = process.env.REACT_APP_OAUTH_BITBUCKET_ID
-export const OAUTH_AZURE_ID = process.env.REACT_APP_OAUTH_AZURE_ID
-export const OAUTH_AZURE_TENANT = process.env.REACT_APP_OAUTH_AZURE_TENANT
+const OAUTH_GITHUB_ID = process.env.REACT_APP_OAUTH_GITHUB_ID;
+const OAUTH_GITLAB_ID = process.env.REACT_APP_OAUTH_GITLAB_ID;
+const OAUTH_DIGITALOCEAN_ID = process.env.REACT_APP_OAUTH_DIGITALOCEAN_ID;
+const OAUTH_BITBUCKET_ID = process.env.REACT_APP_OAUTH_BITBUCKET_ID;
+const OAUTH_AZURE_ID = process.env.REACT_APP_OAUTH_AZURE_ID;
+const OAUTH_AZURE_TENANT = process.env.REACT_APP_OAUTH_AZURE_TENANT;
 
-export const OAUTH_SPOTIFY_ID = process.env.REACT_APP_OAUTH_SPOTIFY_ID
-export const OAUTH_SHOPIFY_ID = process.env.REACT_APP_OAUTH_SHOPIFY_ID
-export const OAUTH_SHOPIFY_STORE = process.env.REACT_APP_OAUTH_SHOPIFY_STORE
+const OAUTH_SPOTIFY_ID = process.env.REACT_APP_OAUTH_SPOTIFY_ID;
+const OAUTH_SHOPIFY_ID = process.env.REACT_APP_OAUTH_SHOPIFY_ID;
+const OAUTH_SHOPIFY_STORE = process.env.REACT_APP_OAUTH_SHOPIFY_STORE;
 
-export const DATABASE_YEAR_NAME = process.env.DATABASE_YEAR_NAME || ''
+const DATABASE_YEAR_NAME = process.env.DATABASE_YEAR_NAME || '';
 
+const FLOW_API_KEY = process.env.FLOW_API_KEY;
+const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY;
 
-export const FLOW_API_KEY = process.env.FLOW_API_KEY 
-export const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY
+const LOCAL_PORT = process.env.LOCAL_PORT || 5001;
 
-export const LOCAL_PORT = process.env.LOCAL_PORT || 5001
+const API_KEY = process.env.API_KEY || '123456';
 
-export const API_KEY = process.env.API_KEY || '123456'
+const URL_SERVER = process.env.URL_SERVER || '';
 
-export const URL_SERVER = process.env.URL_SERVER || BASEURL
+/// Database
+const DB_USER = process.env.DB_USER;
+const DB_PASSWORD = process.env.DB_PASSWORD;
+const DB_URL = process.env.DB_URL;
+const DB_MAIN_DATABASE_NAME = process.env.DB_MAIN_DATABASE_NAME;
 
-
-/// Database 
-export const DB_USER = process.env.DB_USER
-export const DB_PASSWORD = process.env.DB_PASSWORD
-export const DB_URL = process.env.DB_URL
-export const DB_MAIN_DATABASE_NAME = process.env.DB_MAIN_DATABASE_NAME
+// Exports
+module.exports = {
+  URL_API,
+  URL_WEB,
+  OAUTH_FACEBOOK_ID,
+  OAUTH_GOOGLE_ID,
+  OAUTH_INSTAGRAM_ID,
+  OAUTH_LINKEDIN_ID,
+  OAUTH_TWITTER_ID,
+  OAUTH_REDDIT_ID,
+  OAUTH_DISCORD_ID,
+  OAUTH_ZOOM_ID,
+  OAUTH_GITHUB_ID,
+  OAUTH_GITLAB_ID,
+  OAUTH_DIGITALOCEAN_ID,
+  OAUTH_BITBUCKET_ID,
+  OAUTH_AZURE_ID,
+  OAUTH_AZURE_TENANT,
+  OAUTH_SPOTIFY_ID,
+  OAUTH_SHOPIFY_ID,
+  OAUTH_SHOPIFY_STORE,
+  DATABASE_YEAR_NAME,
+  FLOW_API_KEY,
+  FLOW_SECRET_KEY,
+  LOCAL_PORT,
+  API_KEY,
+  URL_SERVER,
+  DB_USER,
+  DB_PASSWORD,
+  DB_URL,
+  DB_MAIN_DATABASE_NAME,
+};

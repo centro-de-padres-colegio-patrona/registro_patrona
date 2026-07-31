@@ -323,6 +323,10 @@
           const menuExtra = menusPorRol[r] || [];
           for (const item of menuExtra) {
             if (item.url && !urlsYaIncluidas.has(item.url)) {
+              // Solo agregar "Estado CPA Curso" si tiene curso_asignado
+              if (item.url === 'estado_cpa_curso.html' && !window._cursoAsignado) {
+                continue;
+              }
               // Insertar después de "Mis Pagos al CPA" si existe, sino al final antes de Ayuda
               const idxPagos = menus.findIndex(m => m.url === 'pagos_cpa.html');
               const idxAyuda = menus.findIndex(m => m.label === '::Ayuda');
@@ -458,6 +462,7 @@
       let rol = 'apoderado';
       let roles = ['apoderado'];
       let paginaInicio = '';
+      window._cursoAsignado = '';
       if (correo) {
         try {
           const resPerfil = await fetch(`/api/mi-perfil?email=${encodeURIComponent(correo)}`);
@@ -466,6 +471,7 @@
             rol = perfil.rol || 'apoderado';
             roles = perfil.roles || [rol];
             paginaInicio = perfil.pagina_inicio || '';
+            window._cursoAsignado = perfil.curso_asignado || '';
           }
         } catch (err) {
           console.error('Error obteniendo perfil:', err);

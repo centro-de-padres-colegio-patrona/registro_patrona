@@ -875,6 +875,12 @@
         console.log('/api/compromisos_pago: ', compromisos);
 
         // Obtener estado de pagos desde BD
+        // Primero reconciliar pagos confirmados que no se registraron
+        console.log('Reconciliando pagos pendientes...');
+        try {
+          await fetch(`/api/reconciliar_pagos?user_email=${encodeURIComponent(user_email)}`);
+        } catch(e) { console.log('Error reconciliando:', e); }
+
         console.log('Obteniendo estado de pagos desde /api/estado_pago_cpa...');
         let pagos = null;
         if (sessionOpened) {
@@ -998,6 +1004,77 @@
             estadoCuotaEl.innerHTML = `
               <span style="color: #e74c3c; font-weight: bold; font-size: 0.95rem;">❌ Cuota CPA Pendiente</span>
             `;
+          }
+
+          // Verificar si ya pagó invitaciones (sin CPA) y bloquear la tarjeta
+          const invitadosRegistrados = currentUser.invitados || [];
+          if (invitadosRegistrados.length > 0) {
+            // Calcular máximo permitido según curso
+            let maxInvPermitidos = 2;
+            if (currentUser.hijos && currentUser.hijos.length > 0) {
+              const tieneCuartoMedio = currentUser.hijos.some(h => {
+                const curso = (h.curso || '').toLowerCase();
+                return curso.includes('iv') || (curso.includes('4') && curso.includes('medio'));
+              });
+              if (tieneCuartoMedio) maxInvPermitidos = 6;
+            }
+
+            compromisos.forEach(item => {
+              const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
+                                     (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
+                                     (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
+              if (esInvitaciones) {
+                const checkbox = document.getElementById(`check-${item.id}`);
+                if (checkbox) {
+                  const contenedorCheck = checkbox.parentNode;
+                  if (contenedorCheck) {
+                    if (invitadosRegistrados.length >= maxInvPermitidos) {
+                      // Alcanzó el máximo - bloquear
+                      contenedorCheck.innerHTML = `
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+                          <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                            ✓ Invitaciones pagadas (${invitadosRegistrados.length})
+                          </span>
+                          <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
+                            ✓ Invitados asignados (${invitadosRegistrados.length}/${maxInvPermitidos})
+                          </button>
+                        </div>
+                      `;
+                      // Ocultar control de cantidad
+                      const cantControl = document.getElementById(`cant-${item.id}`);
+                      if (cantControl && cantControl.closest('.cantidad-control')) {
+                        cantControl.closest('.cantidad-control').style.display = 'none';
+                      }
+                    } else {
+                      // Aún puede comprar más - mostrar cuántas tiene y dejar habilitado
+                      const faltantes = maxInvPermitidos - invitadosRegistrados.length;
+                      contenedorCheck.innerHTML = `
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+                          <span style="color: #f39c12; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+                            Invitaciones pagadas: ${invitadosRegistrados.length}/${maxInvPermitidos}
+                          </span>
+                          <div style="margin-top:4px;">
+                            <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">
+                            <span class="label-pago">Agregar para pagar</span>
+                          </div>
+                        </div>
+                      `;
+                      // Reemplazar el control de cantidad original con el máximo correcto
+                      const cantControl = document.getElementById(`cant-${item.id}`);
+                      if (cantControl && cantControl.closest('.cantidad-control')) {
+                        const cantContainer = cantControl.closest('.cantidad-control');
+                        cantContainer.innerHTML = `
+                          <span class="label-pago">Cantidad:</span>
+                          <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', -1)">-</button>
+                          <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" readonly>
+                          <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${faltantes})">+</button>
+                        `;
+                      }
+                    }
+                  }
+                }
+              }
+            });
           }
         }
 
@@ -1373,8 +1450,13 @@
             pagos.forEach(p => {
               const tipo = (p.tipo || '').toLowerCase();
               const subtipo = (p.subtipo || '').toLowerCase();
-              if (tipo.includes('invitacion') || tipo.includes('fiesta') || subtipo.includes('invitacion') || subtipo.includes('fiesta')) {
-                // Cada pago de invitación = 1 invitado (o según cantidad pagada)
+              const esInvitacion = tipo.includes('invitacion') || tipo.includes('fiesta') ||
+                subtipo.includes('invitacion') || subtipo.includes('fiesta') ||
+                subtipo.includes('adicional');
+              // También detectar por monto: pagos de $5000 via flow/mercadopago que no son cuota_cpa
+              const esPagoInvitacionPorMonto = (p.payment_method === 'flow' || p.payment_method === 'mercadopago') 
+                && p.monto === 5000 && !p.cuota_cpa;
+              if (esInvitacion || esPagoInvitacionPorMonto) {
                 invitacionesPagadas += 1;
               }
             });

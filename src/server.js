@@ -884,6 +884,21 @@ app.post('/api/registro', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'No se pudo identificar al usuario (sin _id ni email)' });
     }
 
+    // Validar que el usuario que envía es el representante de la familia
+    // Si hay padres con es_usuario_cuenta, solo ese correo puede realizar modificaciones
+    const userExistente = await db_support.usersDB.findOne(filtro);
+    if (userExistente && userExistente.padres && userExistente.padres.length > 0) {
+      const representante = userExistente.padres.find(p => p.es_usuario_cuenta === true);
+      if (representante) {
+        const correoRepresentante = (representante.correo || '').toLowerCase().trim();
+        const correoSolicitante = (registro.email || '').toLowerCase().trim();
+        if (correoRepresentante && correoSolicitante && correoRepresentante !== correoSolicitante) {
+          console.warn(`[/api/registro] Intento de modificación rechazado. Solicitante: ${correoSolicitante}, Representante: ${correoRepresentante}`);
+          return res.status(403).json({ error: 'Solo el representante de la familia puede modificar los datos' });
+        }
+      }
+    }
+
     const userActualizado = await db_support.usersDB.findOneAndUpdate(
       filtro,
       { $set: { hijos: registro.hijos, padres: registro.padres, invitados: registro.invitados } },
@@ -1463,7 +1478,8 @@ app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async 
         id: nombres_hijos[0],
         num_folio: result.commerceOrder,
         tipo: 'flow',
-        cuota_cpa: result.subject === 'cuota_cpa',
+        subtipo: result.subject || '',
+        cuota_cpa: result.subject === 'cuota_cpa' || result.subject === 'Cuota CPA',
         monto: result.amount,
         cantidad_agendas: 0,
         entrega_agendas: 0,
@@ -2489,8 +2505,11 @@ app.listen(PORT, async () => {
   // Si estamos en modo local, iniciar túnel ngrok automáticamente
   if (PORT == LOCAL_PORT) {
     try {
-      // Intentar desconectar sesiones previas de ngrok
-      try { await ngrok.disconnect(); } catch(e) {}
+      // Cerrar todas las sesiones/tunnels previos de la cuenta ngrok
+      try { 
+        await ngrok.disconnect();
+        await ngrok.kill();
+      } catch(e) {}
       
       const listener = await ngrok.forward({
         addr: PORT,

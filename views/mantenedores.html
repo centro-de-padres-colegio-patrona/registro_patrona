@@ -441,7 +441,7 @@
       'apoderados.html': '👨‍👩‍👧 Apoderados',
     };
 
-    perfilesCache.filter(p => p.activo !== false).forEach(p => {
+    perfilesCache.filter(p => p.activo !== false && p.rol !== 'presidente').forEach(p => {
       const row = document.createElement('tr');
       const paginaInicio = p.pagina_inicio ? (paginaLabels[p.pagina_inicio] || p.pagina_inicio) : '— Defecto —';
       row.innerHTML = `

@@ -243,5 +243,79 @@ router.get('/estado_cpa_curso', async (req, res) => {
 });
 
 
+// Endpoint: Reconciliar pagos confirmados en paymentOrders que no tienen registro en pagos
+router.get('/reconciliar_pagos', async (req, res) => {
+  const tag = '[GET /api/reconciliar_pagos]';
+  try {
+    const { user_email } = req.query;
+    if (!user_email) return res.status(400).json({ error: 'user_email requerido' });
+
+    // 1. Buscar paymentOrders pagadas (status 200) de este usuario
+    const ordenesPagadas = await db_support.paymentOrdersDB.find({ 
+      email: user_email, 
+      status: '200'
+    });
+
+    if (!ordenesPagadas || ordenesPagadas.length === 0) {
+      return res.json({ reconciliados: 0, pagos_nuevos: [] });
+    }
+
+    // 2. Para cada orden pagada, verificar si ya existe un pago con ese commerce_order
+    const pagosNuevos = [];
+    for (const orden of ordenesPagadas) {
+      const commerceOrder = String(orden.commerceOrder);
+      const existePago = await db_support.pagosDB.findOne({ commerce_order: commerceOrder });
+      
+      if (!existePago) {
+        // No tiene registro en pagos — crearlo
+        const optional = orden.optional ? (typeof orden.optional === 'string' ? JSON.parse(orden.optional) : orden.optional) : {};
+        const nombresHijos = optional['Nombre Hijos'] ? optional['Nombre Hijos'].split(',') : [];
+        const primerHijo = nombresHijos[0] || '';
+        
+        // Determinar tipo/subtipo
+        const subject = orden.subject || '';
+        const esCuotaCpa = subject.toLowerCase().includes('cuota') && subject.toLowerCase().includes('cpa');
+        const esInvitacion = subject.toLowerCase().includes('invitacion') || subject.toLowerCase().includes('fiesta') || subject.toLowerCase().includes('adicional');
+        
+        // Si no tiene subject, inferir por monto
+        let subtipo = subject;
+        if (!subtipo) {
+          if (orden.amount === 5000) subtipo = 'invitaciones_fiesta_chilena';
+          else if (orden.amount >= 20000) subtipo = 'cuota_cpa';
+          else subtipo = 'otro';
+        }
+
+        const nuevoPago = {
+          id: primerHijo,
+          num_folio: parseInt(commerceOrder) || 0,
+          tipo: orden.payment_method || 'flow',
+          subtipo: subtipo,
+          cuota_cpa: esCuotaCpa,
+          monto: orden.amount || 0,
+          cantidad_agendas: 0,
+          entrega_agendas: 0,
+          fecha: new Date().toLocaleDateString('es-CL'),
+          comentarios: 'Reconciliado automáticamente',
+          entradas_pagadas: 0,
+          payment_method: orden.payment_method || 'flow',
+          commerce_order: commerceOrder,
+        };
+
+        await db_support.pagosDB.create(nuevoPago);
+        pagosNuevos.push(nuevoPago);
+        console.log(`${tag} Pago reconciliado: ${commerceOrder} -> ${subtipo} $${orden.amount}`);
+      }
+    }
+
+    console.log(`${tag} Reconciliados: ${pagosNuevos.length} de ${ordenesPagadas.length} órdenes`);
+    res.json({ reconciliados: pagosNuevos.length, pagos_nuevos: pagosNuevos });
+
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al reconciliar pagos' });
+  }
+});
+
+
 module.exports = router;
 

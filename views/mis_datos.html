@@ -275,6 +275,9 @@
         mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
         addBrothers();
         
+        // Aplicar restricción si el usuario no es el representante de la familia
+        aplicarRestriccionNoRepresentante();
+        
         //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
         const correo = currentUser.email && currentUser.email.trim() !== "" 
             ? currentUser.email 
@@ -311,6 +314,8 @@
                 document.getElementById('completitudLabel').style.display = 'none';
                 window._ocultarCompletitud = true;
               }
+              // Aplicar restricción si el usuario no es el representante de la familia
+              aplicarRestriccionNoRepresentante();
             })
             .catch(err2 => {
               console.error('[mis_datos] Error cargando manual user:', err2);
@@ -913,6 +918,71 @@
       elementos.forEach(el => el.disabled = true);
     }
 
+    /**
+     * Restricción: Si el usuario logueado NO es el Representante de la familia IMG,
+     * deshabilita todos los controles de modificación (desvincular, modificar, eliminar, enviar).
+     * Solo el representante puede realizar cambios.
+     */
+    function aplicarRestriccionNoRepresentante() {
+      if (!currentUser || !currentUser.padres || currentUser.padres.length === 0) return;
+
+      // Determinar si el usuario logueado es el representante
+      const esRepresentante = currentUser.padres.some(p => 
+        p.es_usuario_cuenta === true && 
+        (p.correo || '').toLowerCase().trim() === (currentUser.email || '').toLowerCase().trim()
+      );
+
+      console.log('[mis_datos] esRepresentante:', esRepresentante, 'email:', currentUser.email);
+
+      // Si ES el representante, no aplicar restricción
+      if (esRepresentante) return;
+
+      // Si NO es el representante, bloquear todas las acciones de modificación
+      console.log('[mis_datos] Usuario NO es representante. Deshabilitando controles de modificación...');
+
+      // Deshabilitar botones de Eliminar y Modificar en sección padres
+      document.querySelectorAll('.btn-eliminar-parent, .btn-modificar-parent').forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'not-allowed';
+        btn.title = 'Solo el representante de la familia puede realizar esta acción';
+      });
+
+      // Deshabilitar botones de Desvincular y Modificar en sección hijos
+      document.querySelectorAll('.btn-eliminar-child, .btn-modificar-child').forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'not-allowed';
+        btn.title = 'Solo el representante de la familia puede realizar esta acción';
+      });
+
+      // Deshabilitar botón Enviar (submit)
+      const submitBtn = document.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Solo el representante puede modificar datos';
+        submitBtn.style.backgroundColor = '#6c757d';
+        submitBtn.style.cursor = 'not-allowed';
+        submitBtn.style.opacity = '0.8';
+      }
+
+      // Deshabilitar botones de agregar hijo/padre
+      document.querySelectorAll("button[onclick='addChild()'], button[onclick='addParent()']").forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'not-allowed';
+        btn.title = 'Solo el representante de la familia puede realizar esta acción';
+      });
+
+      // Deshabilitar checkbox de representante para evitar cambio de representante
+      document.querySelectorAll('.usuario-cuenta-check').forEach(cb => {
+        cb.disabled = true;
+      });
+
+      // Mostrar mensaje informativo
+      mostrarEstado("ℹ️ Solo el representante de la familia puede modificar los datos", 2);
+    }
+
     function fillChild(childForm, childInfo) {
       const { curso, seccion, nombre} = childInfo;
       const selectCurso = reverse_curso_map[curso];
@@ -1161,11 +1231,28 @@
 
       // Esperar a que se resuelva el estado de pago CPA antes de renderizar
       const emailPago = currentUser.email || '';
+      // Reconciliar pagos primero
+      fetch('/api/reconciliar_pagos?user_email=' + encodeURIComponent(emailPago)).catch(() => {});
       fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(emailPago))
         .then(res => res.json())
         .then(pagos => {
           window._cuotaCpaPagada = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
-          console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada);
+          // También verificar si pagó invitaciones sin CPA
+          window._invitacionesPagadas = 0;
+          if (!window._cuotaCpaPagada && Array.isArray(pagos)) {
+            pagos.forEach(p => {
+              const tipo = (p.tipo || '').toLowerCase();
+              const subtipo = (p.subtipo || '').toLowerCase();
+              const esInvitacion = tipo.includes('invitacion') || tipo.includes('fiesta') ||
+                subtipo.includes('invitacion') || subtipo.includes('fiesta') || subtipo.includes('adicional');
+              const esPagoInvitacionPorMonto = (p.payment_method === 'flow' || p.payment_method === 'mercadopago')
+                && p.monto === 5000 && !p.cuota_cpa;
+              if (esInvitacion || esPagoInvitacionPorMonto) {
+                window._invitacionesPagadas += 1;
+              }
+            });
+          }
+          console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
           renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
         })
         .catch(err => {
@@ -1177,6 +1264,7 @@
 
     function renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados) {
       const cpaPagada = window._cuotaCpaPagada;
+      const invitacionesPagadas = window._invitacionesPagadas || 0;
       const entradasInv = _invitadosCargados || [];
       let html = '';
 
@@ -1187,10 +1275,13 @@
         }
       });
 
-      if (cpaPagada) {
+      // Si tiene invitados ya registrados (con o sin pago), mostrarlos
+      if (cpaPagada || invitacionesPagadas > 0 || invitadosSolicitados.length > 0) {
+        const maxPermitidos = cpaPagada ? maxInvitados : (invitacionesPagadas > 0 ? invitacionesPagadas : invitadosSolicitados.length);
+        const etiqueta = cpaPagada ? 'Invitados permitidos' : (invitacionesPagadas > 0 ? 'Invitaciones pagadas' : 'Invitados asignados');
         html += `
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-            <span style="color:#2ecc71; font-weight:700; font-size:0.9rem;">✓ Invitados permitidos: ${maxInvitados}</span>
+            <span style="color:#2ecc71; font-weight:700; font-size:0.9rem;">✓ ${etiqueta}: ${maxPermitidos}</span>
           </div>
         `;
 
@@ -1199,12 +1290,19 @@
           invitadosSolicitados.forEach((inv, i) => {
             const nombre = inv.nombre_completo || 'Invitado ' + (i + 1);
             const folioText = inv.folio ? ' — Folio: #' + String(inv.folio).padStart(4, '0') : '';
+            
+            // Si NO tiene CPA pagada, los invitados fueron pagados individualmente → no permitir quitar
+            const puedeQuitar = cpaPagada;
+            const botonQuitar = puedeQuitar 
+              ? `<button type="button" onclick="eliminarInvitado(${i})" style="background:#f8d7da; color:#721c24; border:none; border-radius:5px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">Quitar</button>`
+              : `<span style="font-size:0.72rem; color:#2ecc71; font-weight:600;">Pagado</span>`;
+
             html += `
               <div style="background:#f8f9fa; border-radius:6px; padding:10px 14px; margin-bottom:8px; border-left:3px solid #2ecc71; display:flex; justify-content:space-between; align-items:center;">
                 <div>
                   <div style="font-weight:600; font-size:0.88rem; color:#333;">${nombre}<span style="font-weight:400; font-size:0.8rem; color:#666;">${folioText}</span></div>
                 </div>
-                <button type="button" onclick="eliminarInvitado(${i})" style="background:#f8d7da; color:#721c24; border:none; border-radius:5px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">Quitar</button>
+                ${botonQuitar}
               </div>
             `;
           });
@@ -1217,7 +1315,8 @@
         // Mostrar/ocultar botón según máximo
         const btnAgregar = document.getElementById('btn-agregar-invitados');
         if (btnAgregar) {
-          if (invitadosSolicitados.length < maxInvitados) {
+          const maxPermitidosFinal = cpaPagada ? maxInvitados : (invitacionesPagadas > 0 ? invitacionesPagadas : invitadosSolicitados.length);
+          if (invitadosSolicitados.length < maxPermitidosFinal) {
             btnAgregar.style.display = '';
             btnAgregar.textContent = '+ Solicitar Invitado';
           } else {
@@ -1447,16 +1546,39 @@
       if (submitButton) {
         submitButton.disabled = true;
         submitButton.textContent = 'Datos actualizados';
+        submitButton.style.backgroundColor = '#6c757d';
+        submitButton.style.cursor = 'not-allowed';
+        submitButton.style.opacity = '0.8';
       }
     }
 
     function enableSubmitButton() {
+      // No reactivar si el usuario no es el representante de la familia
+      if (currentUser && currentUser.padres && currentUser.padres.length > 0) {
+        const esRepresentante = currentUser.padres.some(p => 
+          p.es_usuario_cuenta === true && 
+          (p.correo || '').toLowerCase().trim() === (currentUser.email || '').toLowerCase().trim()
+        );
+        if (!esRepresentante) return;
+      }
       const submitButton = document.querySelector('button[type="submit"]');
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = 'Enviar';
+        submitButton.style.backgroundColor = '';
+        submitButton.style.cursor = '';
+        submitButton.style.opacity = '';
       }
     }
+
+    // Detectar cambios en el formulario para reactivar el botón Enviar
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('registro-form');
+      if (form) {
+        form.addEventListener('change', enableSubmitButton);
+        form.addEventListener('input', enableSubmitButton);
+      }
+    });
     // Función para mostrar el estado
     function mostrarEstado(mensaje, status) {
         const label = document.getElementById('statusLabel');

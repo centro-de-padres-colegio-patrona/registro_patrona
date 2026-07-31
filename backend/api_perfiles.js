@@ -11,68 +11,43 @@ router.get('/perfiles', async (req, res) => {
     try {
         const {email, rut, nombre_completo, rol} = req.query;
         if (email) {
-            //console.log(`${tag} Verificando perfil por email: ${email}`);
             const perfil = await db_support.perfilesDB.findOne({ email, activo: true });
-            //console.log(`${tag} Perfil encontrado: ${perfil ? JSON.stringify(perfil) : 'No encontrado'}`);
             return res.json(perfil);
         }
         if (rut) {
-            //console.log(`${tag} Verificando perfil por rut: ${rut}`);
             const perfil = await db_support.perfilesDB.findOne({ rut, activo: true });
-            //console.log(`${tag} Perfil encontrado: ${perfil ? JSON.stringify(perfil) : 'No encontrado'}`);
             return res.json(perfil);
         }
         if (nombre_completo) {
-            //console.log(`${tag} Verificando perfil por nombre completo: ${nombre_completo}`);
             const perfil = await db_support.perfilesDB.findOne({ nombre_completo, activo: true });
-            //console.log(`${tag} Perfil encontrado: ${perfil ? JSON.stringify(perfil) : 'No encontrado'}`);
             return res.json(perfil);
         }
         if (rol) {
-            //console.log(`${tag} Verificando perfiles por rol: ${rol}`);
             const perfiles = await db_support.perfilesDB.find({ rol, activo: true });
-            //console.log(`${tag} Perfiles encontrados: ${perfiles.length > 0 ? perfiles.map(p => JSON.stringify(p)) : 'No encontrados'}`);
             return res.json(perfiles);
         }
-        const perfiles = await db_support.perfilesDB.find();
+        const perfiles = await db_support.perfilesDB.find({});
+        // Log para debug: mostrar cuántos presidentes hay
+        const presidentes = perfiles.filter(p => p.rol === 'presidente');
+        if (presidentes.length > 0) {
+            console.log(`${tag} Presidentes encontrados: ${presidentes.length}`, presidentes.map(p => `${p.email}/${p.rol}/activo:${p.activo}/_id:${p._id}`));
+        }
         res.json(perfiles);
-        //res.status(400).json({ error: 'Debe proporcionar email, rut, nombre_completo o rol como parámetro de consulta' });
     } catch (error) {
         console.error('Error verificando el perfil:', error);
         res.status(500).json({ error: 'Error verificando el perfil' });
     }
 });
 
-// Endpoint para crear un perfil
-router.post('/perfiles', async (req, res) => {
-    const tag = '[POST /api/perfiles]';
-    //console.log(`${tag} Creando nuevo perfil: ${JSON.stringify(req.body)}`);
-    try {
-        const { email, rut, nombre_completo, rol , use_email} = req.body;
-        const nuevoPerfil = await db_support.perfilesDB.create({ email, rut, nombre_completo, rol, activo: true });
-        res.status(201).json(nuevoPerfil);
-    } catch (error) {
-        console.error('Error creando el perfil:', error);
-        res.status(500).json({ error: 'Error creando el perfil' });
-    }
+// Endpoint para crear un perfil (delegado a server.js que tiene validación de duplicados)
+// Este endpoint se mantiene como respaldo por compatibilidad
+router.post('/perfiles', async (req, res, next) => {
+    // Delegar al siguiente handler (server.js) que tiene validación completa
+    next();
 });
 
-// Endpoint para eliminar un perfil
-router.delete('/perfiles', async (req, res) => {
-    const tag = '[POST /api/perfiles]';
-    //console.log(`${tag} Creando nuevo perfil: ${JSON.stringify(req.body)}`);
-    try {
-        const { email, rut, nombre_completo, use_email } = req.query;
-        const result = await db_support.perfilesDB.deleteMany({ email, rut, nombre_completo });
-        res.status(200).json({
-            message: 'perfil ${email} deleted',
-            deletedCount: drop_result.deletedCount
-        });
-    } catch (error) {
-        console.error('Error creando el perfil:', error);
-        res.status(500).json({ error: 'Error creando el perfil' });
-    }
-});
+// Endpoint para eliminar un perfil (delegado a server.js que tiene la lógica completa)
+// La ruta DELETE /api/perfiles/:email se maneja en server.js
 
 
 

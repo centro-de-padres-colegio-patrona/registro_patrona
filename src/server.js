@@ -1774,7 +1774,7 @@ app.post('/api/perfiles', express.json(), async (req, res) => {
 // Actualizar perfil
 app.put('/api/perfiles/:email', express.json(), async (req, res) => {
   try {
-    const emailParam = decodeURIComponent(req.params.email).toLowerCase();
+    const emailParam = decodeURIComponent(req.params.email).toLowerCase().trim();
     const { rut, nombre_completo, rol, activo, pagina_inicio, curso_asignado } = req.body;
     const updateData = {};
     if (rut !== undefined) updateData.rut = rut;
@@ -1784,21 +1784,29 @@ app.put('/api/perfiles/:email', express.json(), async (req, res) => {
     if (pagina_inicio !== undefined) updateData.pagina_inicio = pagina_inicio;
     if (curso_asignado !== undefined) updateData.curso_asignado = curso_asignado;
 
+    // Buscar con regex case-insensitive para mayor robustez
+    const emailRegex = new RegExp('^' + emailParam.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    const queryFilter = { email: { $regex: emailRegex } };
+    
     // Si se está actualizando curso_asignado, buscar específicamente el perfil de presidente
-    // Si se envía rol en el body, usarlo para encontrar el perfil correcto (usuario con múltiples perfiles)
-    const queryFilter = { email: emailParam };
     if (curso_asignado !== undefined) {
       queryFilter.rol = 'presidente';
     } else if (rol !== undefined) {
       queryFilter.rol = rol;
     }
 
+    console.log('[PUT /api/perfiles] Buscando con filtro:', JSON.stringify({email: emailParam, ...queryFilter}));
+
     const result = await db_support.perfilesDB.findOneAndUpdate(
       queryFilter,
       { $set: updateData },
       { new: true }
     );
-    if (!result) return res.status(404).json({ error: 'Perfil no encontrado' });
+    if (!result) {
+      console.log('[PUT /api/perfiles] Perfil no encontrado');
+      return res.status(404).json({ error: 'Perfil no encontrado' });
+    }
+    console.log('[PUT /api/perfiles] Perfil actualizado:', result.email, result.rol);
     res.json(result);
   } catch (error) {
     console.error('[PUT /api/perfiles] Error:', error);
@@ -1808,23 +1816,33 @@ app.put('/api/perfiles/:email', express.json(), async (req, res) => {
 
 // Eliminar perfil
 app.delete('/api/perfiles/:email', async (req, res) => {
+  const tag = '[DELETE /api/perfiles]';
   try {
-    const emailParam = decodeURIComponent(req.params.email).toLowerCase();
+    const emailParam = decodeURIComponent(req.params.email).toLowerCase().trim();
     const { rol } = req.query;
     
-    const queryFilter = { email: emailParam };
-    if (rol) queryFilter.rol = rol;
+    console.log(`${tag} Solicitud recibida - email: ${emailParam}, rol: ${rol}`);
+
+    // Buscar con regex case-insensitive para mayor robustez
+    const emailRegex = new RegExp('^' + emailParam.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    const queryFilter = { email: { $regex: emailRegex } };
+    if (rol) queryFilter.rol = rol.toLowerCase().trim();
 
     const perfil = await db_support.perfilesDB.findOne(queryFilter);
-    if (!perfil) return res.status(404).json({ error: 'Perfil no encontrado' });
+    if (!perfil) {
+      console.log(`${tag} Perfil NO encontrado con filtro:`, JSON.stringify(queryFilter));
+      // Intentar buscar sin rol para debug
+      const todosDelEmail = await db_support.perfilesDB.find({ email: { $regex: emailRegex } });
+      console.log(`${tag} Perfiles con ese email:`, todosDelEmail.map(p => `${p.email}/${p.rol}/${p.activo}`));
+      return res.status(404).json({ error: 'Perfil no encontrado' });
+    }
     
-    await db_support.perfilesDB.findOneAndUpdate(
-      queryFilter,
-      { $set: { activo: false } }
-    );
-    res.json({ status: 'ok', mensaje: 'Perfil desactivado' });
+    // Eliminar TODOS los perfiles que coincidan (en caso de duplicados)
+    const deleteResult = await db_support.perfilesDB.deleteMany(queryFilter);
+    console.log(`${tag} Perfiles ELIMINADOS: ${deleteResult.deletedCount} - email: ${perfil.email} (${perfil.rol})`);
+    res.json({ status: 'ok', mensaje: `${deleteResult.deletedCount} perfil(es) eliminado(s)` });
   } catch (error) {
-    console.error('[DELETE /api/perfiles] Error:', error);
+    console.error(`${tag} Error:`, error);
     res.status(500).json({ error: 'Error al eliminar perfil' });
   }
 });
@@ -1922,30 +1940,35 @@ app.post('/api/actualizar_cuota_cpa', express.json(), async (req, res) => {
 
     // Buscar pagos de sus hijos y actualizar/crear el registro de cuota_cpa
     const hijos = user.hijos || [];
+    console.log(`[/api/actualizar_cuota_cpa] Hijos encontrados: ${hijos.length}`, hijos.map(h => h.nombre));
     if (hijos.length > 0) {
-      const primerHijo = hijos[0].nombre;
       if (cuota_cpa) {
-        // Verificar si ya existe un pago de cuota_cpa para este hijo
-        const pagoExistente = await db_support.pagosDB.findOne({ id: primerHijo, tipo: 'cuota_cpa' });
-        if (!pagoExistente) {
-          // Crear pago de cuota CPA
-          await db_support.pagosDB.create({
-            id: primerHijo,
-            tipo: 'cuota_cpa',
-            cuota_cpa: true,
-            monto: 20000,
-            fecha: new Date().toLocaleDateString('es-CL'),
-            payment_method: 'manual',
-            commerce_order: 'manual'
-          });
-        } else {
-          await db_support.pagosDB.updateOne({ _id: pagoExistente._id }, { $set: { cuota_cpa: true } });
+        // Crear/actualizar pago de cuota CPA para TODOS los hijos
+        for (const hijo of hijos) {
+          const nombreHijo = hijo.nombre;
+          if (!nombreHijo) continue;
+          const pagoExistente = await db_support.pagosDB.findOne({ id: nombreHijo, tipo: 'cuota_cpa' });
+          if (!pagoExistente) {
+            await db_support.pagosDB.create({
+              id: nombreHijo,
+              tipo: 'cuota_cpa',
+              cuota_cpa: true,
+              monto: 20000,
+              fecha: new Date().toLocaleDateString('es-CL'),
+              payment_method: 'manual',
+              commerce_order: 'manual'
+            });
+            console.log(`[/api/actualizar_cuota_cpa] Pago CREADO para: "${nombreHijo}"`);
+          } else {
+            await db_support.pagosDB.updateOne({ _id: pagoExistente._id }, { $set: { cuota_cpa: true } });
+            console.log(`[/api/actualizar_cuota_cpa] Pago ACTUALIZADO para: "${nombreHijo}"`);
+          }
         }
       } else {
-        // Eliminar o marcar como no pagado
-        await db_support.pagosDB.deleteMany({ id: primerHijo, tipo: 'cuota_cpa' });
-        // También actualizar registros que tengan cuota_cpa: true
+        // Eliminar o marcar como no pagado para TODOS los hijos
         for (const hijo of hijos) {
+          if (!hijo.nombre) continue;
+          await db_support.pagosDB.deleteMany({ id: hijo.nombre, tipo: 'cuota_cpa' });
           await db_support.pagosDB.updateMany({ id: hijo.nombre, cuota_cpa: true }, { $set: { cuota_cpa: false } });
         }
       }

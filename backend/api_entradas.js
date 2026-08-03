@@ -1327,7 +1327,7 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
           } = req.query;
 
     console.log(`${tag} ${JSON.stringify({id_organizacion, id_evento, familia, nombre_completo, folio})}`);
-    
+
     const estudiantes = [];
 
     if (familia) {
@@ -1343,6 +1343,7 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
     if (id_familia) {
       const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 });
       if (tickets) {
+        console.log(`${tag} tickets found for familia ${id_familia}: `, tickets.length);
         console.log(`${tag} folios: ${tickets.map(t => t.folio)}`);
         res.status(200).json(tickets);
       } else {

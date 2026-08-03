@@ -10,6 +10,7 @@
 
 <div class="page-title">🔍 Validar QR de Entrada</div>
 
+<!-- Tarjeta 1: Escáner QR -->
 <div class="card">
   <h3>Escáner de código QR</h3>
 
@@ -32,16 +33,19 @@
 
   <p class="estado-msg" id="estado">Apunte la cámara al código QR...</p>
   
-  <div class="card">
+</div>
+
+
+<!-- Tarjeta 2: Búsqueda manual -->
+<div class="card">
     <h3>Buscar por RUT, apellido o nombre</h3>
     <div class="search-bar">
         <input type="text" id="inp-busqueda" placeholder="Ej: Pérez, 12.345.678, González..." onkeydown="if(event.key==='Enter')buscar()">
         <button onclick="buscar()">🔍 Buscar</button>
     </div>
     <p class="search-hint">Busca por RUT del apoderado, RUT del estudiante, apellido paterno o materno, o nombre</p>
-  </div>
-
 </div>
+
 
 <div class="resultado-card" id="resultado-card">
   <h3 id="resultado-titulo">QR Detectado</h3>

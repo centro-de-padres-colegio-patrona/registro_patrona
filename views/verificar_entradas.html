@@ -244,6 +244,7 @@
         })
           .then(res => res.json())
           .then(infoTickets => {
+            console.log('infoTickets:', infoTickets);
             const info = infoTickets[0] || {};
             if (info.usado || info.estado != 'activa') {
               // TICKET YA FUE USADO

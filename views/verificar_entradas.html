@@ -217,6 +217,8 @@
 
       if (params.has('familia') || params.has('folio')) {
         // Es un QR de entrada válido
+        const id_organizacion = params.get('id_organizacion') || '';
+        const id_evento = params.get('id_evento') || '';
         const familia = params.get('familia') || '—';
         const jornada = params.get('jornada') || '—';
         const tipo = params.get('tipo') || '—';
@@ -235,7 +237,7 @@
       fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
       .then ( res => res.json() )
       .then ( async config_json => {
-        fetch(`/api/entrada/familia?tipo_output=json&familia=${encodeURIComponent(familia)}`,{
+        fetch(`/api/entrada/familia?tipo_output=json&id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}`,{
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

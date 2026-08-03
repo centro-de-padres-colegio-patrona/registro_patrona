@@ -235,7 +235,7 @@
       fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
       .then ( res => res.json() )
       .then ( async config_json => {
-        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}`,{
+        fetch(`/api/entrada/familia?tipo_output=json&familia=${encodeURIComponent(familia)}`,{
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -243,7 +243,8 @@
           }
         })
           .then(res => res.json())
-          .then(info => {
+          .then(infoTickets => {
+            const info = infoTickets[0] || {};
             if (info.usado || info.estado != 'activa') {
               // TICKET YA FUE USADO
               resultadoCard.className = 'resultado-card error';
@@ -273,9 +274,6 @@
                 <div class="dato-row"><span class="dato-label">N° Listado</span><span class="dato-value">${numListado}</span></div>
                 <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
                 <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
-                <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
-                  🎫 VALIDAR ENTRADA
-                </button>
               `;
             }
             resultadoCard.style.display = 'block';
@@ -290,9 +288,6 @@
               <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
               <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
               <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
-              <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
-                🎫 VALIDAR ENTRADA
-              </button>
             `;
             resultadoCard.style.display = 'block';
           });
@@ -317,59 +312,6 @@
     }
   }
 
-  async function validarEntrada(folio) {
-    const btn = document.getElementById('btn-validar-entrada');
-    btn.disabled = true;
-    btn.textContent = '⏳ Validando...';
-    btn.style.background = '#95a5a6';
-
-    try {
-      fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
-      .then ( res => res.json() )
-      .then ( async config_json => {
-        const res = await fetch('/api/entrada/validar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey },
-          body: JSON.stringify({ folio: parseInt(folio), email: userEmail })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          btn.textContent = '✅ ENTRADA VALIDADA';
-          btn.style.background = '#2ecc71';
-          btn.onclick = null;
-        } else if (res.status === 409) {
-          btn.textContent = '🚫 YA FUE UTILIZADA';
-          btn.style.background = '#e74c3c';
-          btn.onclick = null;
-        } else {
-          btn.textContent = `❌ Error: ${data.error}`;
-          btn.style.background = '#e74c3c';
-          setTimeout(() => {
-            btn.disabled = false;
-            btn.textContent = '🎫 VALIDAR ENTRADA';
-            btn.style.background = '#e74c3c';
-          }, 3000);
-        }
-      })
-      .catch( err => {
-        console.error(`User ${userEmail} has not access rights`);
-      });
-    } catch (err) {
-      btn.textContent = `❌ Error: ${err.message}`;
-      btn.style.background = '#e74c3c';
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.textContent = '🎫 VALIDAR ENTRADA';
-        btn.style.background = '#e74c3c';
-      }, 3000);
-    }
-  }
-  // Iniciar escaneo automáticamente al cargar la página
-  window.addEventListener('load', () => {
-    iniciarEscaneo();
-  });
 </script>
 
 </body>

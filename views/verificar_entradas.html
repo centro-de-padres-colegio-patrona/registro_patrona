@@ -217,8 +217,8 @@
 
       if (params.has('familia') || params.has('folio')) {
         // Es un QR de entrada válido
-        const id_organizacion = params.get('id_organizacion') || '';
-        const id_evento = params.get('id_evento') || '';
+        const id_organizacion = params.get('organizacion') || '';
+        const id_evento = params.get('evento') || '';
         const familia = params.get('familia') || '—';
         const jornada = params.get('jornada') || '—';
         const tipo = params.get('tipo') || '—';

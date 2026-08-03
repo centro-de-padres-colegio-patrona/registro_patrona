@@ -244,6 +244,7 @@
         })
           .then(res => res.json())
           .then(infoTickets => {
+            console.log('familia:', familia);
             console.log('infoTickets:', infoTickets);
             const info = infoTickets[0] || {};
             if (info.usado || info.estado != 'activa') {

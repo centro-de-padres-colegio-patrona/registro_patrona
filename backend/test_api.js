@@ -34,7 +34,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_api_crear_perfiles, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
-  test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_entradas_familia, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
@@ -547,6 +547,59 @@ async function test_api_eliminar_perfiles(url_server = 'http://localhost:5001') 
   }
 }
 
+async function test_entradas_familia(url_server = 'http://localhost:5001') {
+  const tag = '[test_entradas_familia]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const asuntoCorreo = ' prueba de envio de entradas por correo';
+  const tipo_attachment = 'pdf';
+
+  let testResult = 'pass';
+
+  const familias = [
+    //'mendiz pozo',
+    //'gutierrez zapata',
+    //'madariaga jara' : '',
+    /*'lepin hugueno antonia sara',
+    'montero arroyo isidora daniela',*/
+    /*'herrera gongora martina ignacia',
+    'diaz rodriguez fernando jesus'*/
+    'morales perez',
+    'alarcon salazar',
+    'herrera messina'
+  ];
+
+  const destinatarios = {
+    'morales perez' : { email_destinatario: 'morales.italo@gmail.com', mensajeCorreo: 'Entrada Familia de Italo!'},
+    'herrera messina': { email_destinatario: 'l.herreramena@gmail.com', mensajeCorreo: 'Entrada Familia de Leo!'},
+    'alarcon salazar': { email_destinatario: 'patricio.alarcon.matus@gmail.com', mensajeCorreo: 'Entrada Familia de Pato!'}
+  };
+
+  await Promise.all(
+    familias.map( async (familia) => {
+      try {
+        const tickets_res = await fetch(`${url_server}/api/entrada/familia?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+        });
+        if (tickets_res.status === 200) {
+          //console.log(`${tag} tikets familia ${familia}: `, tickets_res);
+          const tickets = await tickets_res.json();
+          console.log(`${tag} tickets familia ${familia}: `, tickets.length);
+          //console.log(`${tag} tickets familia ${familia}: `, tickets);
+        } else {
+          console.log(`${tag} No se pudo obtener los tickets de la familia ${familia} desde el endpoint ${url_server}/api/entrada/familia. status: `, tickets_res.status);
+          testResult = 'fail';
+        }
+      } catch (err) {
+        console.log(`${tag} Error during processing tickets for ${familia} family`, err);
+        testResult = 'fail';
+      }
+    })
+  );
+  log_result(tag, testResult);
+}
+
 
 async function test_send_entradas(url_server = 'http://localhost:5001') {
   const tag = '[test_send_entradas]';
@@ -571,7 +624,7 @@ async function test_send_entradas(url_server = 'http://localhost:5001') {
     //'morales perez' ,
     //'alarcon salazar',
     'herrera messina'
-  ]
+  ];
 
   const destinatarios = {
     'morales perez' : { email_destinatario: 'morales.italo@gmail.com', mensajeCorreo: 'Entrada Familia de Italo!'},

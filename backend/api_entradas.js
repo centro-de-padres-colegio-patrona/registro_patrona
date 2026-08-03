@@ -1326,6 +1326,8 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
             folio
           } = req.query;
 
+    console.log(`${tag} ${JSON.stringify({id_organizacion, id_evento, familia, nombre_completo, folio})}`);
+    
     const estudiantes = [];
 
     if (familia) {

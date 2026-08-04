@@ -244,7 +244,7 @@
 
     fetch('/api/user')
       .then(response => {
-        console.log('Respuesta del servidor:', response);
+        //console.log('Respuesta del servidor:', response);
         if (!response.ok) {
           throw new Error('Usuario no autenticado');
         }
@@ -253,8 +253,8 @@
       .then(user => {
         if (!user || !user.user) throw new Error('Datos de usuario vacíos');
         currentUser = user.user;
-        console.log('[mis_datos] Hijos recibidos:', JSON.stringify(currentUser.hijos));
-        console.log('[mis_datos] Padres recibidos:', JSON.stringify(currentUser.padres));
+        //console.log('[mis_datos] Hijos recibidos:', JSON.stringify(currentUser.hijos));
+        //console.log('[mis_datos] Padres recibidos:', JSON.stringify(currentUser.padres));
         
         // Ocultar loading
         document.getElementById('loading-state').style.display = 'none';
@@ -262,7 +262,7 @@
         document.getElementById('registro-form').style.display = 'block';
         
         fillUserInfo(currentUser);
-        console.log('Datos del usuario:', user);
+        //console.log('Datos del usuario:', user);
         
         // Si tiene datos (heredados o propios con hijos), ocultar el label
         const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
@@ -283,10 +283,10 @@
             ? currentUser.email 
             : "ejemplo@correo.com";
 
-        console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
+        //console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
       })
       .catch(error => {
-        console.log('[mis_datos] Error /api/user, intentando vía manual:', error.message);
+        //console.log('[mis_datos] Error /api/user, intentando vía manual:', error.message);
         
         // Ocultar loading
         document.getElementById('loading-state').style.display = 'none';
@@ -294,7 +294,7 @@
 
         const params = new URLSearchParams(window.location.search);
         const userEmailParam = params.get('user_email');
-        console.log('[mis_datos] user_email desde URL:', userEmailParam);
+        //console.log('[mis_datos] user_email desde URL:', userEmailParam);
 
         // Si tiene user_email en el URL, intentar cargar datos manualmente
         if (userEmailParam) {
@@ -302,8 +302,8 @@
             .then(res => { if (!res.ok) throw new Error('No encontrado'); return res.json(); })
             .then(data => {
               currentUser = data.user;
-              console.log('[mis_datos] Datos cargados vía user_email param:', currentUser.email);
-              console.log('[mis_datos] Hijos:', currentUser.hijos?.length, 'Padres:', currentUser.padres?.length);
+              //console.log('[mis_datos] Datos cargados vía user_email param:', currentUser.email);
+              //console.log('[mis_datos] Hijos:', currentUser.hijos?.length, 'Padres:', currentUser.padres?.length);
               document.title = 'Cargado: ' + currentUser.email;
               fillUserInfo(currentUser);
               mostrarEstado("Datos obtenidos desde la base de datos", 0);
@@ -637,7 +637,7 @@
           const nombreActual = nombreSelect.value;
           
           if (curso && seccion) {
-            console.log(`#1 fetch(/api/alumnos?curso=`);
+            //console.log(`#1 fetch(/api/alumnos?curso=`);
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
               .then(res => res.json())
               .then(alumnos => {
@@ -652,7 +652,7 @@
                   const option = document.createElement('option');
                   option.value = nombre;
                   option.textContent = nombre;
-                  console.log(`alumno ${nombre}, registrado: alumnos_ya_registrados.includes(nombre)`);
+                  //console.log(`alumno ${nombre}, registrado: alumnos_ya_registrados.includes(nombre)`);
                   if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
                   nombreSelect.appendChild(option);
                 });
@@ -684,13 +684,13 @@
       });
       childrenSection.addEventListener('input', (e) => {
         const target = e.target;
-        console.log('Input event en childrenSection:', {name: target.name, value: target.value, id: target.id});
+        //console.log('Input event en childrenSection:', {name: target.name, value: target.value, id: target.id});
         if (target.name === 'childRut[]') {
           childForm = e.target.closest('.child-form');
           const iconRut = childForm.querySelector("span[name='childIconRut[]']");
           const {rut, is_valid} = validarRutChile(target.value);
           const childName = childForm.querySelector("select[name='childName[]']").value || '';
-          console.log(`Validación RUT: ${JSON.stringify({rut, is_valid})}`);
+          //console.log(`Validación RUT: ${JSON.stringify({rut, is_valid})}`);
           rut_status[childName] = {rut, is_valid};
           if (is_valid) {
             target.setCustomValidity('');
@@ -770,11 +770,11 @@
               if (cb && cb !== target && cb.checked) {
                 cb.checked = false;
                 email = parent.querySelector("input[name='parentEmail[]']");
-                console.log('Deseleccionando checkbox y limpiando correo:', {
+                /*console.log('Deseleccionando checkbox y limpiando correo:', {
                   emailExists: !!email,
                   emailValue: email ? email.value : null,
                   currentUserEmail: currentUser ? currentUser.email : null
-                });
+                });*/
                 if (email && email.value === currentUser.email) {
                   email.value = '';
                 }
@@ -807,7 +807,7 @@
           const rutInput = childForm.querySelector("input[name='childRut[]']");
 
           if (curso && seccion) {
-            console.log(`#2 fetch(/api/alumnos?curso=`);
+            //console.log(`#2 fetch(/api/alumnos?curso=`);
             fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
               .then(res => res.json())
               .then(async alumnos => {
@@ -822,7 +822,7 @@
                   const option = document.createElement('option');
                   option.value = nombre;
                   option.textContent = nombre;
-                  //console.log(`alumnos_ya_registrados: `, alumnos_ya_registrados);
+                  ////console.log(`alumnos_ya_registrados: `, alumnos_ya_registrados);
                   if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
                   nombreSelect.appendChild(option);
                 });
@@ -870,7 +870,7 @@
     document.querySelectorAll('select[name="childCourse[]"]').forEach(select => {
       select.addEventListener('change', () => {
         const resultado = verificarCursos();
-        console.log("Maximo Invitados:", resultado);
+        //console.log("Maximo Invitados:", resultado);
         max_invitados = resultado;
         // Aquí puedes usar el resultado como necesites
       });
@@ -924,7 +924,7 @@
       const form = section.querySelector('.parent-form');
       const button = document.querySelector("button[onclick='addParent()']");
 
-      console.log('form.length: ', form.length);
+      //console.log('form.length: ', form.length);
 
       if (form.length >= 2) {
         button.disabled = true;
@@ -967,13 +967,13 @@
         (p.correo || '').toLowerCase().trim() === (currentUser.email || '').toLowerCase().trim()
       );
 
-      console.log('[mis_datos] esRepresentante:', esRepresentante, 'email:', currentUser.email);
+      //console.log('[mis_datos] esRepresentante:', esRepresentante, 'email:', currentUser.email);
 
       // Si ES el representante, no aplicar restricción
       if (esRepresentante) return;
 
       // Si NO es el representante, bloquear todas las acciones de modificación
-      console.log('[mis_datos] Usuario NO es representante. Deshabilitando controles de modificación...');
+      //console.log('[mis_datos] Usuario NO es representante. Deshabilitando controles de modificación...');
 
       // Deshabilitar botones de Eliminar y Modificar en sección padres
       document.querySelectorAll('.btn-eliminar-parent, .btn-modificar-parent').forEach(btn => {
@@ -1023,9 +1023,9 @@
       const selectCurso = reverse_curso_map[curso];
       childForm.querySelector("select[name='childCourse[]']").value = selectCurso;
       childForm.querySelector("select[name='childSeccion[]']").value = seccion;
-      console.log(childInfo);
+      //console.log(childInfo);
       if (curso && seccion) {
-        console.log(`#3 fetch(/api/alumnos?curso=`);
+        //console.log(`#3 fetch(/api/alumnos?curso=`);
         fetch(`/api/alumnos?curso=${encodeURIComponent(selectCurso)}&seccion=${encodeURIComponent(seccion)}`)
           .then(res => res.json())
           .then(alumnos => {
@@ -1037,7 +1037,7 @@
             .then( alumnos_ya_registrados => {
             const nombreSelect = childForm.querySelector("select[name='childName[]']");
             nombreSelect.innerHTML = '<option value="">Seleccione</option>';
-            console.log(alumnos);
+            //console.log(alumnos);
             alumnos.forEach(nombre => {
               const option = document.createElement('option');
               option.value = nombre;
@@ -1113,7 +1113,7 @@
 
         // Simula llamada a API para cargar nombres válidos
         if (cursoLargo && hijo.seccion) {
-          console.log(`#4 fetch(/api/alumnos?curso=`);
+          //console.log(`#4 fetch(/api/alumnos?curso=`);
           fetch(`/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`)
             .then(res => res.json())
             .then(alumnos => {
@@ -1246,7 +1246,7 @@
             renderInvitadosInfo(container, entradasInvitados, invitados);
           })
           .catch(err => {
-            console.log('[fillInvitadosSection] Error consultando entradas:', err);
+            //console.log('[fillInvitadosSection] Error consultando entradas:', err);
             renderInvitadosInfo(container, [], invitados);
           });
       } else {
@@ -1287,11 +1287,11 @@
               }
             });
           }
-          console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
+          //console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
           renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
         })
         .catch(err => {
-          console.log('[mis_datos] Error consultando estado pago CPA:', err);
+          //console.log('[mis_datos] Error consultando estado pago CPA:', err);
           window._cuotaCpaPagada = false;
           renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
         });
@@ -1577,7 +1577,7 @@
 
     function disableSubmitButton() {
       const submitButton = document.querySelector('button[type="submit"]');
-      console.log('disableSubmitButton: ', submitButton);
+      //console.log('disableSubmitButton: ', submitButton);
       if (submitButton) {
         submitButton.disabled = true;
         submitButton.textContent = 'Datos actualizados';
@@ -1684,12 +1684,12 @@
             const currentIndex = e.target.getAttribute('data-index');
             const emailInput = document.getElementById(`email_apoderado_${currentIndex}`);
 
-            console.log('Checkbox cambiado:', {
+            /*console.log('Checkbox cambiado:', {
                 checked: e.target.checked,
                 currentIndex,
                 emailInputExists: !!emailInput,
                 currentUserEmail: currentUser ? currentUser.email : null
-            });
+            });*/
             if (e.target.checked) {
                 // 1. Deseleccionar los demás
                 checkboxes.forEach(cb => {
@@ -1740,7 +1740,7 @@
       if (!brotherInfoMap)
         return [];
       // 1. Extraemos todos los arreglos de 'hermanos' y los aplanamos
-      console.log('getBrothersList: brotherInfoMap: ', brotherInfoMap);
+      //console.log('getBrothersList: brotherInfoMap: ', brotherInfoMap);
       const listaHermanosDuplicados = Object.values(brotherInfoMap)
         .map(info => info.hermanos)
         .flat();
@@ -1759,7 +1759,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brothers_list: childrenList, email: currentUser.email })
       });
-      console.log('updateUserEmail result; ', result);
+      //console.log('updateUserEmail result; ', result);
     }
     
     function retriveEmptyChildForm() {
@@ -1781,9 +1781,9 @@
       const childrenList = Array.from(retrieve_hijos()).map(child => child.nombre);
       const cleanChildrenList = retrieveCleanChildrenList();
       const result = compareArrays(childrenList, cleanChildrenList);
-      console.log('verifyEmptyChildForm: childrenList', childrenList);
-      console.log('verifyEmptyChildForm: cleanChildrenList: ', cleanChildrenList);
-      console.log('verifyEmptyChildForm: compareArrays: ', result);
+      //console.log('verifyEmptyChildForm: childrenList', childrenList);
+      //console.log('verifyEmptyChildForm: cleanChildrenList: ', cleanChildrenList);
+      //console.log('verifyEmptyChildForm: compareArrays: ', result);
       return !result;
     }
 
@@ -1794,35 +1794,36 @@
     }
 
     async function addBrothers() {
+      //console.log('[addBrothers] currentUser: ', currentUser);
       const childrenData = retrieve_hijos();
-      console.log('childrenData: ', childrenData);
+      //console.log('childrenData: ', childrenData);
       const childrenList = Array.from(childrenData).map(child => (child.nombre)).filter(name => name !== '');
-      console.log('childrenList: ', childrenList);
+      //console.log('childrenList: ', childrenList);
       if (childrenList.length === 0)
         return;
-
-      // Solo buscar hermanos de los hijos que ya están registrados en la BD del usuario
+      //console.log('[addBrothers] childrenList: ', childrenList);
+      /* Solo buscar hermanos de los hijos que ya están registrados en la BD del usuario
       const hijosRegistrados = (currentUser.hijos || []).map(h => (h.nombre || '').toLowerCase().trim());
       const childrenListValidados = childrenList.filter(name => 
         hijosRegistrados.includes(name.toLowerCase().trim())
       );
-      console.log('[addBrothers] childrenList original:', childrenList);
-      console.log('[addBrothers] hijosRegistrados en BD:', hijosRegistrados);
-      console.log('[addBrothers] childrenListValidados:', childrenListValidados);
+      //console.log('[addBrothers] childrenList original:', childrenList);
+      //console.log('[addBrothers] hijosRegistrados en BD:', hijosRegistrados);
+      //console.log('[addBrothers] childrenListValidados:', childrenListValidados);
 
       if (childrenListValidados.length === 0)
         return;
-
-      childrenListValidados.sort((a, b) => a.localeCompare(b));
+      //console.log('[addBrothers] childrenListValidados: ', childrenListValidados);*/ 
+      childrenList.sort((a, b) => a.localeCompare(b));
       const response = await fetch('/api/hermanos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brothers_list: childrenListValidados })
+        body: JSON.stringify({ brothers_list: childrenList })
       });
       const brotherInfoMap = await response.json();
-      console.log('brotherInfoMap: ', brotherInfoMap);
+      //console.log('brotherInfoMap: ', brotherInfoMap);
 
-      // Validar que los hermanos pertenezcan al apoderado actual
+      /* Validar que los hermanos pertenezcan al apoderado actual
       const emailActual = (currentUser.email || '').toLowerCase().trim();
       const correosApoderado = [emailActual];
       if (currentUser.padres && Array.isArray(currentUser.padres)) {
@@ -1841,46 +1842,46 @@
           if (perteneceAlApoderado) {
             brotherInfoMapFiltrado[nombre] = info;
           } else {
-            console.log(`[addBrothers] Hermano "${nombre}" NO pertenece al apoderado actual. Omitido.`);
+            //console.log(`[addBrothers] Hermano "${nombre}" NO pertenece al apoderado actual. Omitido.`);
           }
         } else {
           // Sin apoderado_email: solo incluir si ya es un hijo registrado del usuario
           if (hijosRegistrados.includes(nombre.toLowerCase().trim())) {
             brotherInfoMapFiltrado[nombre] = info;
           } else {
-            console.log(`[addBrothers] Hermano "${nombre}" sin apoderado_email y no registrado. Omitido.`);
+            //console.log(`[addBrothers] Hermano "${nombre}" sin apoderado_email y no registrado. Omitido.`);
           }
         }
-      }
+      }*/
 
-      const brothersList = await getBrothersList(brotherInfoMapFiltrado);
-      console.log('brothers info: ', brotherInfoMapFiltrado);
-      console.log('brothersList: ', brothersList);
+      const brothersList = await getBrothersList(brotherInfoMap);
+      //console.log('brothers info: ', brotherInfoMap);
+      //console.log('brothersList: ', brothersList);
       const apoderadosList = await getApoderadosList(brothersList);
-      console.log('Lista Apoderados: ', apoderadosList )
-      isEqual = compareArrays(childrenListValidados, brothersList);
-      console.log('compareArrays: ', isEqual);
+      //console.log('Lista Apoderados: ', apoderadosList )
+      isEqual = compareArrays(childrenList, brothersList);
+      //console.log('compareArrays: ', isEqual);
       if (!isEqual) {
         const childrenSet = new Set(childrenList.map(n => n.toLowerCase().trim()));
         const newBrothersList = brothersList.filter(brother => !childrenSet.has(brother.toLowerCase().trim()));
-        console.log('newBrothersList: ', newBrothersList);
+        //console.log('newBrothersList: ', newBrothersList);
         newBrothersList.forEach(childName => {
-          console.log('fetching name ', childName);
+          //console.log('fetching name ', childName);
           fetch(`/api/curso?nombre=${encodeURIComponent(childName)}`)
             .then(res => res.json())
             .then(async curso_section => {
-              console.log('/api/curso: ', curso_section);
+              //console.log('/api/curso: ', curso_section);
               const {curso, seccion} = curso_section;
               const is_there_empty_child_form = verifyEmptyChildForm();
               let childForm;
               if (!is_there_empty_child_form) {
-                console.log('calling addChild()');
+                //console.log('calling addChild()');
                 childForm = addChild();
               } else {
-                console.log('calling retriveEmptyChildForm()');
+                //console.log('calling retriveEmptyChildForm()');
                 childForm = retriveEmptyChildForm();
               }
-              console.log('childForm: ', childForm);
+              //console.log('childForm: ', childForm);
               const childInfo = {curso, seccion, nombre: childName};
               fillChild(childForm, childInfo);
             })

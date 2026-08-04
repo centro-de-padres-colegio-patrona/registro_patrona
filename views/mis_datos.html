@@ -387,7 +387,7 @@
           <select name="childName[]" required></select>
         </div>
         <div class="form-field">
-          <label>RUT</label>
+          <label>RUT (sin puntos, sin guión)</label>
           <div class="input-icon-wrapper">
             <input type="text" name="childRut[]" required>
             <span name="childIconRut[]" class="rut-icon"></span>
@@ -432,7 +432,7 @@
         </div>
         <div class="form-row">
           <div class="form-field">
-            <label>RUT</label>
+            <label>RUT (sin puntos, sin guión)</label>
             <div class="input-icon-wrapper">
               <input type="text" name="parentRut[]" required>
               <span name="parentIconRut[]" class="rut-icon"></span>
@@ -508,7 +508,7 @@
     }
 
     function isRutValidFormat(value) {
-      const regex = /^(\d{8}|\d{1}\.\d{7}|\d{1}\.\d{3}\.\d{4}|\d{7}-\d{1}|\d{1}\.\d{6}-\d{1}|\d{1}\.\d{3}\.\d{3}-\d{1}|\d{9}|\d{2}\.\d{7}|\d{2}\.\d{3}\.\d{4}|\d{8}-\d{1}|\d{2}\.\d{6}-\d{1}|\d{2}\.\d{3}\.\d{3}-\d{1})$/;
+      const regex = /^(\d{7}[\dkK]|\d{1}\.\d{3}\.\d{3}[\dkK]|\d{7}-[\dkK]|\d{1}\.\d{6}-[\dkK]|\d{1}\.\d{3}\.\d{3}-[\dkK]|\d{8}[\dkK]|\d{2}\.\d{3}\.\d{3}[\dkK]|\d{8}-[\dkK]|\d{2}\.\d{6}-[\dkK]|\d{2}\.\d{3}\.\d{3}-[\dkK])$/;
 
       return regex.test(value);
     }
@@ -538,54 +538,87 @@
     function validarRutChile(rutCompleto) {
         let is_valid = false;
         let rut = rutCompleto;
-        //if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto)) return {rut, is_valid};
-        if (!isRutValidFormat(rutCompleto)) return {rut, is_valid};
+        if (!rut || rut.trim() === '') return {rut: '', is_valid: false};
 
-        const splitted = rutCompleto.split('-');
-        rut = splitted[0];
-        let dv = '';
-        //console.log(`Validando RUT: ${JSON.stringify({rut, dv, splitted})}`);
-        if (splitted.length > 2) return {rut, is_valid};
-        if (splitted.length === 1) {
-            dv = rut.slice(-1);
-            rut = rut.slice(0, -1);
-        } else {
-          dv = splitted[1];
-        }
-        rut = rut.replace(/\./g, ''); // Elimina puntos si los hay
-        if (dv.length > 1) return {rut, is_valid};
-        if (dv.length === 0) {
-            dv = rut.slice(-1);
-            rut = rut.slice(0, -1);
-        };
-        if (rut.length < 7 || rut.length > 8) return {rut, is_valid};
-        //let cuerpo = rut.toString();
-        let dvEsperado = calcularDV(rut);
-        
+        // Limpiar: quitar puntos, guiones y espacios para obtener solo dígitos + DV
+        let clean = rut.replace(/[.\-\s]/g, '').trim();
+        if (clean.length < 8 || clean.length > 9) return {rut, is_valid};
+
+        // Separar cuerpo y dígito verificador (último carácter)
+        const dv = clean.slice(-1);
+        const cuerpo = clean.slice(0, -1);
+
+        // Validar que el cuerpo sean solo dígitos y DV sea dígito o K
+        if (!/^\d+$/.test(cuerpo)) return {rut, is_valid};
+        if (!/^[\dkK]$/.test(dv)) return {rut, is_valid};
+        if (cuerpo.length < 7 || cuerpo.length > 8) return {rut, is_valid};
+
+        // Calcular DV esperado y comparar
+        let dvEsperado = calcularDV(cuerpo);
         is_valid = dv.toLowerCase() === dvEsperado.toString();
-        // Formatea el RUT con puntos y guion
-        rut = rut.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv;
-        //rut_status[rut] = is_valid;
-        return { rut, is_valid };
+
+        // Formatear el RUT con puntos y guión
+        const rutFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv;
+        return { rut: rutFormateado, is_valid };
     }
 
-    function calcularDV(cuerpo) {
-        let suma = 0;
-        let multiplo = 2;
-        for (let i = 1; i <= cuerpo.length; i++) {
-            let index = multiplo * cuerpo.charAt(cuerpo.length - i);
-            suma = suma + index;
-            if (multiplo < 7) { multiplo = multiplo + 1; } else { multiplo = 2; }
+    function calcularDV(T) {
+        var M = 0;
+        var S = 1;
+        T = parseInt(T, 10);
+        while (T) {
+            S = (S + (T % 10) * (9 - M++ % 6)) % 11;
+            T = Math.floor(T / 10);
         }
-        let res = 11 - (suma % 11);
-        if (res === 11) return 0;
-        if (res === 10) return 'k';
-        return res;
+        return S ? S - 1 : 'k';
     }
 
 
     document.addEventListener('DOMContentLoaded', () => {
       init();
+
+      // Filtrar campos RUT: solo permitir números y K/k, máximo 9 dígitos
+      // Cuando el RUT es válido, se muestra formateado (con puntos y guión)
+      const _rutValidados = new WeakSet();
+
+      // Bloquear teclas no permitidas ANTES de que se inserten
+      document.addEventListener('keydown', (e) => {
+        if (e.target.name === 'childRut[]' || e.target.name === 'parentRut[]') {
+          // Permitir teclas de control: backspace, delete, tab, arrows, home, end, ctrl+a/c/v/x
+          if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Tab' ||
+              e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End' ||
+              (e.ctrlKey && ['a','c','v','x'].includes(e.key.toLowerCase()))) {
+            return;
+          }
+          // Solo permitir dígitos y k/K
+          if (!/^[0-9kK]$/.test(e.key)) {
+            e.preventDefault();
+            return;
+          }
+          // Verificar largo máximo (contar solo dígitos y k/K del valor actual)
+          const currentDigits = e.target.value.replace(/[^0-9kK]/g, '');
+          if (currentDigits.length >= 9) {
+            e.preventDefault();
+          }
+        }
+      }, true);
+
+      // Filtrar en paste y limpiar formato si el usuario edita un RUT formateado
+      document.addEventListener('input', (e) => {
+        if (e.target.name === 'childRut[]' || e.target.name === 'parentRut[]') {
+          if (_rutValidados.has(e.target)) {
+            _rutValidados.delete(e.target);
+            return;
+          }
+          const original = e.target.value;
+          let limpio = original.replace(/[^0-9kK]/g, '');
+          if (limpio.length > 9) limpio = limpio.slice(0, 9);
+          if (original !== limpio) {
+            e.target.value = limpio;
+            e.target.setSelectionRange(limpio.length, limpio.length);
+          }
+        }
+      }, true);
 
       const childrenSection = document.getElementById('children-section');
       const parentSection = document.getElementById('parent-section');
@@ -661,7 +694,8 @@
           rut_status[childName] = {rut, is_valid};
           if (is_valid) {
             target.setCustomValidity('');
-            target.value = rut; // Actualiza el campo con el formato corregido
+            _rutValidados.add(target);
+            target.value = rut;
             iconRut.textContent = '✅';
             iconRut.style.color = 'green';
           } else {
@@ -682,7 +716,8 @@
           const iconRut = target.parentElement.querySelector("span[name='parentIconRut[]']");
           if (is_valid) {
             target.setCustomValidity('');
-            target.value = rut; // Actualiza el campo con el formato corregido
+            _rutValidados.add(target);
+            target.value = rut;
             iconRut.textContent = '✅';
             iconRut.style.color = 'green';
           } else {

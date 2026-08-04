@@ -248,39 +248,7 @@
           .then(infoTickets => {
             console.log('familia:', familia);
             console.log('infoTickets:', infoTickets);
-            const info = infoTickets[0] || {};
-            if (info.usado || info.estado != 'activa') {
-              // TICKET YA FUE USADO
-              resultadoCard.className = 'resultado-card error';
-              resultadoTitulo.textContent = '⚠ ENTRADA YA UTILIZADA';
-              resultadoContenido.innerHTML = `
-                <div style="background:#fef2f2; border:2px solid #e74c3c; border-radius:8px; padding:16px; margin-bottom:14px; text-align:center;">
-                  <p style="font-size:1.1rem; font-weight:700; color:#e74c3c; margin:0 0 8px 0;">🚫 Este ticket ya fue escaneado</p>
-                  <p style="font-size:0.85rem; color:#666; margin:0;">Validado por: <strong>${info.validado_por || '—'}</strong></p>
-                  <p style="font-size:0.85rem; color:#666; margin:4px 0 0 0;">Fecha: <strong>${info.fecha_uso ? new Date(info.fecha_uso).toLocaleString('es-CL') : '—'}</strong></p>
-                </div>
-                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
-                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
-                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
-              `;
-            } else {
-              // TICKET VÁLIDO — mostrar datos y botón VALIDAR QR
-              resultadoCard.className = 'resultado-card';
-              resultadoTitulo.textContent = '✅ Entrada válida';
-              resultadoContenido.innerHTML = `
-                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
-                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
-                <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
-                <div class="dato-row"><span class="dato-label">Bloque</span><span class="dato-value">${bloques}</span></div>
-                <div class="dato-row"><span class="dato-label">Curso</span><span class="dato-value">${curso}</span></div>
-                <div class="dato-row"><span class="dato-label">N° Listado</span><span class="dato-value">${numListado}</span></div>
-                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
-                <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
-              `;
-            }
-            resultadoCard.style.display = 'block';
+            renderizarTarjetasTickets(infoTickets, { tipo, familia, nombre, bloques, curso });
           })
           .catch(err => {
             // Si la consulta falla, mostrar datos del QR sin estado BD
@@ -314,6 +282,89 @@
       resultadoContenido.innerHTML = `<p>Contenido del QR:</p><p style="margin-top:8px; word-break:break-all; color:#666;">${data}</p>`;
       resultadoCard.style.display = 'block';
     }
+  }
+
+  /**
+   * Renderiza las tarjetas de tickets de la familia en el DOM.
+   * @param {Array} infoTickets - Arreglo de objetos ticket devueltos por la API.
+   * @param {Object} datosFallback - Objeto opcional con datos extra extraídos del QR (tipo, nombre, etc.).
+   */
+  function renderizarTarjetasTickets(infoTickets, datosFallback = {}) {
+    const resultadoCard = document.getElementById('resultado-card');
+    const resultadoTitulo = document.getElementById('resultado-titulo');
+    const resultadoContenido = document.getElementById('resultado-contenido');
+
+    if (!Array.isArray(infoTickets) || infoTickets.length === 0) {
+      resultadoCard.className = 'resultado-card error';
+      resultadoTitulo.textContent = '⚠ Sin entradas registradas';
+      resultadoContenido.innerHTML = `<p>No se encontraron tickets registrados para esta consulta.</p>`;
+      resultadoCard.style.display = 'block';
+      return;
+    }
+
+    // Tomamos datos generales del primer ticket o del fallback
+    const primerTicket = infoTickets[0] || {};
+    const familia = primerTicket.familia || datosFallback.familia || '—';
+    const nombre = primerTicket.nombre || datosFallback.nombre || familia;
+    const jornadaDisplay = primerTicket.jornada || datosFallback.jornadaDisplay || '—';
+    const bloques = primerTicket.bloque || primerTicket.bloques || datosFallback.bloques || '—';
+    const curso = primerTicket.curso || datosFallback.curso || '—';
+    const numListado = primerTicket.num_listado || datosFallback.numListado || '—';
+    const total = datosFallback.total || infoTickets.length;
+
+    // 1. Cabecera con información general de la familia
+    let htmlHeader = `
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:16px;">
+        <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+        <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+        <div class="dato-row"><span class="dato-label">Jornada / Bloque</span><span class="dato-value">${jornadaDisplay} - ${bloques}</span></div>
+        <div class="dato-row"><span class="dato-label">Curso / Listado</span><span class="dato-value">${curso} (N° ${numListado})</span></div>
+        <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
+      </div>
+    `;
+
+    // 2. Iteración por cada ticket individual
+    let htmlTickets = infoTickets.map((ticket, index) => {
+      const folio = ticket.folio || ticket.id || index + 1;
+      const serialTicket = String(folio).padStart(4, '0');
+      const estaUsado = ticket.usado || ticket.estado !== 'activa';
+      const tipoTicket = ticket.tipo || datosFallback.tipo || '—';
+
+      if (estaUsado) {
+        // Tarjeta para ticket YA UTILIZADO o INACTIVO
+        return `
+          <div style="background:#fef2f2; border:1.5px solid #e74c3c; border-radius:8px; padding:14px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <strong style="color:#e74c3c;">🎫 Entrada N° ${serialTicket}</strong>
+              <span style="background:#e74c3c; color:white; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px;">USADA</span>
+            </div>
+            <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipoTicket}</span></div>
+            <div class="dato-row"><span class="dato-label">Validado por</span><span class="dato-value">${ticket.validado_por || '—'}</span></div>
+            <div class="dato-row"><span class="dato-label">Fecha Uso</span><span class="dato-value">${ticket.fecha_uso ? new Date(ticket.fecha_uso).toLocaleString('es-CL') : '—'}</span></div>
+          </div>
+        `;
+      } else {
+        // Tarjeta para ticket DISPONIBLE con botón de validación
+        return `
+          <div style="background:#f0fdf4; border:1.5px solid #2ecc71; border-radius:8px; padding:14px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <strong style="color:#2ecc71;">🎫 Entrada N° ${serialTicket}</strong>
+              <span style="background:#2ecc71; color:white; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px;">DISPONIBLE</span>
+            </div>
+            <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipoTicket}</span></div>
+            <button id="btn-validar-${folio}" onclick="validarEntrada(${folio})" style="width:100%; padding:12px; margin-top:10px; background:#e74c3c; color:white; border:none; border-radius:8px; font-size:0.95rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+              🎫 VALIDAR ENTRADA N° ${serialTicket}
+            </button>
+          </div>
+        `;
+      }
+    }).join('');
+
+    // 3. Inyección en la tarjeta contenedor
+    resultadoCard.className = 'resultado-card';
+    resultadoTitulo.textContent = `✅ Tickets Encontrados (${infoTickets.length})`;
+    resultadoContenido.innerHTML = htmlHeader + htmlTickets;
+    resultadoCard.style.display = 'block';
   }
 
 </script>

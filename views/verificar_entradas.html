@@ -377,6 +377,89 @@
     resultadoCard.style.display = 'block';
   }
 
+
+  async function buscar() {
+    const q = document.getElementById('inp-busqueda').value.trim();
+    console.log(`Buscando entradas con query: "${q}"`);
+    //const estadoMsg = document.getElementById('estado-msg');
+    //const resultadoCount = document.getElementById('resultado-count');
+    //const tablaContainer = document.getElementById('tabla-resultados');
+    //const cardsContainer = document.getElementById('cards-resultados');
+
+    // Si el campo está vacío, mostrar listado completo
+    if (q.length === 0) {
+      //tablaContainer.classList.remove('visible');
+      //cardsContainer.innerHTML = '';
+      //resultadoCount.style.display = 'none';
+      //estadoMsg.textContent = '';
+      //document.getElementById('tabla-listado-all').style.display = '';
+      //document.getElementById('cards-all-resultados').style.display = '';
+      //document.getElementById('paginador').style.display = 'flex';
+      //cargarTodasEntradas(1);
+      return;
+    }
+
+    if (q.length < 2) {
+      //estadoMsg.textContent = 'Ingrese al menos 2 caracteres';
+      //estadoMsg.style.color = '#e74c3c';
+      return;
+    }
+
+    // Ocultar listado completo al buscar
+    //document.getElementById('tabla-listado-all').style.display = 'none';
+    //document.getElementById('cards-all-resultados').style.display = 'none';
+    //document.getElementById('paginador').style.display = 'none';
+
+    //estadoMsg.textContent = 'Buscando...';
+    //estadoMsg.style.color = '#888';
+
+    try {
+      fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
+      .then ( res => res.json() )
+      .then ( async config_json => {
+        fetch(`/api/entrada/buscar?q=${encodeURIComponent(q)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey }
+          }
+        )
+        .then(res => res.json())
+        .then(datos => {
+          console.log('Resultados de búsqueda:', datos);
+          if (Array.isArray(datos) && datos.length > 0) {
+            //estadoMsg.textContent = `Se encontraron ${datos.length} entradas.`;
+            //estadoMsg.style.color = '#2ecc71';
+            renderizarTarjetasTickets(datos);
+          } else {
+            //estadoMsg.textContent = 'No se encontraron entradas para la búsqueda.';
+            //estadoMsg.style.color = '#e74c3c';
+            const resultadoCard = document.getElementById('resultado-card');
+            const resultadoTitulo = document.getElementById('resultado-titulo');
+            const resultadoContenido = document.getElementById('resultado-contenido');
+            resultadoCard.className = 'resultado-card error';
+            resultadoTitulo.textContent = '⚠ Sin resultados';
+            resultadoContenido.innerHTML = `<p>No se encontraron entradas asociadas a la búsqueda: <strong>${q}</strong></p>`;
+            resultadoCard.style.display = 'block';
+          }
+        })
+        .catch(err => {
+          console.error('Error al buscar entradas:', err);
+          //estadoMsg.textContent = 'Error al buscar entradas. Revise la consola.';
+          //estadoMsg.style.color = '#e74c3c';
+        });
+      })
+      .catch(err => {
+        console.error('Error al obtener configuración:', err);
+        //estadoMsg.textContent = 'Error al obtener configuración. Revise la consola.';
+        //estadoMsg.style.color = '#e74c3c';
+      });
+    } catch (err) {
+      console.error('Error inesperado al buscar entradas:', err);
+      //estadoMsg.textContent = 'Error inesperado al buscar entradas. Revise la consola.';
+      //estadoMsg.style.color = '#e74c3c';
+    }
+  }
+
+
 </script>
 
 </body>

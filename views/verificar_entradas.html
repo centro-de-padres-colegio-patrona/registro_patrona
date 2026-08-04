@@ -302,6 +302,16 @@
       return;
     }
 
+    // 1. Ordenar tickets: Activos (usado == false y estado == 'activa') primero
+    const ticketsOrdenados = [...infoTickets].sort((a, b) => {
+      const aInactivo = a.usado || a.estado !== 'activa';
+      const bInactivo = b.usado || b.estado !== 'activa';
+
+      // Si 'a' es inactivo (true) y 'b' es activo (false), 'a' va después (1)
+      // Si 'a' es activo (false) y 'b' es inactivo (true), 'a' va antes (-1)
+      return aInactivo - bInactivo;
+    });
+    
     // Tomamos datos generales del primer ticket o del fallback
     const primerTicket = infoTickets[0] || {};
     const familia = primerTicket.familia || datosFallback.familia || '—';

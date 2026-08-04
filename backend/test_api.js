@@ -34,7 +34,8 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_api_crear_perfiles, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
-  test_array.push({test_fn: test_entradas_familia, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_entradas_familia, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
 
   let test_name = ''

@@ -244,7 +244,7 @@
 
     fetch('/api/user')
       .then(response => {
-        console.log('Respuesta del servidor:', response);
+        //console.log('Respuesta del servidor:', response);
         if (!response.ok) {
           throw new Error('Usuario no autenticado');
         }
@@ -253,8 +253,8 @@
       .then(user => {
         if (!user || !user.user) throw new Error('Datos de usuario vacíos');
         currentUser = user.user;
-        console.log('[mis_datos] Hijos recibidos:', JSON.stringify(currentUser.hijos));
-        console.log('[mis_datos] Padres recibidos:', JSON.stringify(currentUser.padres));
+        //console.log('[mis_datos] Hijos recibidos:', JSON.stringify(currentUser.hijos));
+        //console.log('[mis_datos] Padres recibidos:', JSON.stringify(currentUser.padres));
         
         // Ocultar loading
         document.getElementById('loading-state').style.display = 'none';
@@ -262,7 +262,7 @@
         document.getElementById('registro-form').style.display = 'block';
         
         fillUserInfo(currentUser);
-        console.log('Datos del usuario:', user);
+        //console.log('Datos del usuario:', user);
         
         // Si tiene datos (heredados o propios con hijos), ocultar el label
         const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
@@ -283,10 +283,10 @@
             ? currentUser.email 
             : "ejemplo@correo.com";
 
-        console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
+        //console.log(`[/api/user] correo: ${JSON.stringify({correo, email: currentUser.email})}`);
       })
       .catch(error => {
-        console.log('[mis_datos] Error /api/user, intentando vía manual:', error.message);
+        //console.log('[mis_datos] Error /api/user, intentando vía manual:', error.message);
         
         // Ocultar loading
         document.getElementById('loading-state').style.display = 'none';
@@ -294,7 +294,7 @@
 
         const params = new URLSearchParams(window.location.search);
         const userEmailParam = params.get('user_email');
-        console.log('[mis_datos] user_email desde URL:', userEmailParam);
+        //console.log('[mis_datos] user_email desde URL:', userEmailParam);
 
         // Si tiene user_email en el URL, intentar cargar datos manualmente
         if (userEmailParam) {
@@ -302,8 +302,8 @@
             .then(res => { if (!res.ok) throw new Error('No encontrado'); return res.json(); })
             .then(data => {
               currentUser = data.user;
-              console.log('[mis_datos] Datos cargados vía user_email param:', currentUser.email);
-              console.log('[mis_datos] Hijos:', currentUser.hijos?.length, 'Padres:', currentUser.padres?.length);
+              //console.log('[mis_datos] Datos cargados vía user_email param:', currentUser.email);
+              //console.log('[mis_datos] Hijos:', currentUser.hijos?.length, 'Padres:', currentUser.padres?.length);
               document.title = 'Cargado: ' + currentUser.email;
               fillUserInfo(currentUser);
               mostrarEstado("Datos obtenidos desde la base de datos", 0);
@@ -509,7 +509,8 @@
 
     function isRutValidFormat(value) {
       //const regex = /^(\d{8}|\d{1}\.\d{7}|\d{1}\.\d{3}\.\d{4}|\d{7}-\d{1}|\d{1}\.\d{6}-\d{1}|\d{1}\.\d{3}\.\d{3}-\d{1}|\d{9}|\d{2}\.\d{7}|\d{2}\.\d{3}\.\d{4}|\d{8}-\d{1}|\d{2}\.\d{6}-\d{1}|\d{2}\.\d{3}\.\d{3}-\d{1})$/;
-      const regex = /^(\d{8}|\d{1}\.\d{7}|\d{1}\.\d{3}\.\d{4}|\d{7}-[\dkK]|\d{1}\.\d{6}-[\dkK]|\d{1}\.\d{3}\.\d{3}-[\dkK]|\d{9}|\d{2}\.\d{7}|\d{2}\.\d{3}\.\d{4}|\d{8}-[\dkK]|\d{2}\.\d{6}-[\dkK]|\d{2}\.\d{3}\.\d{3}-[\dkK])$/i;
+      //const regex = /^(\d{8}|\d{1}\.\d{7}|\d{1}\.\d{3}\.\d{4}|\d{7}-[\dkK]|\d{1}\.\d{6}-[\dkK]|\d{1}\.\d{3}\.\d{3}-[\dkK]|\d{9}|\d{2}\.\d{7}|\d{2}\.\d{3}\.\d{4}|\d{8}-[\dkK]|\d{2}\.\d{6}-[\dkK]|\d{2}\.\d{3}\.\d{3}-[\dkK])$/i;
+      const regex = /^(\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]|\d{7,8}-?[\dkK])$/i;
       return regex.test(value);
     }
 
@@ -525,7 +526,8 @@
     }
 
     // ✅ Tests
-    /*const tests = [
+    const tests = ["25.691.171-K", "15.518.258-K",
+    "15518258K", "15518258-K", "1.5518258K", "15.518258K", "15.518.258K", 
       "12345678", "1.2345678", "1.234.5678",
       "1234567-8", "1.234567-8", "1.234.567-8",
       "123456789", "12.3456789", "12.345.6789",
@@ -533,7 +535,8 @@
       "1.2.345678" // ❌ invalid
     ];
 
-    tests.forEach(t => console.log(t, "->", isRutValidFormat(t)));*/
+    tests.forEach(t => console.log(t, "->", isRutValidFormat(t)));
+    //tests.forEach(t => console.log(t, "->", validarRutChile(t)));
 
     function validarRutChile(rutCompleto) {
         let is_valid = false;
@@ -1252,7 +1255,7 @@
               }
             });
           }
-          console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
+          //console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
           renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
         })
         .catch(err => {
@@ -1542,7 +1545,7 @@
 
     function disableSubmitButton() {
       const submitButton = document.querySelector('button[type="submit"]');
-      console.log('disableSubmitButton: ', submitButton);
+      //console.log('disableSubmitButton: ', submitButton);
       if (submitButton) {
         submitButton.disabled = true;
         submitButton.textContent = 'Datos actualizados';
@@ -1746,9 +1749,9 @@
       const childrenList = Array.from(retrieve_hijos()).map(child => child.nombre);
       const cleanChildrenList = retrieveCleanChildrenList();
       const result = compareArrays(childrenList, cleanChildrenList);
-      console.log('verifyEmptyChildForm: childrenList', childrenList);
-      console.log('verifyEmptyChildForm: cleanChildrenList: ', cleanChildrenList);
-      console.log('verifyEmptyChildForm: compareArrays: ', result);
+      //console.log('verifyEmptyChildForm: childrenList', childrenList);
+      //console.log('verifyEmptyChildForm: cleanChildrenList: ', cleanChildrenList);
+      //console.log('verifyEmptyChildForm: compareArrays: ', result);
       return !result;
     }
 
@@ -1760,9 +1763,9 @@
 
     async function addBrothers() {
       const childrenData = retrieve_hijos();
-      console.log('childrenData: ', childrenData);
+      //console.log('childrenData: ', childrenData);
       const childrenList = Array.from(childrenData).map(child => (child.nombre)).filter(name => name !== '');
-      console.log('childrenList: ', childrenList);
+      //console.log('childrenList: ', childrenList);
       if (childrenList.length === 0)
         return;
 
@@ -1771,9 +1774,9 @@
       const childrenListValidados = childrenList.filter(name => 
         hijosRegistrados.includes(name.toLowerCase().trim())
       );
-      console.log('[addBrothers] childrenList original:', childrenList);
-      console.log('[addBrothers] hijosRegistrados en BD:', hijosRegistrados);
-      console.log('[addBrothers] childrenListValidados:', childrenListValidados);
+      //console.log('[addBrothers] childrenList original:', childrenList);
+      //console.log('[addBrothers] hijosRegistrados en BD:', hijosRegistrados);
+      //console.log('[addBrothers] childrenListValidados:', childrenListValidados);
 
       if (childrenListValidados.length === 0)
         return;
@@ -1785,7 +1788,7 @@
         body: JSON.stringify({ brothers_list: childrenListValidados })
       });
       const brotherInfoMap = await response.json();
-      console.log('brotherInfoMap: ', brotherInfoMap);
+      //console.log('brotherInfoMap: ', brotherInfoMap);
 
       // Validar que los hermanos pertenezcan al apoderado actual
       const emailActual = (currentUser.email || '').toLowerCase().trim();

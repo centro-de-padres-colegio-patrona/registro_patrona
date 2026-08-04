@@ -241,6 +241,13 @@ const ubicacionSchema = new mongoose.Schema({
     codigo_postal: { type: String}
 });
 
+const correosTipoSchema = new mongoose.Schema({
+    id_organizacion: { type: String, required: true},
+    id_evento: { type: String, required: true},
+    asuntoCorreo: { type: String, required: true},
+    mensajeCorreo: { type: [String], required: true},
+    tipo_attachment: { type: String, required: true},
+});
 
 const InfoOrganizacionSchema = new mongoose.Schema({
   id_organizacion: { 
@@ -263,7 +270,7 @@ const InfoOrganizacionSchema = new mongoose.Schema({
         enum: [ 'centro_padres', 'colegio', 'club_deportivo', 'grupo_scout', 'junta__vecinos', 'local_minorista', 'comercial', 'municipalidad'] 
     },
   duracion_database: { type: String, enum: ['mensual', 'anual', 'unica']},
-  rut: { type: String, requred: true}
+  rut: { type: String, required: true}
 });
 
 const EventoSchema = new mongoose.Schema({
@@ -536,6 +543,7 @@ module.exports.commerceOrderDB = mongoose.model('CommerceOrders', commerceOrderS
 module.exports.eventoCounterDB = mongoose.model('contador_eventos', eventoCounterSchema, 'contador_eventos');
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
 module.exports.familiasDB = mongoose.model('familias', familiasEstudiantesSchema, 'familias');
+module.exports.correosTipoDB = mongoose.model('correos_tipo', correosTipoSchema, 'correos_tipo');
 module.exports.infoOrganizacionDB = infoOrganizacionDB
 module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;

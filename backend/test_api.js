@@ -35,6 +35,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 
@@ -908,5 +909,66 @@ async function test_api_historial_ticket(url_server = 'http://localhost:5001') {
   });
 }
 
+
+async function test_get_api_correos_tipo(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/correo_tipo]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+
+  try {
+    const result = await fetch(`${url_server}/api/correo_tipo?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if ( result.status === 200 )
+    {
+      const correo_tipo = await result.json();
+      console.log(`${tag} correo_tipo: `, correo_tipo);
+      log_result(tag, 'pass');
+    } else {
+      console.log(`${tag} status: ${result.status}`);
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+async function test_post_api_correos_tipo(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/correo_tipo]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const asuntoCorreo = 'Entradas Fiesta a la Chilena 2026 - Centro de Padres';
+  const mensajeCorreo = [
+    'Estimado(a) apoderado(a),',
+    'Adjunto encontrará las entradas para el evento Fiesta a la Chilena 2026.',
+    'Por favor, asegúrese de revisar los detalles del evento y presentar estas entradas al momento de ingresar.',
+    '¡Esperamos que disfrute de este maravilloso evento familiar!',
+    'Saludos cordiales,',
+    'Centro General de Padres y Apoderados - Colegio Patrona de La Florida'
+  ];
+  const tipo_attachment = 'pdf';
+ 
+  try {
+    const result = await fetch(`${url_server}/api/correo_tipo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+      body: JSON.stringify({ id_organizacion, id_evento, asuntoCorreo, mensajeCorreo, tipo_attachment })
+    });
+    const resultados = await result.json();
+    if ( result.status === 201 )
+    {
+      console.log(`${tag} `, resultados);
+      log_result(tag, 'pass');
+    } else {
+      console.log(`${tag} status: ${result.status}, `, resultados);
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
 
 module.exports.lauch_test_api = lauch_test_api;

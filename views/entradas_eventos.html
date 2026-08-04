@@ -486,9 +486,22 @@
 
         const apiKey = await getApiKey();
 
-        const asuntoCorreo = ' prueba de envio de entradas por correo';
-        const mensajeCorreo = `Entradas`;
-        const tipo_attachment = 'pdf';
+        const id_evento = getParametroURL('id_evento');
+        const id_organizacion = getParametroURL('id_organizacion');
+
+        const resp_correo_tipo = await fetch(`/api/correo_tipo?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          }
+        });
+
+        const { asuntoCorreo, mensajeCorreo, tipo_attachment } = await resp_correo_tipo.json();
+
+        // const asuntoCorreo = ' prueba de envio de entradas por correo';
+        // const mensajeCorreo = `Entradas`;
+        // const tipo_attachment = 'pdf';
 
         // Solo enviar entradas activas por correo
         const entradasActivas = (entradas || []).filter(e => getEstadoEntrada(e) === 'activa');

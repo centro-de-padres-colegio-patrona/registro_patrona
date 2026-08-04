@@ -241,8 +241,25 @@
         }
       }
 
-      // Si es administrador sin curso asignado, mostrar filtros
-      document.getElementById('filtros-container').style.display = 'flex';
+      // Si es presidente pero sin curso asignado, mostrar mensaje
+      const esPresidente = (perfil.roles || []).includes('presidente');
+      if (esPresidente && !perfil.curso_asignado) {
+        document.getElementById('mensaje-vacio').style.display = 'block';
+        document.getElementById('mensaje-vacio').innerHTML = '<p style="font-size:1.1rem; color:#e65100; font-weight:700;">⚠️ No tienes curso asignado.</p><p style="margin-top:8px; color:#666;">Solicítalo al administrador.</p>';
+        return;
+      }
+
+      // Si es administrador o supervisor, mostrar filtros para seleccionar curso
+      const esAdmin = (perfil.roles || []).includes('administrador');
+      const esSupervisor = (perfil.roles || []).includes('supervisor');
+      if (esAdmin || esSupervisor) {
+        document.getElementById('filtros-container').style.display = 'flex';
+        return;
+      }
+
+      // Si no tiene rol presidente, administrador ni supervisor, no tiene acceso
+      document.getElementById('mensaje-vacio').style.display = 'block';
+      document.getElementById('mensaje-vacio').innerHTML = '<p style="font-size:1.1rem; color:#c62828; font-weight:700;">🚫 No tienes permisos para ver esta sección.</p><p style="margin-top:8px; color:#666;">Esta página es exclusiva para presidentes de curso.</p>';
     } catch (err) {
       console.error('[initCursoPresidente] Error:', err);
       document.getElementById('filtros-container').style.display = 'flex';

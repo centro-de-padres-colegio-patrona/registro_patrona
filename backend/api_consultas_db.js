@@ -200,8 +200,9 @@ router.get('/estado_cpa_curso', async (req, res) => {
     // 2. Para cada alumno, verificar si tiene pago CPA y buscar apoderado
     const alumnos = [];
     for (const nombreAlumno of listaAlumnos) {
-      // Verificar pago CPA
-      const pagos = await db_support.pagosDB.find({ id: nombreAlumno });
+      // Verificar pago CPA (búsqueda case-insensitive para mayor robustez)
+      const nombreRegex = new RegExp('^' + nombreAlumno.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+      const pagos = await db_support.pagosDB.find({ id: { $regex: nombreRegex } });
       const cpaPagado = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
 
       // Buscar apoderado (desde hermanosMapDB o users)

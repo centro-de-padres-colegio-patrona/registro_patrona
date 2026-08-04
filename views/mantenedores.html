@@ -456,46 +456,47 @@
         </td>
       `;
       tbody.appendChild(row);
+    });
 
-      // Si es presidente, agregar también a la tabla de presidentes
-      if (p.rol === 'presidente') {
-        const rowPres = document.createElement('tr');
-        const cursoAsignado = p.curso_asignado || '';
-        const cursoOptions = ['', 'Prekínder', 'Kínder', '1° Básico', '2° Básico', '3° Básico', '4° Básico', '5° Básico', '6° Básico', '7° Básico', '8° Básico', 'I° Medio', 'II° Medio', 'III° Medio', 'IV° Medio'];
-        const seccionOptions = ['', 'A', 'B'];
-        const cursoSelect = cursoOptions.map(c => `<option value="${c}" ${c === (cursoAsignado.split(' - ')[0] || '') ? 'selected' : ''}>${c || '— Sin asignar —'}</option>`).join('');
-        const seccionActual = cursoAsignado.split(' - ')[1] || '';
-        const seccionSelect = seccionOptions.map(s => `<option value="${s}" ${s === seccionActual ? 'selected' : ''}>${s || '—'}</option>`).join('');
+    // Renderizar presidentes en su tabla aparte
+    perfilesCache.filter(p => p.activo !== false && p.rol === 'presidente').forEach(p => {
+      const paginaInicio = p.pagina_inicio ? (paginaLabels[p.pagina_inicio] || p.pagina_inicio) : '— Defecto —';
+      const rowPres = document.createElement('tr');
+      const cursoAsignado = p.curso_asignado || '';
+      const cursoOptions = ['', 'Prekínder', 'Kínder', '1° Básico', '2° Básico', '3° Básico', '4° Básico', '5° Básico', '6° Básico', '7° Básico', '8° Básico', 'I° Medio', 'II° Medio', 'III° Medio', 'IV° Medio'];
+      const seccionOptions = ['', 'A', 'B'];
+      const cursoSelect = cursoOptions.map(c => `<option value="${c}" ${c === (cursoAsignado.split(' - ')[0] || '') ? 'selected' : ''}>${c || '— Sin asignar —'}</option>`).join('');
+      const seccionActual = cursoAsignado.split(' - ')[1] || '';
+      const seccionSelect = seccionOptions.map(s => `<option value="${s}" ${s === seccionActual ? 'selected' : ''}>${s || '—'}</option>`).join('');
 
-        rowPres.innerHTML = `
-          <td>${p.nombre_completo}</td>
-          <td>${p.email}</td>
-          <td>${formatRut(p.rut)}</td>
-          <td>
-            <div style="display:flex; gap:4px; align-items:center;">
-              <select onchange="asignarCursoPresidente('${p.email}', this.value, this.parentNode.querySelector('.sec-select').value)" style="font-size:0.8rem; padding:3px 6px; border-radius:4px; border:1px solid #ccc;">
-                ${cursoSelect}
-              </select>
-              <select class="sec-select" onchange="asignarCursoPresidente('${p.email}', this.parentNode.querySelector('select').value, this.value)" style="font-size:0.8rem; padding:3px 6px; border-radius:4px; border:1px solid #ccc; width:50px;">
-                ${seccionSelect}
-              </select>
-            </div>
-          </td>
-          <td>${paginaInicio}</td>
-          <td><span class="badge-rol badge-presidente">Presidente</span></td>
-          <td>
-            <button class="btn-accion btn-editar" onclick="abrirEditar('${p.email}', 'presidente')">Editar</button>
-            <button class="btn-accion btn-eliminar" onclick="eliminarPerfil('${p.email}', 'presidente')">Eliminar</button>
-          </td>
-        `;
-        tbodyPresidentes.appendChild(rowPres);
-      }
+      rowPres.innerHTML = `
+        <td>${p.nombre_completo}</td>
+        <td>${p.email}</td>
+        <td>${formatRut(p.rut)}</td>
+        <td>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <select onchange="asignarCursoPresidente('${p.email}', this.value, this.parentNode.querySelector('.sec-select').value)" style="font-size:0.8rem; padding:3px 6px; border-radius:4px; border:1px solid #ccc;">
+              ${cursoSelect}
+            </select>
+            <select class="sec-select" onchange="asignarCursoPresidente('${p.email}', this.parentNode.querySelector('select').value, this.value)" style="font-size:0.8rem; padding:3px 6px; border-radius:4px; border:1px solid #ccc; width:50px;">
+              ${seccionSelect}
+            </select>
+          </div>
+        </td>
+        <td>${paginaInicio}</td>
+        <td><span class="badge-rol badge-presidente">Presidente</span></td>
+        <td>
+          <button class="btn-accion btn-editar" onclick="abrirEditar('${p.email}', 'presidente')">Editar</button>
+          <button class="btn-accion btn-eliminar" onclick="eliminarPerfil('${p.email}', 'presidente')">Eliminar</button>
+        </td>
+      `;
+      tbodyPresidentes.appendChild(rowPres);
     });
 
     // Mensaje si no hay presidentes
     if (tbodyPresidentes.children.length === 0) {
       const row = document.createElement('tr');
-      row.innerHTML = '<td colspan="6" style="text-align:center; color:#888; padding:20px;">No hay presidentes de curso asignados</td>';
+      row.innerHTML = '<td colspan="7" style="text-align:center; color:#888; padding:20px;">No hay presidentes de curso asignados</td>';
       tbodyPresidentes.appendChild(row);
     }
   }
@@ -587,10 +588,16 @@
       const url = rol 
         ? `/api/perfiles/${encodeURIComponent(email)}?rol=${encodeURIComponent(rol)}`
         : `/api/perfiles/${encodeURIComponent(email)}`;
-      await fetch(url, { method: 'DELETE' });
-      cargarPerfiles();
+      const res = await fetch(url, { method: 'DELETE' });
+      if (res.ok) {
+        cargarPerfiles();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert('Error al eliminar: ' + (errData.error || 'No se pudo eliminar el perfil'));
+      }
     } catch (err) {
       console.error('Error eliminando:', err);
+      alert('Error de conexión al eliminar el perfil');
     }
   }
 
@@ -605,7 +612,9 @@
       if (res.ok) {
         console.log(`Curso asignado a ${email}: ${cursoAsignado}`);
       } else {
-        console.error('Error asignando curso');
+        const errData = await res.json().catch(() => ({}));
+        console.error('Error asignando curso:', errData.error || res.status);
+        alert('Error al asignar curso: ' + (errData.error || 'Perfil no encontrado'));
       }
     } catch (err) {
       console.error('Error asignando curso:', err);

@@ -145,14 +145,14 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
 // 2. GET: Buscar Entradas (Supervisor)
 router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
   try {
-    const { q } = req.query;
+    const { q, id_evento, id_organizacion } = req.query;
     if (!q || q.trim().length < 2) {
       return res.status(400).json({ error: 'Ingrese al menos 2 caracteres para buscar' });
     }
 
     const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const busqueda = normalizar(q.trim());
-    const todos = await db_support.TicketEventoDB.find({});
+    const todos = await db_support.TicketEventoDB.find({id_organizacion, id_evento}).lean();
 
     const resultados = todos.filter(ticket => {
       const campos = [

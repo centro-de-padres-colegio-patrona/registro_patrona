@@ -38,12 +38,12 @@
 
 <!-- Tarjeta 2: Búsqueda manual -->
 <div class="card">
-    <h3>Buscar por RUT, apellido o nombre</h3>
+    <h3>Buscar por folio</h3>
     <div class="search-bar">
-        <input type="text" id="inp-busqueda" placeholder="Ej: Pérez, 12.345.678, González..." onkeydown="if(event.key==='Enter')buscar()">
-        <button onclick="buscar()">🔍 Buscar</button>
+        <input type="number" id="inp-busqueda" min="1" max="9999" placeholder="Ej: 1234" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);" onkeydown="if(event.key==='Enter')buscar()">
+        <button id="btn-buscar" onclick="buscar()">🔍 Buscar</button>
     </div>
-    <p class="search-hint">Busca por RUT del apoderado, RUT del estudiante, apellido paterno o materno, o nombre</p>
+    <p class="search-hint">Busca por folio</p>
 </div>
 
 
@@ -65,6 +65,20 @@
   let escaneando = false;
   
   let userEmail = null;
+
+  /**
+   * Obtiene el valor de un parametro de la URL por su nombre
+   */
+  function getParametroURL(nombre) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(nombre);
+  }
+
+  // 1. Obtener el id_evento de la URL
+  const id_evento = getParametroURL('id_evento');
+  const id_organizacion = getParametroURL('id_organizacion');
+
+  console.log(`id_evento: ${id_evento}, id_organizacion: ${id_organizacion}`);
 
   // Función de inicialización
   async function init() {
@@ -201,6 +215,9 @@
   }
 
   function procesarQR(data) {
+    const btnBuscar = document.getElementById('btn-buscar');
+    const inputBusqueda = document.getElementById('inp-busqueda');
+
     const resultadoCard = document.getElementById('resultado-card');
     const resultadoTitulo = document.getElementById('resultado-titulo');
     const resultadoContenido = document.getElementById('resultado-contenido');
@@ -208,6 +225,15 @@
 
     estado.textContent = '✅ QR detectado';
     estado.style.color = '#2ecc71';
+
+    // Bloquear búsqueda manual mientras se procesa el QR
+    inputBusqueda.disabled = true;
+    btnBuscar.disabled = true;
+
+    // Borrar resultado anterior
+    resultadoContenido.innerHTML = '';
+    resultadoTitulo.textContent = 'Procesando QR...';
+    resultadoCard.style.display = 'block';
 
     // Intentar parsear como URL con parámetros de entrada
     try {
@@ -262,10 +288,14 @@
               <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
             `;
             resultadoCard.style.display = 'block';
+            inputBusqueda.disabled = false;
+            btnBuscar.disabled = false;
           });
         })
       .catch( err => {
         console.error(`User ${userEmail} has not access rights`);
+        inputBusqueda.disabled = false;
+        btnBuscar.disabled = false;
       });
 
       } else {
@@ -274,6 +304,8 @@
         resultadoTitulo.textContent = '⚠ QR no reconocido';
         resultadoContenido.innerHTML = `<p>URL detectada pero no corresponde a una entrada:</p><p style="margin-top:8px; word-break:break-all; color:#666;">${data}</p>`;
         resultadoCard.style.display = 'block';
+        inputBusqueda.disabled = false;
+        btnBuscar.disabled = false;
       }
     } catch (e) {
       // No es una URL — mostrar texto crudo
@@ -281,8 +313,43 @@
       resultadoTitulo.textContent = '⚠ QR no es una entrada';
       resultadoContenido.innerHTML = `<p>Contenido del QR:</p><p style="margin-top:8px; word-break:break-all; color:#666;">${data}</p>`;
       resultadoCard.style.display = 'block';
+      inputBusqueda.disabled = false;
+      btnBuscar.disabled = false;
     }
   }
+
+
+// Configuración de textos y paletas de colores según el estado del ticket
+  const estadoConfig = {
+    'activa': {
+      texto: 'DISPONIBLE',
+      colorTexto: '#2ecc71',      // Verde
+      colorBorde: '#2ecc71',
+      colorBgCard: '#f0fdf4',
+      colorBadgeBg: '#2ecc71'
+    },
+    'usada': {
+      texto: 'USADA',
+      colorTexto: '#e74c3c',      // Rojo
+      colorBorde: '#e74c3c',
+      colorBgCard: '#fef2f2',
+      colorBadgeBg: '#e74c3c'
+    },
+    'inactiva': {
+      texto: 'INACTIVA',
+      colorTexto: '#7f8c8d',      // Gris
+      colorBorde: '#95a5a6',
+      colorBgCard: '#f8fafc',
+      colorBadgeBg: '#7f8c8d'
+    },
+    'anulada': {
+      texto: 'ANULADA',
+      colorTexto: '#795548',      // Café
+      colorBorde: '#8d6e63',
+      colorBgCard: '#efebe9',
+      colorBadgeBg: '#795548'
+    }
+  };
 
   /**
    * Renderiza las tarjetas de tickets de la familia en el DOM.
@@ -294,33 +361,62 @@
     const resultadoTitulo = document.getElementById('resultado-titulo');
     const resultadoContenido = document.getElementById('resultado-contenido');
 
+    const btnBuscar = document.getElementById('btn-buscar');
+    const inputBusqueda = document.getElementById('inp-busqueda');
+
     if (!Array.isArray(infoTickets) || infoTickets.length === 0) {
       resultadoCard.className = 'resultado-card error';
       resultadoTitulo.textContent = '⚠ Sin entradas registradas';
       resultadoContenido.innerHTML = `<p>No se encontraron tickets registrados para esta consulta.</p>`;
       resultadoCard.style.display = 'block';
+
+      inputBusqueda.disabled = false;
+      btnBuscar.disabled = false;
+
       return;
     }
 
     // 1. Ordenar tickets: Activos (usado == false y estado == 'activa') primero
-    const ticketsOrdenados = [...infoTickets].sort((a, b) => {
+    /*const ticketsOrdenados = [...infoTickets].sort((a, b) => {
       const aInactivo = a.usado || a.estado !== 'activa';
       const bInactivo = b.usado || b.estado !== 'activa';
 
       // Si 'a' es inactivo (true) y 'b' es activo (false), 'a' va después (1)
       // Si 'a' es activo (false) y 'b' es inactivo (true), 'a' va antes (-1)
       return aInactivo - bInactivo;
+    });*/
+  
+    // 2. Agrupar los tickets por su propiedad 'estado'
+    const ticketsAgrupados = infoTickets.reduce((acc, ticket) => {
+      const estadoKey = ticket.estado || 'inactiva';
+      if (!acc[estadoKey]) acc[estadoKey] = [];
+      acc[estadoKey].push(ticket);
+      return acc;
+    }, {});
+
+    // Generar un arreglo de tickets ordenado según el orden de estados definido
+    const ticketsOrdenados = [];
+    const ordenEstados = ['activa', 'usada', 'inactiva', 'anulada'];
+    ordenEstados.forEach(estado => {
+      if (ticketsAgrupados[estado]) {
+        ticketsOrdenados.push(...ticketsAgrupados[estado]);
+      }
     });
-    
+
+    console.log('Tickets agrupados por estado:', ticketsAgrupados);
+
+    // Definición de orden y estilos por cada estado
+    // const ordenEstados = ['activa', 'usada', 'inactiva', 'anulada'];
+
     // Tomamos datos generales del primer ticket o del fallback
-    const primerTicket = infoTickets[0] || {};
+    const primerTicket = ticketsOrdenados[0] || {};
     const familia = primerTicket.familia || datosFallback.familia || '—';
     const nombre = primerTicket.nombre || datosFallback.nombre || familia;
     const jornadaDisplay = primerTicket.jornada || datosFallback.jornadaDisplay || '—';
     const bloques = primerTicket.bloque || primerTicket.bloques || datosFallback.bloques || '—';
     const curso = primerTicket.curso || datosFallback.curso || '—';
     const numListado = primerTicket.num_listado || datosFallback.numListado || '—';
-    const total = datosFallback.total || infoTickets.length;
+    const total = datosFallback.total || ticketsOrdenados.length;
 
     // 1. Cabecera con información general de la familia
     let htmlHeader = `
@@ -334,90 +430,87 @@
     `;
 
     // 2. Iteración por cada ticket individual
-    let htmlTickets = infoTickets.map((ticket, index) => {
+    const estadoMap = {
+      'activa': 'DISPONIBLE',
+      'usada': 'USADA',
+      'inactiva': 'INACTIVA',
+      'anulada': 'ANULADA'
+    };
+    
+    let htmlTickets = ticketsOrdenados.map((ticket, index) => {
       const folio = ticket.folio || ticket.id || index + 1;
       const serialTicket = String(folio).padStart(4, '0');
-      const estaUsado = ticket.usado || ticket.estado !== 'activa';
       const tipoTicket = ticket.tipo || datosFallback.tipo || '—';
+      const estadoTicket = estadoMap[ticket.estado] || '---';
+      const cfg = estadoConfig[ticket.estado] || estadoConfig['inactiva'];
 
-      if (estaUsado) {
-        // Tarjeta para ticket YA UTILIZADO o INACTIVO
         return `
-          <div style="background:#fef2f2; border:1.5px solid #e74c3c; border-radius:8px; padding:14px; margin-bottom:12px;">
+          <div style="background:${cfg.colorBgCard}; border:1.5px solid ${cfg.colorBorde}; border-radius:8px; padding:14px; margin-bottom:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <strong style="color:#e74c3c;">🎫 Entrada N° ${serialTicket}</strong>
-              <span style="background:#e74c3c; color:white; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px;">USADA</span>
+              <strong style="color:${cfg.colorTexto};">🎫 Entrada N° ${serialTicket}</strong>
+              <span style="background:${cfg.colorBadgeBg}; color:white; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px;">${cfg.texto}</span>
             </div>
             <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipoTicket}</span></div>
             <div class="dato-row"><span class="dato-label">Validado por</span><span class="dato-value">${ticket.validado_por || '—'}</span></div>
             <div class="dato-row"><span class="dato-label">Fecha Uso</span><span class="dato-value">${ticket.fecha_uso ? new Date(ticket.fecha_uso).toLocaleString('es-CL') : '—'}</span></div>
           </div>
         `;
-      } else {
-        // Tarjeta para ticket DISPONIBLE con botón de validación
-        return `
-          <div style="background:#f0fdf4; border:1.5px solid #2ecc71; border-radius:8px; padding:14px; margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <strong style="color:#2ecc71;">🎫 Entrada N° ${serialTicket}</strong>
-              <span style="background:#2ecc71; color:white; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px;">DISPONIBLE</span>
-            </div>
-            <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipoTicket}</span></div>
-            <button id="btn-validar-${folio}" onclick="validarEntrada(${folio})" style="width:100%; padding:12px; margin-top:10px; background:#e74c3c; color:white; border:none; border-radius:8px; font-size:0.95rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
-              🎫 VALIDAR ENTRADA N° ${serialTicket}
-            </button>
-          </div>
-        `;
-      }
     }).join('');
 
     // 3. Inyección en la tarjeta contenedor
     resultadoCard.className = 'resultado-card';
-    resultadoTitulo.textContent = `✅ Tickets Encontrados (${infoTickets.length})`;
+    resultadoTitulo.textContent = `✅ Tickets Encontrados (${ticketsOrdenados.length})`;
     resultadoContenido.innerHTML = htmlHeader + htmlTickets;
     resultadoCard.style.display = 'block';
+
+    inputBusqueda.disabled = false;
+    btnBuscar.disabled = false;
   }
 
 
   async function buscar() {
-    const q = document.getElementById('inp-busqueda').value.trim();
-    console.log(`Buscando entradas con query: "${q}"`);
-    //const estadoMsg = document.getElementById('estado-msg');
-    //const resultadoCount = document.getElementById('resultado-count');
-    //const tablaContainer = document.getElementById('tabla-resultados');
-    //const cardsContainer = document.getElementById('cards-resultados');
+    const raw_value = document.getElementById('inp-busqueda').value.trim();
+
+    const btnBuscar = document.getElementById('btn-buscar');
+    const inputBusqueda = document.getElementById('inp-busqueda');
 
     // Si el campo está vacío, mostrar listado completo
-    if (q.length === 0) {
-      //tablaContainer.classList.remove('visible');
-      //cardsContainer.innerHTML = '';
-      //resultadoCount.style.display = 'none';
-      //estadoMsg.textContent = '';
-      //document.getElementById('tabla-listado-all').style.display = '';
-      //document.getElementById('cards-all-resultados').style.display = '';
-      //document.getElementById('paginador').style.display = 'flex';
-      //cargarTodasEntradas(1);
+    if (raw_value.length === 0) {
       return;
     }
 
-    if (q.length < 2) {
-      //estadoMsg.textContent = 'Ingrese al menos 2 caracteres';
-      //estadoMsg.style.color = '#e74c3c';
+    const resultadoCard = document.getElementById('resultado-card');
+    const resultadoTitulo = document.getElementById('resultado-titulo');
+    const resultadoContenido = document.getElementById('resultado-contenido');
+
+    // 2. Validar que sea solo dígitos y que el número esté en el rango 1 - 9999
+    const numFolio = Number(raw_value);
+    if (!/^\d+$/.test(raw_value) || numFolio < 1 || numFolio > 9999) {
+      
+      resultadoCard.className = 'resultado-card error';
+      resultadoTitulo.textContent = '⚠ Folio inválido';
+      resultadoContenido.innerHTML = `<p>El folio debe ser un número entero entre <strong>1</strong> y <strong>9999</strong>.</p>`;
+      resultadoCard.style.display = 'block';
       return;
     }
 
-    // Ocultar listado completo al buscar
-    //document.getElementById('tabla-listado-all').style.display = 'none';
-    //document.getElementById('cards-all-resultados').style.display = 'none';
-    //document.getElementById('paginador').style.display = 'none';
+    // Bloquear una nueva busqueda hasta que se obtenga el resultado de la anterior
+    inputBusqueda.disabled = true;
+    btnBuscar.disabled = true;
 
-    //estadoMsg.textContent = 'Buscando...';
-    //estadoMsg.style.color = '#888';
+    // Borrar resultado anterior
+    resultadoContenido.innerHTML = '';
+    resultadoTitulo.textContent = 'Procesando QR...';
+    resultadoCard.style.display = 'block';
+
+    const folio = numFolio.toString();
+    console.log(`Buscando entradas con folio validado: "${folio}"`);
 
     try {
       fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
       .then ( res => res.json() )
       .then ( async config_json => {
-        fetch(`/api/entrada/buscar?q=${encodeURIComponent(q)}`, {
+        fetch(`/api/entrada/familia?folio=${encodeURIComponent(folio)}&id_evento=${encodeURIComponent(id_evento)}&id_organizacion=${encodeURIComponent(id_organizacion)}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey }
           }
@@ -432,30 +525,32 @@
           } else {
             //estadoMsg.textContent = 'No se encontraron entradas para la búsqueda.';
             //estadoMsg.style.color = '#e74c3c';
-            const resultadoCard = document.getElementById('resultado-card');
-            const resultadoTitulo = document.getElementById('resultado-titulo');
-            const resultadoContenido = document.getElementById('resultado-contenido');
+            //const resultadoCard = document.getElementById('resultado-card');
+            //const resultadoTitulo = document.getElementById('resultado-titulo');
+            //const resultadoContenido = document.getElementById('resultado-contenido');
             resultadoCard.className = 'resultado-card error';
             resultadoTitulo.textContent = '⚠ Sin resultados';
-            resultadoContenido.innerHTML = `<p>No se encontraron entradas asociadas a la búsqueda: <strong>${q}</strong></p>`;
+            resultadoContenido.innerHTML = `<p>No se encontraron entradas asociadas a la búsqueda: <strong>${folio}</strong></p>`;
             resultadoCard.style.display = 'block';
+            inputBusqueda.disabled = false;
+            btnBuscar.disabled = false;
           }
         })
         .catch(err => {
           console.error('Error al buscar entradas:', err);
-          //estadoMsg.textContent = 'Error al buscar entradas. Revise la consola.';
-          //estadoMsg.style.color = '#e74c3c';
+          inputBusqueda.disabled = false;
+          btnBuscar.disabled = false;
         });
       })
       .catch(err => {
         console.error('Error al obtener configuración:', err);
-        //estadoMsg.textContent = 'Error al obtener configuración. Revise la consola.';
-        //estadoMsg.style.color = '#e74c3c';
+        inputBusqueda.disabled = false;
+        btnBuscar.disabled = false;
       });
     } catch (err) {
       console.error('Error inesperado al buscar entradas:', err);
-      //estadoMsg.textContent = 'Error inesperado al buscar entradas. Revise la consola.';
-      //estadoMsg.style.color = '#e74c3c';
+      inputBusqueda.disabled = false;
+      btnBuscar.disabled = false;
     }
   }
 

@@ -1113,7 +1113,7 @@
 
         // Simula llamada a API para cargar nombres válidos
         if (cursoLargo && hijo.seccion) {
-          //console.log(`#4 fetch(/api/alumnos?curso=`);
+          console.log(`#4 fetch(/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`);
           fetch(`/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`)
             .then(res => res.json())
             .then(alumnos => {

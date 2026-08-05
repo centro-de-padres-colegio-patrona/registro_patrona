@@ -36,6 +36,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 
@@ -970,5 +971,41 @@ async function test_post_api_correos_tipo(url_server = 'http://localhost:5001') 
     log_result(tag, 'fail');
   }
 }
+
+
+async function test_get_api_pagos(url_server = 'http://localhost:5001') {
+    const tag = '[testGetPagos]';
+    const cursos_under_test = [
+        { curso: '4m', seccion: 'A' },
+        { curso: '4m', seccion: 'B' }
+      ];
+
+    for (const { curso, seccion } of cursos_under_test) {
+        await fetchPagos(curso, seccion, url_server);
+    }
+}
+
+async function fetchPagos(curso, seccion, url_server = 'http://localhost:5001') {
+    const tag = `[fetchPagos] Curso: ${curso}, Sección: ${seccion}`;
+    try {
+        const response = await fetch(`${url_server}/api/pagos/${curso}/${seccion}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': SECRET_API_KEY
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error en la solicitud: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log(`${tag} Pagos obtenidos:`, data);
+    } catch (error) {
+        console.error(`${tag} Error al obtener los pagos:`, error);
+    }
+}
+
 
 module.exports.lauch_test_api = lauch_test_api;

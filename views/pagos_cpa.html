@@ -382,6 +382,23 @@
     let nombres_hijos = [];
     let parentInfo = null;
 
+    const curso_map = {
+      "Prekínder": 'PK',
+      "Kínder": 'K',
+      "1° Básico": '1',
+      "2° Básico": '2',
+      "3° Básico": '3',
+      "4° Básico": '4',
+      "5° Básico": '5',
+      "6° Básico": '6',
+      "7° Básico": '7',
+      "8° Básico": '8',
+      "I° Medio": '1M',
+      "II° Medio": '2M',
+      "III° Medio": '3M',
+      "IV° Medio": '4M'
+    }
+
     async function return_to_home(show_alert = true) {
       if (show_alert)
         alert('Usuario no autenticado');
@@ -576,7 +593,9 @@
           return;
 
         // Ocultar agenda escolar
-        if (item.nombre === 'agenda_escolar' || item.id === 'agenda_escolar' || (item.descripcion && item.descripcion.toLowerCase().includes('agenda escolar')))
+        /*if (item.nombre === 'agenda_escolar' || item.id === 'agenda_escolar' || (item.descripcion && item.descripcion.toLowerCase().includes('agenda escolar')))
+          return;*/
+        if (item.no_mostrar && item.no_mostrar === true)
           return;
 
         // 1. Creamos un grupo para el compromiso y sus beneficios
@@ -601,13 +620,27 @@
           currency: 'CLP' 
         }).format(item.monto);
 
-        const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
+        let unidades_maximas = 0;
+        if (currentUser.hijos && currentUser.hijos.length > 0 && item.limite_maximo_por_cliente ) {
+          for (const hijo of currentUser.hijos) {
+            //console.log (`Calculando unidades máximas para compromiso '${item.nombre}' y curso del hijo '${hijo.nombre}' (${hijo.curso})...`);
+            const curso = curso_map[hijo.curso] || 'default';
+            //console.log(`Curso mapeado: ${curso}. Límite máximo por cliente para este curso: ${item.limite_maximo_por_cliente[curso]}`);
+            let limite_max = item.limite_maximo_por_cliente['default'];
+            if (item.limite_maximo_por_cliente[curso] !== undefined) {
+              limite_max = item.limite_maximo_por_cliente[curso];
+            }
+            unidades_maximas = Math.max(unidades_maximas, limite_max);
+          }
+        }
+        //console.log(`Compromiso '${item.nombre}': unidades_maximas calculadas según cursos de hijos: ${unidades_maximas}`);
+        // const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
         // Forzar mostrar cantidad para invitaciones fiesta chilena
-        console.log(`Verificando si el compromiso '${item.nombre}' es de tipo invitación o fiesta...`);
-        const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
+        /*const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
                                (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
                                (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
         
+        console.log(`Verificando si el compromiso '${item.nombre}' es de tipo invitación o fiesta...: esInvitaciones=${esInvitaciones}`);
         // Calcular máximo de invitaciones según cursos del grupo familiar
         let maxInvitaciones = 2; // Por defecto: prekínder a 3° medio
         if (esInvitaciones && currentUser.hijos && currentUser.hijos.length > 0) {
@@ -616,16 +649,18 @@
             return curso.includes('iv') || curso.includes('4') && curso.includes('medio');
           });
           if (tieneCuartoMedio) maxInvitaciones = 6;
-        }
+        }*/
 
-        const mostrarCantidad = esInvitaciones || !unidades_maximas || unidades_maximas > 1;
-        const maxCantidad = esInvitaciones ? maxInvitaciones : item.limite_maximo_por_cliente;
+        //const mostrarCantidad = esInvitaciones || !unidades_maximas || unidades_maximas > 1;
+        const mostrarCantidad = unidades_maximas !== 1;
+        //console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, mostrarCantidad=${mostrarCantidad}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
+        //const maxCantidad = esInvitaciones ? maxInvitaciones : item.limite_maximo_por_cliente;
         const cantidadHtml = mostrarCantidad ? `
           <div class="cantidad-control">
             <span class="label-pago">Cantidad:</span>
             <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', -1)">-</button>
-            <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" readonly>
-            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${maxCantidad || 'null'})">+</button>
+            <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" data-max="${unidades_maximas}" max="${unidades_maximas}" readonly>
+            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${unidades_maximas || 'null'})">+</button>
           </div>
         ` : '';
         const monto_base = item.monto;
@@ -688,6 +723,22 @@
         }
 
         container.appendChild(group);
+
+        // Verificar si checkbox id="check-${item.id}" debe estar desahabilitado por no tener hijos registrados
+        //console.log(`Verificando si existe el checkbox para '${item.nombre}' ...`);
+        const checkbox = document.getElementById(`check-${item.id}`);
+        if (checkbox) {
+          //console.log(`Verificando si el checkbox para '${item.nombre}' debe estar deshabilitado por no tener hijos registrados...`);
+          if (!currentUser.hijos || currentUser.hijos.length === 0) {
+            checkbox.disabled = true;
+            const label = checkbox.nextElementSibling;
+            if (label && label.classList.contains('label-pago')) {
+              label.textContent = 'Debe completar el registro antes de realizar cualquier pago';
+              label.style.color = '#e74c3c';
+            }
+          }
+        }
+
       });
     }
 
@@ -929,6 +980,7 @@
             const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
                                    (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
                                    (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
+            console.log(`Verificando compromiso '${item.nombre}' para invitaciones/fiesta: esInvitaciones=${esInvitaciones}`);
             if (esInvitaciones) {
               const checkbox = document.getElementById(`check-${item.id}`);
               if (checkbox) {
@@ -1011,25 +1063,38 @@
           const invitadosRegistrados = currentUser.invitados || [];
           if (invitadosRegistrados.length > 0) {
             // Calcular máximo permitido según curso
-            let maxInvPermitidos = 2;
+            /*let maxInvPermitidos = 2;
             if (currentUser.hijos && currentUser.hijos.length > 0) {
               const tieneCuartoMedio = currentUser.hijos.some(h => {
                 const curso = (h.curso || '').toLowerCase();
                 return curso.includes('iv') || (curso.includes('4') && curso.includes('medio'));
               });
               if (tieneCuartoMedio) maxInvPermitidos = 6;
-            }
+            }*/
 
             compromisos.forEach(item => {
               const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
                                      (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
                                      (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
+              //console.log(`Verificando compromiso '${item.nombre}' para invitaciones/fiesta: esInvitaciones=${esInvitaciones}`);
               if (esInvitaciones) {
                 const checkbox = document.getElementById(`check-${item.id}`);
                 if (checkbox) {
                   const contenedorCheck = checkbox.parentNode;
                   if (contenedorCheck) {
-                    if (invitadosRegistrados.length >= maxInvPermitidos) {
+                    let unidades_maximas = 0;
+                    if (currentUser.hijos && currentUser.hijos.length > 0 && item.limite_maximo_por_cliente ) {
+                      for (const hijo of currentUser.hijos) {
+                        const curso = curso_map[hijo.curso] || 'default';
+                        let limite_max = item.limite_maximo_por_cliente['default'];
+                        if (item.limite_maximo_por_cliente[curso] !== undefined) {
+                          limite_max = item.limite_maximo_por_cliente[curso];
+                        }
+                        unidades_maximas = Math.max(unidades_maximas, limite_max);
+                      }
+                    }
+                    console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, invitadosRegistrados.length=${invitadosRegistrados.length}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
+                    if (invitadosRegistrados.length >= unidades_maximas) {
                       // Alcanzó el máximo - bloquear
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
@@ -1037,7 +1102,7 @@
                             ✓ Invitaciones pagadas (${invitadosRegistrados.length})
                           </span>
                           <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
-                            ✓ Invitados asignados (${invitadosRegistrados.length}/${maxInvPermitidos})
+                            ✓ Invitados asignados (${invitadosRegistrados.length}/${unidades_maximas})
                           </button>
                         </div>
                       `;
@@ -1048,11 +1113,11 @@
                       }
                     } else {
                       // Aún puede comprar más - mostrar cuántas tiene y dejar habilitado
-                      const faltantes = maxInvPermitidos - invitadosRegistrados.length;
+                      const faltantes = unidades_maximas - invitadosRegistrados.length;
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #f39c12; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            Invitaciones pagadas: ${invitadosRegistrados.length}/${maxInvPermitidos}
+                            Invitaciones pagadas: ${invitadosRegistrados.length}/${unidades_maximas}
                           </span>
                           <div style="margin-top:4px;">
                             <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">
@@ -1060,6 +1125,21 @@
                           </div>
                         </div>
                       `;
+                      // Verificar si checkbox id="check-${item.id}" debe estar desahabilitado por no tener hijos registrados
+                      //console.log(`Verificando si existe el checkbox para '${item.nombre}' ...`);
+                      const checkbox = document.getElementById(`check-${item.id}`);
+                      if (checkbox) {
+                        //console.log(`Verificando si el checkbox para '${item.nombre}' debe estar deshabilitado por no tener hijos registrados...`);
+                        if (!currentUser.hijos || currentUser.hijos.length === 0) {
+                          checkbox.disabled = true;
+                          const label = checkbox.nextElementSibling;
+                          if (label && label.classList.contains('label-pago')) {
+                            label.textContent = 'Debe registrar hijos para comprar invitaciones';
+                            label.style.color = '#e74c3c';
+                          }
+                        }
+                      }
+
                       // Reemplazar el control de cantidad original con el máximo correcto
                       const cantControl = document.getElementById(`cant-${item.id}`);
                       if (cantControl && cantControl.closest('.cantidad-control')) {
@@ -1571,6 +1651,17 @@
     function cambiarCantidad(id, delta, max) {
         const input = document.getElementById(`cant-${id}`);
         const checkbox = document.getElementById(`check-${id}`);
+        if (!input || checkbox.disabled) return;
+
+        // Si 'max' es null o undefined, intentamos obtenerlo desde el atributo data-max o max del DOM
+        if (max === null || max === undefined) {
+          console.log(`Max no proporcionado para id=${id}, intentando obtener desde data-max o atributo max...`);
+          const maxDesdeInput = input.dataset.max || input.getAttribute('max');
+          max = maxDesdeInput ? parseInt(maxDesdeInput, 10) : 1;
+          console.log(`Max obtenido para id=${id}: ${max}`);
+        }
+
+        //const checkbox = document.getElementById(`check-${id}`);
         let nuevaCantidad = parseInt(input.value) + delta;
 
         // Validar límites (mínimo 1, máximo según el campo de la BD)

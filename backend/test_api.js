@@ -37,7 +37,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
-  test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 

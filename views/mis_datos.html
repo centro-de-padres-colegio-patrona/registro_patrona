@@ -273,6 +273,7 @@
           actualizarLabelCompletitud();
         }
         mostrarEstado("✅ Datos obtenidos desde la base de datos", 0);
+        setEstadoBotonEnviar(false);
         addBrothers();
         
         // Aplicar restricción si el usuario no es el representante de la familia
@@ -307,6 +308,7 @@
               document.title = 'Cargado: ' + currentUser.email;
               fillUserInfo(currentUser);
               mostrarEstado("Datos obtenidos desde la base de datos", 0);
+              setEstadoBotonEnviar(false);
               addBrothers();
               // Ocultar label completitud si tiene datos
               const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
@@ -320,6 +322,7 @@
             .catch(err2 => {
               console.error('[mis_datos] Error cargando manual user:', err2);
               mostrarEstado("Error al cargar datos del usuario", 1);
+              setEstadoBotonEnviar(false);
             });
         } else {
           const err_msg = String(error).toLowerCase();
@@ -1113,7 +1116,7 @@
 
         // Simula llamada a API para cargar nombres válidos
         if (cursoLargo && hijo.seccion) {
-          console.log(`#4 fetch(/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`);
+          //console.log(`#4 fetch(/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`);
           fetch(`/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`)
             .then(res => res.json())
             .then(alumnos => {
@@ -1644,6 +1647,7 @@
             mostrarEstado("✅ Los datos están actualizados", 0);
         } else {
             mostrarEstado("⚠️ Tienes cambios sin guardar", 2);
+            setEstadoBotonEnviar(true);
         }
     }
 
@@ -2102,17 +2106,31 @@
     .then(response => {
       if (response.error) {
         mostrarEstado("Error: " + response.error, 1);
+        setEstadoBotonEnviar(true);
       } else {
         updateUserEmail();
         mostrarEstado("Datos actualizados correctamente", 0);
+        setEstadoBotonEnviar(false);
       }
     })
     .catch(error => {
       mostrarEstado("Error al actualizar los datos", 1);
+      setEstadoBotonEnviar(true);
       console.error('Error al registrar:', error);
     });
 
     _datosParaEnviar = null;
+  }
+
+  function setEstadoBotonEnviar(habilitado) {
+    const submitButton = document.querySelector('#enviar-btn');
+    if (submitButton) {
+      submitButton.disabled = !habilitado;
+      submitButton.textContent = habilitado ? 'Enviar' : 'Datos actualizados';
+      submitButton.style.backgroundColor = habilitado ? '' : '#6c757d';
+      submitButton.style.cursor = habilitado ? '' : 'not-allowed';
+      submitButton.style.opacity = habilitado ? '' : '0.8';
+    }
   }
 </script>
 

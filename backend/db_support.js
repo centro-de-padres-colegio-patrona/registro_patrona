@@ -90,9 +90,10 @@ const userSchema = new mongoose.Schema({
     descripcion: String,
     monto: Number,
     tipo: String,
-    limite_maximo_por_cliente: String,
+    limite_maximo_por_cliente: Object,
     clientes: Array,
-    beneficios: Array
+    beneficios: Array,
+    no_mostrar: Boolean
   });
 
   const hermanosMapSchema = new mongoose.Schema({
@@ -165,7 +166,8 @@ const commerceSchema = new mongoose.Schema({
   status: String,
   statusText: String,
   requestDate: String,
-  
+  estado_del_pago: { type: String, required: true, enum: ['esperando_confirmacion', 'pagado', 'rechazado', 'cancelado'], default: 'esperando_confirmacion' },
+  pasarela_de_pagos: {type: String, required: true, enum: ['flow', 'transbank', "mercado pago"], default: 'flow'},
 });
 
 const pagosSchema = new mongoose.Schema({

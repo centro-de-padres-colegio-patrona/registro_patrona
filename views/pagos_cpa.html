@@ -589,20 +589,21 @@
         card.style.borderLeft = "5px solid #4A90E2";
         
         // Override de montos locales (no depender de BD)
-        const MONTOS_OVERRIDE = {
+        /*const MONTOS_OVERRIDE = {
           'invitaciones_fiesta_chilena': 5000,
           'fiesta_chilena': 5000
-        };
-        const montoReal = MONTOS_OVERRIDE[item.nombre] || MONTOS_OVERRIDE[item.id] || item.monto;
-        item.monto = montoReal; // Sobreescribir para que el resto del flujo use este valor
+        };*/
+        /*const montoReal = /*MONTOS_OVERRIDE[item.nombre] || MONTOS_OVERRIDE[item.id] || item.monto;
+        item.monto = montoReal; // Sobreescribir para que el resto del flujo use este valor*/
 
         const montoFormateado = new Intl.NumberFormat('es-CL', { 
           style: 'currency', 
           currency: 'CLP' 
-        }).format(montoReal);
+        }).format(item.monto);
 
         const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
         // Forzar mostrar cantidad para invitaciones fiesta chilena
+        console.log(`Verificando si el compromiso '${item.nombre}' es de tipo invitación o fiesta...`);
         const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
                                (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
                                (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));

@@ -36,7 +36,8 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
-  //test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 
@@ -1006,6 +1007,35 @@ async function fetchPagos(curso, seccion, url_server = 'http://localhost:5001') 
         console.error(`${tag} Error al obtener los pagos:`, error);
     }
 }
+
+
+async function test_api_delete_apoderado_email(url_server = 'http://localhost:5001') {
+  const tag = '[test DELETE /api/apoderado/email]';
+  const user_emails = [
+    'leo.herrera.mena.fotos.2020@gmail.com'
+  ];
+  try {
+    for (const email_apoderado of user_emails) {
+      const result = await fetch(`${url_server}/api/update/user/apoderado_email?user_email=${encodeURIComponent(email_apoderado)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      const resultados = await result.json();
+      if ( result.status === 200 )
+      {
+        console.log(`${tag} `, resultados);
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} status: ${result.status}, `, resultados);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 
 module.exports.lauch_test_api = lauch_test_api;

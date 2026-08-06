@@ -933,7 +933,7 @@ app.post('/api/registro', express.json(), async (req, res) => {
               { $set: { apoderado_email: correos_padres} },
               { upsert: true }
             ).then(() => {
-              console.log(`[/api/registro] hermanosMapDB actualizado: ${hijo.nombre} -> ${value}`);
+              console.log(`[/api/registro] hermanosMapDB actualizado: ${hijo.nombre} -> apoderado_email: ${JSON.stringify(correos_padres)}`);
             }).catch(err => {
               console.error(`[/api/registro] Error actualizando hermanosMapDB:`, err);
             });

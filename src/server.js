@@ -1463,7 +1463,7 @@ async function confirmar_pago_flow(token = '') {
   console.log(`${tag} Resultado:`, result);
   if (result.status === 200) { // Estado 2 es "Pagado" en Flow
     console.log(`${tag} Pago confirmado exitosamente:`, result.commerceOrder);
-
+    console.log(`${tag} result:`, result);
     const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
       { commerceOrder: result.commerceOrder },
       { $set: { ...result, estado_del_pago: 'pagado' } },
@@ -1479,7 +1479,7 @@ async function confirmar_pago_flow(token = '') {
     //const resultDbCreate = await db_support.paymentOrdersDB.create(result);
     const pago = {
       id: nombres_hijos[0],
-      num_folio: result.commerceOrder,
+      num_folio: parseInt(result.commerceOrder) || 0,
       tipo: 'flow',
       subtipo: result.subject || '',
       cuota_cpa: result.subject === 'cuota_cpa' || result.subject === 'Cuota CPA',
@@ -1492,6 +1492,7 @@ async function confirmar_pago_flow(token = '') {
       payment_method: 'flow',
       commerce_order: result.commerceOrder,
     }
+    console.log(`${tag} Pago a guardar en DB:`, pago);
     const resultPagoCreate = await db_support.pagosDB.create(pago);
     console.log(`${tag} Pago guardado en DB:`, resultPagoCreate);
   }

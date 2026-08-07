@@ -1313,8 +1313,6 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       nombre: nombre || "Unknown",
       telefono: telefono || "",
       nombres_hijos: Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
-      compromisos_pagos: keys.join(','),
-      cantidades: JSON.stringify(cantidades),
       otroDato: "sin datos adicionales"
     };
 
@@ -1359,7 +1357,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     //const {allParams} = response;
     commerceOrderUpdateResult = await db_support.paymentOrdersDB.findOneAndUpdate(
       { commerceOrder: allParams.commerceOrder },
-      { $set: allParams },
+      { $set: allParams, compromisos_de_pago: keys, cantidades },
       { returnDocument: 'after' }
     );
     console.log('Commerce Order Update Result: ', commerceOrderUpdateResult);
@@ -1471,8 +1469,6 @@ async function confirmar_pago_flow(token = '') {
     //console.log(`${tag} result:`, result);
 
     let nombres_hijos = [];
-    let compromisos_pago = [];
-    let cantidades = {};
     let optional = {};
 
     // Verificando el tipo de dato de result.optional
@@ -1488,10 +1484,6 @@ async function confirmar_pago_flow(token = '') {
     if ( optional ) {
       if ( optional.nombres_hijos ) 
         nombres_hijos = optional.nombres_hijos.split(',');
-      if ( optional.compromisos_pagos )
-        compromisos_pago = optional.compromisos_pagos.split(',');
-      if ( optional.cantidades )
-        cantidades = JSON.parse(optional.cantidades);
     }
 
     // Guardar el resultado en la base de datos
@@ -1525,9 +1517,9 @@ async function confirmar_pago_flow(token = '') {
       entradas_pagadas: 0,
       payment_method: resultDbUpdate.pasarela_de_pagos,
       commerce_order: result.commerceOrder,
-      compromisos_pago: compromisos_pago,
-      cantidades: cantidades,
-      email_apoderado: result.email
+      compromisos_de_pago: resultDbUpdate.compromisos_de_pago || [],
+      cantidades: resultDbUpdate.cantidades || {},
+      email_apoderado: result.payer
     }
     console.log(`${tag} Pago a guardar en DB:`, pago);
     const resultPagoCreate = await db_support.pagosDB.create(pago);

@@ -168,6 +168,8 @@ const commerceSchema = new mongoose.Schema({
   requestDate: String,
   estado_del_pago: { type: String, required: true, enum: ['esperando_confirmacion', 'pagado', 'rechazado', 'cancelado'], default: 'esperando_confirmacion' },
   pasarela_de_pagos: {type: String, required: true, enum: ['flow', 'transbank', "mercado pago"], default: 'flow'},
+  compromisos_de_pago: Array,
+  cantidades: Object,
 });
 
 const pagosSchema = new mongoose.Schema({
@@ -184,7 +186,7 @@ const pagosSchema = new mongoose.Schema({
   entradas_pagadas: Number,
   payment_method: String,
   commerce_order: String,
-  compromisos_pago: Array,
+  compromisos_de_pago: Array,
   cantidades: Object,
   email_apoderado: String
 });

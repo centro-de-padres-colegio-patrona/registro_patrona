@@ -1281,10 +1281,10 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     let {compromiso_key, cantidades = {}, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
     let monto_total = 0;
     // Override de montos (no depender de BD para ciertos compromisos)
-    const MONTOS_OVERRIDE = {
+    /*const MONTOS_OVERRIDE = {
       'invitaciones_fiesta_chilena': 5000,
       'fiesta_chilena': 5000
-    };
+    };*/
     // Normalizar: siempre trabajar con array
     const keys = Array.isArray(compromiso_key) ? compromiso_key : [compromiso_key];
     for (const key of keys) {
@@ -1293,7 +1293,8 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
         return res.status(400).json({ error: `Compromiso '${key}' no encontrado en la base de datos` });
       }
       const cantidad = (cantidades && cantidades[key]) ? parseInt(cantidades[key]) : 1;
-      const montoUnitario = MONTOS_OVERRIDE[compromiso_pago.nombre] || MONTOS_OVERRIDE[key] || compromiso_pago.monto;
+      //const montoUnitario = MONTOS_OVERRIDE[compromiso_pago.nombre] || MONTOS_OVERRIDE[key] || compromiso_pago.monto;
+      const montoUnitario = compromiso_pago.monto;
       monto_total += montoUnitario * cantidad;
     }
     if ( user_email === undefined || user_email === null) 
@@ -1311,7 +1312,9 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
       rut: rut || "9999999-9",
       nombre: nombre || "Unknown",
       telefono: telefono || "",
-      'Nombre Hijos': nombres_hijos.join(','),
+      nombres_hijos: Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
+      compromisos_pagos: keys.join(','),
+      cantidades: JSON.stringify(cantidades),
       otroDato: "sin datos adicionales"
     };
 
@@ -1457,13 +1460,44 @@ app.get('/api/payments/confirm', async (req, res) => {
 
 async function confirmar_pago_flow(token = '') {
   const tag = '[confirmar_pago_flow]';
+
   // 1. Consultar el estado real del pago en Flow
   console.log(`${tag} Consultando estado del pago en Flow...`);
   const result = await flow.send("payment/getStatus", { token }, "GET");
-  console.log(`${tag} Resultado:`, result);
+
+  // Verificar si Status es 200
   if (result.status === 200) { // Estado 2 es "Pagado" en Flow
-    console.log(`${tag} Pago confirmado exitosamente:`, result.commerceOrder);
-    console.log(`${tag} result:`, result);
+    console.log(`${tag} Pago confirmado exitosamente. commerceOrder:`, result.commerceOrder);
+    //console.log(`${tag} result:`, result);
+
+    let nombres_hijos = [];
+    let compromisos_pago = [];
+    let cantidades = {};
+    let optional = {};
+
+    // Verificando el tipo de dato de result.optional
+    if (typeof result.optional === 'string') {
+      // Recuperar hijos desde el campo optional
+      optional = JSON.parse(result.optional);
+    } else {
+      optional = result.optional;
+      // Serializar optional
+      result.optional = JSON.stringify(result.optional);
+    }
+
+    if ( optional ) {
+      if ( optional.nombres_hijos ) 
+        nombres_hijos = optional.nombres_hijos.split(',');
+      if ( optional.compromisos_pagos )
+        compromisos_pago = optional.compromisos_pagos.split(',');
+      if ( optional.cantidades )
+        cantidades = JSON.parse(optional.cantidades);
+    }
+
+    // Guardar el resultado en la base de datos
+    console.log(`${tag} Resultado:`, result);
+    console.log(`${tag} Nombres hijos:`, nombres_hijos);
+    
     const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
       { commerceOrder: result.commerceOrder },
       { $set: { ...result, estado_del_pago: 'pagado' } },
@@ -1471,16 +1505,16 @@ async function confirmar_pago_flow(token = '') {
     );
     console.log(`${tag} Resultado guardado en DB:`, resultDbUpdate);
 
-    console.log(`${tag} result.optional:`, result.optional);
-    const nombres_hijos = result.optional.nombres_hijos.split(',');
-    const optional = {...result.optional};
-    result.optional = JSON.stringify(optional);
+    //console.log(`${tag} result.optional:`, result.optional);
+    //const nombres_hijos = result.optional.nombres_hijos.split(',');
+    //const optional = {...result.optional};
+    //result.optional = JSON.stringify(optional);
     // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
     //const resultDbCreate = await db_support.paymentOrdersDB.create(result);
     const pago = {
       id: nombres_hijos[0],
       num_folio: parseInt(result.commerceOrder) || 0,
-      tipo: 'flow',
+      tipo: '',
       subtipo: result.subject || '',
       cuota_cpa: result.subject === 'cuota_cpa' || result.subject === 'Cuota CPA',
       monto: result.amount,
@@ -1489,8 +1523,11 @@ async function confirmar_pago_flow(token = '') {
       fecha: result.requestDate,
       comentarios: '',
       entradas_pagadas: 0,
-      payment_method: 'flow',
+      payment_method: resultDbUpdate.pasarela_de_pagos,
       commerce_order: result.commerceOrder,
+      compromisos_pago: compromisos_pago,
+      cantidades: cantidades,
+      email_apoderado: result.email
     }
     console.log(`${tag} Pago a guardar en DB:`, pago);
     const resultPagoCreate = await db_support.pagosDB.create(pago);
@@ -2447,7 +2484,7 @@ app.post('/api/mp/create', async (req, res) => {
       rut: rut || '9999999-9',
       nombre: nombre || 'Unknown',
       telefono: telefono || '',
-      'Nombre Hijos': Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
+      nombres_hijos: Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
     };
 
     // Guardar la orden en BD (mismo modelo que Flow)

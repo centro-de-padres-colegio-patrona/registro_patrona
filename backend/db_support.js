@@ -184,6 +184,9 @@ const pagosSchema = new mongoose.Schema({
   entradas_pagadas: Number,
   payment_method: String,
   commerce_order: String,
+  compromisos_pago: Array,
+  cantidades: Object,
+  email_apoderado: String
 });
 
 /// --------------------------------------

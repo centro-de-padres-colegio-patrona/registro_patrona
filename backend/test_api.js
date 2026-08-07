@@ -38,6 +38,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_get_max_invitados, delay: delay_ms, arguments: url_server});
 
   let test_name = ''
 
@@ -1037,5 +1038,33 @@ async function test_api_delete_apoderado_email(url_server = 'http://localhost:50
 }
 
 
+async function test_get_max_invitados(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/eventos/max_invitados]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const cursos_under_test = [['4MA', '6B'], ['6A', '6B'], ['PKA', '4MB'], ['1MA', '6A', '4B']];
+
+  try {
+    for (const cursos of cursos_under_test) {
+      const result = await fetch(`${url_server}/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 )
+      {
+        const max_invitados = await result.json();
+        console.log(`${tag} cursos: ${JSON.stringify(cursos)}, max_invitados: `, max_invitados);
+        log_result(tag, 'pass');
+      } else {
+        const message = await result.json()
+        console.log(`${tag} status: ${result.status}, message: `, message);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
 
 module.exports.lauch_test_api = lauch_test_api;

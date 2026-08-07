@@ -202,14 +202,15 @@ const registradosSchema = new mongoose.Schema({
 });
 
 const cursoBloqueMapSchema = new mongoose.Schema({
+  id_evento: String,
+  id_organizacion: String,
   id: String,
   descripcion: String,
   bloque: String,
   jornada: String,
   color: String,
-  hash: String,
-  pases_apoderados: { type: Number, default: 2 },
-  pases_invitados:  { type: Number, default: 2 },
+  pases_apoderados: { type: Number, default: 2 , required: true},
+  pases_invitados:  { type: Number, default: 2 , required: true},
 }, { strict: false });
 
 const registroEntradasSchema = new mongoose.Schema({

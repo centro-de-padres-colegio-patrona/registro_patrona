@@ -510,6 +510,23 @@
       "4M": "IV° Medio"
     }
 
+    const direct_curso_map = {
+      "Prekínder": "PK",
+      "Kínder": "K",
+      "1° Básico": "1",
+      "2° Básico": "2",
+      "3° Básico": "3",
+      "4° Básico": "4",
+      "5° Básico": "5",
+      "6° Básico": "6",
+      "7° Básico": "7",
+      "8° Básico": "8",
+      "I° Medio": "1M",
+      "II° Medio": "2M",
+      "III° Medio": "3M",
+      "IV° Medio": "4M"
+    }
+
     function isRutValidFormat(value) {
       const regex = /^(\d{7}[\dkK]|\d{1}\.\d{3}\.\d{3}[\dkK]|\d{7}-[\dkK]|\d{1}\.\d{6}-[\dkK]|\d{1}\.\d{3}\.\d{3}-[\dkK]|\d{8}[\dkK]|\d{2}\.\d{3}\.\d{3}[\dkK]|\d{8}-[\dkK]|\d{2}\.\d{6}-[\dkK]|\d{2}\.\d{3}\.\d{3}-[\dkK])$/;
 
@@ -856,6 +873,31 @@
 
   <script>
     /// ----------------------- Verificar Máximo Entradas
+    async function obtenerMaxInvitados() {
+      try {
+        console.log("Calculando máximo invitados...");
+        const cursos = retrieve_cursos_hijos().map(curso => direct_curso_map[curso]).filter(c => c); // Convertir a códigos usando
+
+        console.log("Cursos hijos para max_invitados:", cursos);
+
+        console.log("GET /api/eventos/max_invitados?output=json&cursos=" + encodeURIComponent(JSON.stringify(cursos)));
+        const id_organizacion = 'cpa_patrona';
+        const id_evento = 'fiesta_chilena_2026';
+        const result = await fetch(`/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+        });
+        if (!result.ok) throw new Error(`Error al obtener max_invitados: ${result.statusText}`);
+        const data = await result.json();
+        const max = data.max_invitados;
+        console.log("Maximo Invitados:", max);
+        return max;
+      } catch (error) {
+        console.error('Error al calcular máximo invitados:', error);
+      }
+      return 0;
+    }
+
     function verificarCursos() {
       const selects = document.querySelectorAll('select[name="childCourse[]"]');
       let contieneIVMedio = false;
@@ -872,9 +914,11 @@
     // Escucha cambios en todos los selects
     document.querySelectorAll('select[name="childCourse[]"]').forEach(select => {
       select.addEventListener('change', () => {
-        const resultado = verificarCursos();
-        //console.log("Maximo Invitados:", resultado);
-        max_invitados = resultado;
+        //const resultado = verificarCursos();
+        console.log("Calling obtenerMaxInvitados()");
+        obtenerMaxInvitados().then(max => {
+          max_invitados = max;
+        });
         // Aquí puedes usar el resultado como necesites
       });
     });
@@ -1260,10 +1304,12 @@
     // Variable global para almacenar invitados cargados desde la API de entradas
     let _invitadosCargados = [];
 
-    function renderInvitadosInfo(container, entradasInvitados, invitadosUser) {
+    async function renderInvitadosInfo(container, entradasInvitados, invitadosUser) {
       // Guardar invitados para usarlos en el popup de confirmación
       _invitadosCargados = entradasInvitados.length > 0 ? entradasInvitados : invitadosUser;
 
+      max_invitados = await obtenerMaxInvitados();
+      console.log('[mis_datos] max_invitados:', max_invitados);
       const maxInvitados = entradasInvitados.length || max_invitados;
       const invitadosSolicitados = currentUser.invitados || [];
 
@@ -1544,6 +1590,10 @@
         rut: child.querySelector("input[name='childRut[]']").value
       }));
       return hijos;
+    }
+
+    function retrieve_cursos_hijos() {
+      return retrieve_hijos().map(hijo => hijo.curso);
     }
 
     function retrieve_parents() {

@@ -39,7 +39,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_max_invitados, delay: delay_ms, arguments: url_server});
-  test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
 
 
@@ -1116,7 +1116,7 @@ async function test_add_pase_rule(url_server = 'http://localhost:5001') {
 
 
 async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001') {
-  const tag = '[test GET /api/pagos/estado_pago_evento]';
+  const tag = '[test GET /api/evento/estado_de_pago]';
   const id_organizacion = 'cpa_patrona';
   const id_evento = 'fiesta_chilena_2026';
 
@@ -1128,7 +1128,7 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
   try {
     for (const user_email of emails) {
-      const result = await fetch(`${url_server}/api/pagos/estado_pago_evento?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+      const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });

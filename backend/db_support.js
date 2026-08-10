@@ -281,6 +281,17 @@ const InfoOrganizacionSchema = new mongoose.Schema({
   rut: { type: String, required: true}
 });
 
+
+const PaseRuleSchema = new mongoose.Schema({
+  id_rule : { type: String, required: true },
+  descripcion: { type: String},
+  compromiso_name: { type: String, required: true},
+  pases_por_compromiso: { type: Number, required: true },
+  compromisos_maximo: { type: Number, required: true },
+  compromiso_maximo_alcanzado: { type: String, required: true , enum: ['liberar_maximo_de_pases', 'ninguna_accion_adicional']},
+});
+
+
 const EventoSchema = new mongoose.Schema({
   id_evento: { 
     type: String, 
@@ -303,6 +314,7 @@ const EventoSchema = new mongoose.Schema({
   hora_inicio: { type: String },
   hora_termino: { type: String },
   hora_apertura_puertas: { type: String },
+  regla_de_negocios_entradas: { type: [Object] },
   entradas_disponibles: { type: Number, default: 0 },
   entradas_vendidas: { type: Number, default: 0 },
   entradas_usadas: { type: Number, default: 0 },
@@ -552,6 +564,7 @@ module.exports.eventoCounterDB = mongoose.model('contador_eventos', eventoCounte
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
 module.exports.familiasDB = mongoose.model('familias', familiasEstudiantesSchema, 'familias');
 module.exports.correosTipoDB = mongoose.model('correos_tipo', correosTipoSchema, 'correos_tipo');
+module.exports.PaseRuleDB = mongoose.model('PaseRule', PaseRuleSchema, 'PaseRule');
 module.exports.infoOrganizacionDB = infoOrganizacionDB
 module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;

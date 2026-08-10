@@ -875,12 +875,12 @@
     /// ----------------------- Verificar Máximo Entradas
     async function obtenerMaxInvitados() {
       try {
-        console.log("Calculando máximo invitados...");
-        const cursos = retrieve_cursos_hijos().map(curso => direct_curso_map[curso]).filter(c => c); // Convertir a códigos usando
+        //console.log("Calculando máximo invitados...");
+        const cursos = retrieve_cursos_hijos();
 
-        console.log("Cursos hijos para max_invitados:", cursos);
+        //console.log("Cursos hijos para max_invitados:", cursos);
 
-        console.log("GET /api/eventos/max_invitados?output=json&cursos=" + encodeURIComponent(JSON.stringify(cursos)));
+        //console.log("GET /api/eventos/max_invitados?output=json&cursos=" + encodeURIComponent(JSON.stringify(cursos)));
         const id_organizacion = 'cpa_patrona';
         const id_evento = 'fiesta_chilena_2026';
         const result = await fetch(`/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
@@ -890,7 +890,7 @@
         if (!result.ok) throw new Error(`Error al obtener max_invitados: ${result.statusText}`);
         const data = await result.json();
         const max = data.max_invitados;
-        console.log("Maximo Invitados:", max);
+        //console.log("Maximo Invitados:", max);
         return max;
       } catch (error) {
         console.error('Error al calcular máximo invitados:', error);
@@ -1320,6 +1320,7 @@
       fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(emailPago))
         .then(res => res.json())
         .then(pagos => {
+          console.log('[mis_datos] /api/estado_pago_cpa:', pagos);
           window._cuotaCpaPagada = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
           // También verificar si pagó invitaciones sin CPA
           window._invitacionesPagadas = 0;
@@ -1593,7 +1594,7 @@
     }
 
     function retrieve_cursos_hijos() {
-      return retrieve_hijos().map(hijo => hijo.curso);
+      return retrieve_hijos().map(hijo => direct_curso_map[hijo.curso] + hijo.seccion);
     }
 
     function retrieve_parents() {

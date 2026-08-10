@@ -128,12 +128,46 @@ router.get('/eventos/max_invitados', apiKeyAuth, async (req, res) => {
 
     res.json({ max_invitados });
   } catch (error) {
-    console.error('[/api/eventos/max_invitados] Error:', error);
+    console.error(`${tag} Error:`, error);
     res.status(500).json({ error: 'Error al obtener max_invitados' });
   }
 });
 
+// Endpoit para Modificar y/o agregar items a PaseRuleDB
+router.post('/eventos/pase_rule', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/eventos/pase_rule]';
+  try {
+    const { id_rule, compromiso_name, pases_por_compromiso, compromisos_maximo, compromiso_maximo_alcanzado } = req.body;
 
+    if (!id_rule || !compromiso_name || pases_por_compromiso === undefined || compromisos_maximo === undefined || !compromiso_maximo_alcanzado) {
+      return res.status(400).json({ error: 'id_rule, compromiso_name, pases_por_compromiso, compromisos_maximo y compromiso_maximo_alcanzado son requeridos' });
+    }
+
+    // Buscar si ya existe un registro para el mismo id_rule
+    let paseRule = await db_support.PaseRuleDB.findOne({ id_rule });
+
+    if (paseRule) {
+      // Si existe, actualizar los campos
+      paseRule.compromiso_name = compromiso_name;
+      paseRule.pases_por_compromiso = pases_por_compromiso;
+      paseRule.compromisos_maximo = compromisos_maximo;
+      paseRule.compromiso_maximo_alcanzado = compromiso_maximo_alcanzado;
+      await paseRule.save();
+      console.log(`${tag} PaseRule actualizado para id_rule: ${id_rule}`);
+    } else {
+      // Si no existe, crear un nuevo registro
+      paseRule = await db_support.PaseRuleDB.create({ id_rule, compromiso_name, pases_por_compromiso, compromisos_maximo, compromiso_maximo_alcanzado });
+      if (!paseRule) return res.status(500).json({ error: 'Error al crear PaseRule' });
+      
+      console.log(`${tag} PaseRule creado para id_rule: ${id_rule}`);
+    }
+
+    res.json({ message: 'PaseRule actualizado/creado con éxito', paseRule });
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error al actualizar/crear PaseRule' });
+  }
+});
 
 
 

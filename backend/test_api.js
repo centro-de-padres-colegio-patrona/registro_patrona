@@ -39,6 +39,9 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_max_invitados, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
+
 
   let test_name = ''
 
@@ -1066,5 +1069,85 @@ async function test_get_max_invitados(url_server = 'http://localhost:5001') {
     log_result(tag, 'fail');
   }
 }
+
+
+async function test_add_pase_rule(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/eventos/pase_rule]';
+  const rules = [
+    {
+      "id_rule": "pago_cuota_social",
+      "compromiso_name": "cuota_cpa",
+      "pases_por_compromiso": -1,
+      "compromisos_maximo": 1,
+      "compromiso_maximo_alcanzado": 'liberar_maximo_de_pases',
+    },
+    {
+      "id_rule": "pago_invitados_adicionales",
+      "compromiso_name": "invitaciones_fiesta_chilena",
+      "pases_por_compromiso": 1,
+      "compromisos_maximo": 3,
+      "compromiso_maximo_alcanzado": 'liberar_maximo_de_pases',
+    }
+  ];
+
+  try {
+    for (const pase_rule of rules) {
+      const result = await fetch(`${url_server}/api/eventos/pase_rule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify( pase_rule )
+      });
+      if ( result.status === 200 )
+      {
+        const response = await result.json();
+        console.log(`${tag} pase_rule added: `, response);
+        log_result(tag, 'pass');
+      } else {
+        const message = await result.json()
+        console.log(`${tag} status: ${result.status}, message: `, message);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+
+async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/pagos/estado_pago_evento]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+
+  const emails = [
+    'l.herreramena@gmail.com',
+    'leo.herrera.mena.fotos.2020@gmail.com',
+    'leo.herrera.mena@gmail.com'
+  ];
+
+  try {
+    for (const user_email of emails) {
+      const result = await fetch(`${url_server}/api/pagos/estado_pago_evento?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 )
+      {
+        const pago_entradas = await result.json();
+        console.log(`${tag} pago_entradas: `, pago_entradas);
+        log_result(tag, 'pass');
+      } else {
+        const message = await result.json()
+        console.log(`${tag} status: ${result.status}, message: `, message);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 module.exports.lauch_test_api = lauch_test_api;

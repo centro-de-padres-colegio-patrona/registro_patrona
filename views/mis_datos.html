@@ -1319,9 +1319,28 @@
       fetch('/api/reconciliar_pagos?user_email=' + encodeURIComponent(emailPago)).catch(() => {});
       fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(emailPago))
         .then(res => res.json())
-        .then(pagos => {
+        .then(async pagos => {
           console.log('[mis_datos] /api/estado_pago_cpa:', pagos);
-          window._cuotaCpaPagada = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
+          const id_organizacion = 'cpa_patrona';
+          const id_evento = 'fiesta_chilena_2026';
+          let compromiso_maximo_alcanzado = false;
+          const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(emailPago)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+          });
+          if ( result.status === 200 ) {
+            const pago_entradas = await result.json();
+            const tipo_pase = 'pases_invitados';
+            if ( Object.hasOwn(pago_entradas, tipo_pase )) {
+              for (const pago of pago_entradas[tipo_pase]) {
+                if ( compromiso_maximo_alcanzado ) break;
+                compromiso_maximo_alcanzado = pago.compromiso_maximo_alcanzado;
+              }
+            }
+          }
+          console.log()
+
+          window._cuotaCpaPagada = compromiso_maximo_alcanzado || (Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa'));
           // También verificar si pagó invitaciones sin CPA
           window._invitacionesPagadas = 0;
           if (!window._cuotaCpaPagada && Array.isArray(pagos)) {

@@ -450,8 +450,17 @@
 
         // Renderizar tablas por categoria
         let html = '';
+        // Por Implementar: Leer desde la base de datos la configuracion de las tarjetas que se renderizan.
+        const renderizar = {
+          activa: true,
+          usada: true,
+          inactiva: false,
+          anulada: false
+        };
         ['activa', 'usada', 'inactiva', 'anulada'].forEach(estado => {
-          html += renderTablaEstado(grupos[estado], estado, configSecciones[estado]);
+          if (renderizar[estado]) {
+            html += renderTablaEstado(grupos[estado], estado, configSecciones[estado]);
+          }
         });
 
         contenedor.className = '';

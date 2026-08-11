@@ -41,6 +41,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
 
+  console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
     test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
   }
@@ -1020,6 +1021,9 @@ async function test_api_delete_apoderado_email(url_server = 'http://localhost:50
   const user_emails = [
     'leo.herrera.mena.fotos.2020@gmail.com'
   ];
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  
   try {
     for (const email_apoderado of user_emails) {
 

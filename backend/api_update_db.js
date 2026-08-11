@@ -206,9 +206,9 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
       return res.status(404).json({ error: error_msg });
     }
 
-    // Remover pagos
-    const pagosResult = await db_support.pagosDB.deleteMany({ email: user_email });
-    console.log(`${tag} user ${user_email} pagos removed: `, pagosResult.deletedCount);
+    // Remover pagos por user_email
+    // const pagosResult = await db_support.pagosDB.deleteMany({ email: user_email });
+    // console.log(`${tag} user ${user_email} pagos removed: `, pagosResult.deletedCount);
 
     // Remover pagos por cada hijo del usuario
     if (userInfo.hijos && userInfo.hijos.length > 0) {
@@ -218,7 +218,7 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
     }
 
     // Remover payments por user_email  
-    const paymentsResult = await db_support.paymentsDB.deleteMany({ email: user_email });
+    const paymentsResult = await db_support.paymentOrdersDB.deleteMany({ email: user_email });
     console.log(`${tag} user ${user_email} payments removed: `, paymentsResult.deletedCount);
 
     // Remove hijos from userInfo.hijos if they exist

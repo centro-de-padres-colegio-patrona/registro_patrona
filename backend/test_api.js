@@ -37,11 +37,13 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
-  //test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_max_invitados, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
 
+  if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
+    test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
+  }
 
   let test_name = ''
 
@@ -1020,6 +1022,20 @@ async function test_api_delete_apoderado_email(url_server = 'http://localhost:50
   ];
   try {
     for (const email_apoderado of user_emails) {
+
+      const result_desactivar_entradas = await fetch(`${url_server}/api/entrada/desactivar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({id_organizacion, id_evento, user_email: email_apoderado})
+      });
+      const resultados_entradas = await result_desactivar_entradas.json();
+      if ( result_desactivar_entradas.status === 200 )
+      {
+        console.log(`${tag} `, resultados_entradas);
+      } else {
+        console.log(`${tag} status: ${result_desactivar_entradas.status}, `, resultados_entradas);
+      }
+
       const result = await fetch(`${url_server}/api/update/user/apoderado_email?user_email=${encodeURIComponent(email_apoderado)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }

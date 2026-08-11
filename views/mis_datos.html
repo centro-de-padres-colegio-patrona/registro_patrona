@@ -1324,9 +1324,9 @@
           const id_organizacion = 'cpa_patrona';
           const id_evento = 'fiesta_chilena_2026';
           let compromiso_maximo_alcanzado = false;
-          const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(emailPago)}`, {
+          const result = await fetch(`/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(emailPago)}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
           });
           if ( result.status === 200 ) {
             const pago_entradas = await result.json();
@@ -1338,7 +1338,7 @@
               }
             }
           }
-          console.log()
+          console.log(`Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}`);
 
           window._cuotaCpaPagada = compromiso_maximo_alcanzado || (Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa'));
           // También verificar si pagó invitaciones sin CPA
@@ -1356,11 +1356,11 @@
               }
             });
           }
-          //console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
+          console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
           renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
         })
         .catch(err => {
-          //console.log('[mis_datos] Error consultando estado pago CPA:', err);
+          console.log('[mis_datos] Error consultando estado pago CPA:', err);
           window._cuotaCpaPagada = false;
           renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
         });

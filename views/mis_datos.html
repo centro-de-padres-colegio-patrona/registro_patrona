@@ -1443,7 +1443,8 @@
         if (btnAgregar) {
           btnAgregar.style.display = '';
           btnAgregar.textContent = '💰 Ir a Mis Pagos';
-          btnAgregar.onclick = function() {
+          // Aqui agregar una consulta a la API para habilitar / desahilitar el botón
+          /*btnAgregar.onclick = function() {
             const url = 'pagos_cpa.html';
             if (window.parent && window.parent.document.getElementById('visor')) {
               const email = currentUser.email || '';
@@ -1451,7 +1452,7 @@
             } else {
               window.location.href = url;
             }
-          };
+          };*/
         }
       }
 

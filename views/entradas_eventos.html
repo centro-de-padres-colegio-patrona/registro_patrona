@@ -543,7 +543,44 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', cargarEntradasUsuario);
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarEntradasUsuario();
+      controlarBotonEnviarCorreo();
+    });
+
+    async function controlarBotonEnviarCorreo() {
+      try {
+        /*const response = await fetch('/api/feature/options');
+        if (!response.ok) {
+          throw new Error('Error al consultar /api/feature/options');
+        }
+        
+        // Obtenemos las opciones habilitadas desde la API
+        const features = await response.json();*/
+        const features = { enviar_entradas_correo: false }; // Simulamos la respuesta de la API para este ejemplo
+
+        const btnCorreo = document.getElementById('btn-enviar-correo');
+        
+        if (btnCorreo) {
+          // Validamos la propiedad configurada en la API (ej: enviar_entradas_correo o similar)
+          if (features.enviar_entradas_correo === false) {
+            btnCorreo.disabled = true;
+            btnCorreo.style.opacity = '0.5';
+            btnCorreo.style.cursor = 'not-allowed';
+            btnCorreo.title = 'Opción deshabilitada temporalmente';
+          } else {
+            btnCorreo.disabled = false;
+            btnCorreo.style.opacity = '1';
+            btnCorreo.style.cursor = 'pointer';
+            btnCorreo.title = '';
+          }
+        }
+      } catch (error) {
+        console.error('Error al verificar feature de envío de correo:', error);
+      }
+    }
+
+
   </script>
 </body>
 </html>

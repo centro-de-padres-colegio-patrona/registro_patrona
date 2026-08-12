@@ -625,6 +625,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
     console.log(`${tag} session comparison ${JSON.stringify({user_email, sessionEmail})}`);
 
     const esSupervisor = await hasSupervisorAccessRights(user_email);
+    console.log(`${tag} user ${user_email} es Supervisor: ${esSupervisor}`);
 
     if ( user_email !== sessionEmail && !esSupervisor) {
       const err_msg = `unexpected email: ${JSON.stringify({user_email, sessionEmail, esSupervisor})}`;
@@ -743,6 +744,8 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
           }
         }
       );
+
+      console.log(`${tag} Entradas de la familia ${familia} activadas correctamente. Total activadas: ${updateResult.modifiedCount}`);
 
       return res.status(200).json({ 
         status: 'ok', 

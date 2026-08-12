@@ -210,7 +210,7 @@
     async function init() {
       if (!userEmail) {
         userEmail = await getUserEmail();
-        console.log(`user email cargado: ${userEmail}`);
+        //console.log(`user email cargado: ${userEmail}`);
       }
     }
 
@@ -257,7 +257,7 @@
               if (currentUser) {
                   nombres_hijos = currentUser.hijos;
               }
-              console.log(`[/api/user] correo: ${user_email}, nombres_hijos: `, nombres_hijos);
+              //console.log(`[/api/user] correo: ${user_email}, nombres_hijos: `, nombres_hijos);
               return user_email;
           }
         } catch (err) {
@@ -414,7 +414,7 @@
         // Ya NO filtramos por estado - mostramos todas separadas por categoria
         entradas = entradas_todas;
 
-        console.log('Entradas encontradas: ', entradas.length);
+        //console.log('Entradas encontradas: ', entradas.length);
 
         if (!Array.isArray(entradas) || entradas.length === 0) {
           contenedor.className = 'mensaje-info';
@@ -450,8 +450,17 @@
 
         // Renderizar tablas por categoria
         let html = '';
+        // Por Implementar: Leer desde la base de datos la configuracion de las tarjetas que se renderizan.
+        const renderizar = {
+          activa: true,
+          usada: true,
+          inactiva: false,
+          anulada: false
+        };
         ['activa', 'usada', 'inactiva', 'anulada'].forEach(estado => {
-          html += renderTablaEstado(grupos[estado], estado, configSecciones[estado]);
+          if (renderizar[estado]) {
+            html += renderTablaEstado(grupos[estado], estado, configSecciones[estado]);
+          }
         });
 
         contenedor.className = '';

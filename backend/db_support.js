@@ -90,9 +90,10 @@ const userSchema = new mongoose.Schema({
     descripcion: String,
     monto: Number,
     tipo: String,
-    limite_maximo_por_cliente: String,
+    limite_maximo_por_cliente: Object,
     clientes: Array,
-    beneficios: Array
+    beneficios: Array,
+    no_mostrar: Boolean
   });
 
   const hermanosMapSchema = new mongoose.Schema({
@@ -165,7 +166,10 @@ const commerceSchema = new mongoose.Schema({
   status: String,
   statusText: String,
   requestDate: String,
-  
+  estado_del_pago: { type: String, required: true, enum: ['esperando_confirmacion', 'pagado', 'rechazado', 'cancelado'], default: 'esperando_confirmacion' },
+  pasarela_de_pagos: {type: String, required: true, enum: ['flow', 'transbank', "mercado pago"], default: 'flow'},
+  compromisos_de_pago: Array,
+  cantidades: Object,
 });
 
 const pagosSchema = new mongoose.Schema({
@@ -182,6 +186,9 @@ const pagosSchema = new mongoose.Schema({
   entradas_pagadas: Number,
   payment_method: String,
   commerce_order: String,
+  compromisos_de_pago: Array,
+  cantidades: Object,
+  email_apoderado: String
 });
 
 /// --------------------------------------
@@ -195,14 +202,15 @@ const registradosSchema = new mongoose.Schema({
 });
 
 const cursoBloqueMapSchema = new mongoose.Schema({
+  id_evento: String,
+  id_organizacion: String,
   id: String,
   descripcion: String,
   bloque: String,
   jornada: String,
   color: String,
-  hash: String,
-  pases_apoderados: { type: Number, default: 2 },
-  pases_invitados:  { type: Number, default: 2 },
+  pases_apoderados: { type: Number, default: 2 , required: true},
+  pases_invitados:  { type: Number, default: 2 , required: true},
 }, { strict: false });
 
 const registroEntradasSchema = new mongoose.Schema({
@@ -273,6 +281,17 @@ const InfoOrganizacionSchema = new mongoose.Schema({
   rut: { type: String, required: true}
 });
 
+
+const PaseRuleSchema = new mongoose.Schema({
+  id_rule : { type: String, required: true },
+  descripcion: { type: String},
+  compromiso_name: { type: String, required: true},
+  pases_por_compromiso: { type: Number, required: true },
+  compromisos_maximo: { type: Number, required: true },
+  compromiso_maximo_alcanzado: { type: String, required: true , enum: ['liberar_maximo_de_pases', 'ninguna_accion_adicional']},
+});
+
+
 const EventoSchema = new mongoose.Schema({
   id_evento: { 
     type: String, 
@@ -295,6 +314,7 @@ const EventoSchema = new mongoose.Schema({
   hora_inicio: { type: String },
   hora_termino: { type: String },
   hora_apertura_puertas: { type: String },
+  regla_de_negocios_entradas: { type: [Object] },
   entradas_disponibles: { type: Number, default: 0 },
   entradas_vendidas: { type: Number, default: 0 },
   entradas_usadas: { type: Number, default: 0 },
@@ -544,6 +564,7 @@ module.exports.eventoCounterDB = mongoose.model('contador_eventos', eventoCounte
 module.exports.perfilesDB = mongoose.model('perfiles', perfilSchema, 'perfiles');
 module.exports.familiasDB = mongoose.model('familias', familiasEstudiantesSchema, 'familias');
 module.exports.correosTipoDB = mongoose.model('correos_tipo', correosTipoSchema, 'correos_tipo');
+module.exports.PaseRuleDB = mongoose.model('PaseRule', PaseRuleSchema, 'PaseRule');
 module.exports.infoOrganizacionDB = infoOrganizacionDB
 module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;

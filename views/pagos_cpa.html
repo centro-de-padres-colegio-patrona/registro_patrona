@@ -382,6 +382,23 @@
     let nombres_hijos = [];
     let parentInfo = null;
 
+    const curso_map = {
+      "Prekínder": 'PK',
+      "Kínder": 'K',
+      "1° Básico": '1',
+      "2° Básico": '2',
+      "3° Básico": '3',
+      "4° Básico": '4',
+      "5° Básico": '5',
+      "6° Básico": '6',
+      "7° Básico": '7',
+      "8° Básico": '8',
+      "I° Medio": '1M',
+      "II° Medio": '2M',
+      "III° Medio": '3M',
+      "IV° Medio": '4M'
+    }
+
     async function return_to_home(show_alert = true) {
       if (show_alert)
         alert('Usuario no autenticado');
@@ -390,21 +407,21 @@
 
     async function init() {
       await new Promise((resolve, reject) => {
-        console.log('URL Params:', params);
-        console.log('URL Search Params:', params.toString());
-        console.log('Parámetros de URL:', objParams);
+        //console.log('URL Params:', params);
+        //console.log('URL Search Params:', params.toString());
+        //console.log('Parámetros de URL:', objParams);
         
         // Información del usuario actual (puede venir de autenticación normal o manual)
         sessionOpened = false;
-        console.log(`Correo obtenido de URL params: ${user_email}`);
+        //console.log(`Correo obtenido de URL params: ${user_email}`);
 
         if (user_email) {
           //const raw_user = await fetch('/api/manualUser?email=' + encodeURIComponent(user_email));
           //const user_data = await raw_user.json();
-          console.log(`Intentando obtener usuario manual con correo: ${user_email}`);
+          //console.log(`Intentando obtener usuario manual con correo: ${user_email}`);
           fetch('/api/manualUser?email=' + encodeURIComponent(user_email))
             .then(response => {
-              console.log('Respuesta del servidor para manualUser:', response);
+              //console.log('Respuesta del servidor para manualUser:', response);
               if (!response.ok) {
                 throw new Error('Usuario no autenticado');
                 return_to_home();
@@ -413,18 +430,18 @@
             })
             .then(user => {
               currentUser = user.user;
-              console.log('Datos del usuario (manual):', currentUser); // Útil para debugging
+              //console.log('Datos del usuario (manual):', currentUser); // Útil para debugging
               nombres_hijos = currentUser.hijos ? currentUser.hijos.map(hijo => hijo.nombre) : [];
               //VAlidar si el correo esta vacio, y dejar por defecto el correo:
               user_email = currentUser.email && currentUser.email.trim() !== "" 
                   ? currentUser.email 
                   : "";
-              console.log(`[/api/manualUser] correo: ${user_email}`);
+              //console.log(`[/api/manualUser] correo: ${user_email}`);
               // Obtener información del padre
               if (currentUser.padres && currentUser.padres.length > 0) {
                 // Buscar al padre que tenga un correo electrónico coincidente con user_email
                 parentInfo = currentUser.padres.find(padre => padre.correo && padre.correo.trim() === user_email);
-                console.log('Información del padre encontrada (manual):', parentInfo);
+                //console.log('Información del padre encontrada (manual):', parentInfo);
               } else {
                 console.log('No se encontraron padres asociados al usuario (manual).');
               }
@@ -438,7 +455,7 @@
         } else {
         fetch('/api/user')
           .then(response => {
-            console.log('Respuesta del servidor:', response);
+            //console.log('Respuesta del servidor:', response);
             if (!response.ok) {
               throw new Error('Usuario no autenticado');
               return_to_home();
@@ -447,21 +464,21 @@
           })
           .then(user => {
             currentUser = user.user;
-            console.log('Datos del usuario:', currentUser); // Útil para debugging
+            //console.log('Datos del usuario:', currentUser); // Útil para debugging
             nombres_hijos = currentUser.hijos ? currentUser.hijos.map(hijo => hijo.nombre) : [];
             //VAlidar si el correo esta vacio, y dejar por defecto el correo: ejemplo@correo.com
             user_email = currentUser.email && currentUser.email.trim() !== "" 
                 ? currentUser.email 
                 : "";
 
-            console.log(`[/api/user] correo: ${user_email}`);
+            //console.log(`[/api/user] correo: ${user_email}`);
             sessionOpened = true;
             //document.getElementById("correoUsuario").value = correo;
             // Obtener información del padre
             if (currentUser.padres && currentUser.padres.length > 0) {
               // Buscar al padre que tenga un correo electrónico coincidente con user_email
               parentInfo = currentUser.padres.find(padre => padre.correo && padre.correo.trim() === user_email);
-              console.log('Información del padre encontrada:', parentInfo);
+              //console.log('Información del padre encontrada:', parentInfo);
             } else {
               console.log('No se encontraron padres asociados al usuario.');
             }
@@ -481,7 +498,7 @@
               //document.getElementById("correoUsuario").value =correoManual;
           });
         }
-        //console.log('Finalizando init()...');
+        ////console.log('Finalizando init()...');
         //resolve();
       });
     }
@@ -490,7 +507,7 @@
       try {
         const res = await fetch('/api/compromisos_pago');
         const compromisos = await res.json();
-        console.log('Compromisos: ', compromisos);
+        //console.log('Compromisos: ', compromisos);
         return compromisos;
       } catch (error) {
         console.error('Error fetching compromisos:', error);
@@ -513,19 +530,19 @@
     //   }
     // Devuelve el total pagado para el tipo de compromiso especificado, sumando los montos de todos los folios asociados a ese tipo. Si el tipo de compromiso no tiene pagos asociados, devuelve 0.
     function total_pagos_por_compromiso(tipo_compromiso, pagos_by_type) {
-      //console.log(`Calculando total pagado para compromiso '${tipo_compromiso}'... en base a pagos_by_type:`, pagos_by_type);
+      ////console.log(`Calculando total pagado para compromiso '${tipo_compromiso}'... en base a pagos_by_type:`, pagos_by_type);
       // pagos_by_type es un objeto que agrupa los pagos por tipo de compromiso, con la estructura mencionada en el comentario de la función obtenerPagosPorTipo. Para calcular el total pagado para un tipo de compromiso específico, verificamos si ese tipo existe en pagos_by_type. Si existe, sumamos los montos de todos los folios asociados a ese tipo. Si no existe, significa que no hay pagos registrados para ese compromiso, por lo que devolvemos 0.  
       // pagos_by_type = { folio: monto}
       if (pagos_by_type[tipo_compromiso] !== undefined) {
         const pagos_compromiso = pagos_by_type[tipo_compromiso];
         const total_por_tipo = pagos_compromiso ? Object.values(pagos_compromiso).reduce((acc, pago) => acc + pago.monto, 0) : 0;
-        //console.log(`Total pagado para compromiso '${tipo_compromiso}': ${total_por_tipo}`);
+        ////console.log(`Total pagado para compromiso '${tipo_compromiso}': ${total_por_tipo}`);
         return total_por_tipo;
       } else {
-        console.log(`No se encontraron pagos para compromiso '${tipo_compromiso}'. Total pagado: 0`);
+        //console.log(`No se encontraron pagos para compromiso '${tipo_compromiso}'. Total pagado: 0`);
         return 0;
       }
-      console.log(`Total pagado para compromiso '${tipo_compromiso}': Salida erronea debido a falta de datos. Total pagado: 0`);
+      //console.log(`Total pagado para compromiso '${tipo_compromiso}': Salida erronea debido a falta de datos. Total pagado: 0`);
     }
 
     // Función para agrupar los pagos por tipo de compromiso, devolviendo un objeto con la estructura mencionada en el comentario de la función anterior
@@ -559,13 +576,13 @@
           }
         }
       });
-      console.log('Pagos agrupados por tipo de compromiso:', pagos_by_type);
+      //console.log('Pagos agrupados por tipo de compromiso:', pagos_by_type);
       return pagos_by_type;
     }
 
     async function paymentsCommitmentsUpdate(compromisos) {
       const container = document.getElementById('payments-commitment');
-      //console.log(' logging: ', container);
+      ////console.log(' logging: ', container);
       // Limpiamos el contenedor por si tiene contenido estático previo
       container.innerHTML = '';
 
@@ -576,7 +593,9 @@
           return;
 
         // Ocultar agenda escolar
-        if (item.nombre === 'agenda_escolar' || item.id === 'agenda_escolar' || (item.descripcion && item.descripcion.toLowerCase().includes('agenda escolar')))
+        /*if (item.nombre === 'agenda_escolar' || item.id === 'agenda_escolar' || (item.descripcion && item.descripcion.toLowerCase().includes('agenda escolar')))
+          return;*/
+        if (item.no_mostrar && item.no_mostrar === true)
           return;
 
         // 1. Creamos un grupo para el compromiso y sus beneficios
@@ -589,24 +608,39 @@
         card.style.borderLeft = "5px solid #4A90E2";
         
         // Override de montos locales (no depender de BD)
-        const MONTOS_OVERRIDE = {
+        /*const MONTOS_OVERRIDE = {
           'invitaciones_fiesta_chilena': 5000,
           'fiesta_chilena': 5000
-        };
-        const montoReal = MONTOS_OVERRIDE[item.nombre] || MONTOS_OVERRIDE[item.id] || item.monto;
-        item.monto = montoReal; // Sobreescribir para que el resto del flujo use este valor
+        };*/
+        /*const montoReal = /*MONTOS_OVERRIDE[item.nombre] || MONTOS_OVERRIDE[item.id] || item.monto;
+        item.monto = montoReal; // Sobreescribir para que el resto del flujo use este valor*/
 
         const montoFormateado = new Intl.NumberFormat('es-CL', { 
           style: 'currency', 
           currency: 'CLP' 
-        }).format(montoReal);
+        }).format(item.monto);
 
-        const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
+        let unidades_maximas = 0;
+        if (currentUser.hijos && currentUser.hijos.length > 0 && item.limite_maximo_por_cliente ) {
+          for (const hijo of currentUser.hijos) {
+            //console.log (`Calculando unidades máximas para compromiso '${item.nombre}' y curso del hijo '${hijo.nombre}' (${hijo.curso})...`);
+            const curso = curso_map[hijo.curso] || 'default';
+            //console.log(`Curso mapeado: ${curso}. Límite máximo por cliente para este curso: ${item.limite_maximo_por_cliente[curso]}`);
+            let limite_max = item.limite_maximo_por_cliente['default'];
+            if (item.limite_maximo_por_cliente[curso] !== undefined) {
+              limite_max = item.limite_maximo_por_cliente[curso];
+            }
+            unidades_maximas = Math.max(unidades_maximas, limite_max);
+          }
+        }
+        //console.log(`Compromiso '${item.nombre}': unidades_maximas calculadas según cursos de hijos: ${unidades_maximas}`);
+        // const unidades_maximas = item.limite_maximo_por_cliente ? parseInt(item.limite_maximo_por_cliente) : null;
         // Forzar mostrar cantidad para invitaciones fiesta chilena
-        const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
+        /*const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
                                (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
                                (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
         
+        console.log(`Verificando si el compromiso '${item.nombre}' es de tipo invitación o fiesta...: esInvitaciones=${esInvitaciones}`);
         // Calcular máximo de invitaciones según cursos del grupo familiar
         let maxInvitaciones = 2; // Por defecto: prekínder a 3° medio
         if (esInvitaciones && currentUser.hijos && currentUser.hijos.length > 0) {
@@ -615,16 +649,18 @@
             return curso.includes('iv') || curso.includes('4') && curso.includes('medio');
           });
           if (tieneCuartoMedio) maxInvitaciones = 6;
-        }
+        }*/
 
-        const mostrarCantidad = esInvitaciones || !unidades_maximas || unidades_maximas > 1;
-        const maxCantidad = esInvitaciones ? maxInvitaciones : item.limite_maximo_por_cliente;
+        //const mostrarCantidad = esInvitaciones || !unidades_maximas || unidades_maximas > 1;
+        const mostrarCantidad = unidades_maximas !== 1;
+        //console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, mostrarCantidad=${mostrarCantidad}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
+        //const maxCantidad = esInvitaciones ? maxInvitaciones : item.limite_maximo_por_cliente;
         const cantidadHtml = mostrarCantidad ? `
           <div class="cantidad-control">
             <span class="label-pago">Cantidad:</span>
             <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', -1)">-</button>
-            <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" readonly>
-            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${maxCantidad || 'null'})">+</button>
+            <input type="text" id="cant-${item.id}" class="input-cantidad" value="1" data-max="${unidades_maximas}" max="${unidades_maximas}" readonly>
+            <button class="btn-cantidad" onclick="cambiarCantidad('${item.id}', 1, ${unidades_maximas || 'null'})">+</button>
           </div>
         ` : '';
         const monto_base = item.monto;
@@ -687,6 +723,22 @@
         }
 
         container.appendChild(group);
+
+        // Verificar si checkbox id="check-${item.id}" debe estar desahabilitado por no tener hijos registrados
+        //console.log(`Verificando si existe el checkbox para '${item.nombre}' ...`);
+        const checkbox = document.getElementById(`check-${item.id}`);
+        if (checkbox) {
+          //console.log(`Verificando si el checkbox para '${item.nombre}' debe estar deshabilitado por no tener hijos registrados...`);
+          if (!currentUser.hijos || currentUser.hijos.length === 0) {
+            checkbox.disabled = true;
+            const label = checkbox.nextElementSibling;
+            if (label && label.classList.contains('label-pago')) {
+              label.textContent = 'Debe completar el registro antes de realizar cualquier pago';
+              label.style.color = '#e74c3c';
+            }
+          }
+        }
+
       });
     }
 
@@ -697,7 +749,7 @@
       let lastPagoFecha = null;
 
       pagos.forEach(pago => {
-        //console.log('Procesando pago: ', pago);
+        ////console.log('Procesando pago: ', pago);
         const row = document.createElement('tr');
         pago['estado'] = 'Pagado';
         if ( pago.metodo_pago === undefined || !pago.metodo_pago )
@@ -707,21 +759,21 @@
 
         //Ultimo pago
         const pagoFecha = new Date(pago.fecha);
-        //console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
+        ////console.log(`Comparando fecha de pago ${pagoFecha} con última fecha registrada ${lastPagoFecha}`);
         if (pago.fecha && (!lastPagoFecha || pagoFecha > lastPagoFecha)) {
           lastPagoFecha = pagoFecha;
-          //console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
+          ////console.log(`Actualizando última fecha de pago a: ${lastPagoFecha}`);
           document.getElementById('fecha-ultimo-pago').textContent = lastPagoFecha.toLocaleDateString('es-CL');
         }
         
         if(pago.estado === 'Pagado') pagadoAcumulado += pago.monto;
         else pendienteAcumulado += pago.monto;
 
-        //console.log('Compromisos:', compromisos);
+        ////console.log('Compromisos:', compromisos);
         const compromiso_asociado = compromisos.find(c => c.nombre === pago.tipo);
-        //console.log(`Buscando descripción para tipo de pago '${pago.tipo}' en compromisos...`, compromiso_asociado);
+        ////console.log(`Buscando descripción para tipo de pago '${pago.tipo}' en compromisos...`, compromiso_asociado);
         tipo_pago_descripcion = compromiso_asociado ? compromiso_asociado.descripcion : pago.tipo;
-        //console.log(`Pago tipo: ${pago.tipo}, descripción encontrada: ${tipo_pago_descripcion}`);
+        ////console.log(`Pago tipo: ${pago.tipo}, descripción encontrada: ${tipo_pago_descripcion}`);
 
         row.innerHTML = `
           <td>${tipo_pago_descripcion}</td>
@@ -741,11 +793,11 @@
         compromisos_pagados = {};
         compromisos_sin_beneficios.forEach(compromiso => {
           const tipo_compromiso = compromiso.nombre;
-          //console.log(`Procesando compromisos sin beneficios para tipo '${tipo_compromiso}'...`);
+          ////console.log(`Procesando compromisos sin beneficios para tipo '${tipo_compromiso}'...`);
           const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
-          //console.log(`Total pagado para tipo '${tipo_compromiso}': ${total_por_tipo}`);
+          ////console.log(`Total pagado para tipo '${tipo_compromiso}': ${total_por_tipo}`);
           if (total_por_tipo > 0) {
-            //console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
+            ////console.log(`Total para tipo '${tipo_compromiso}': ${total_por_tipo}`);
             const qty = parseInt(total_por_tipo / compromiso.monto);
             if (qty > 0) {
               compromisos_pagados[tipo_compromiso] = {
@@ -753,10 +805,10 @@
                 monto_total: total_por_tipo,
                 //beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
               };
-              //console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
+              ////console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
               // Deshabilitar checkbox y mostrar cantidad pagada
               const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
-              //console.log(`Checkboxes encontrados para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, checkboxes.length);
+              ////console.log(`Checkboxes encontrados para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, checkboxes.length);
               checkboxes.forEach(checkbox => {
                 checkbox.checked = true;
                 checkbox.disabled = true;
@@ -768,7 +820,7 @@
                 }
                 // Obtener el contenedor del checkbox (el div que creamos para agruparlo)
                 const contenedorCheck = checkbox.parentNode;
-                //console.log(`Contenedor del checkbox para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, contenedorCheck);
+                ////console.log(`Contenedor del checkbox para tipo '${tipo_compromiso}' (ID: ${compromiso.id}):`, contenedorCheck);
                 if (contenedorCheck) {
                   // Reemplazamos todo el contenido interno del contenedor para estructurar el estado "Pagado" de manera vertical
                   contenedorCheck.innerHTML = `
@@ -805,18 +857,18 @@
       compromisos_con_beneficios.forEach(compromiso => {
         const tipo_compromiso = compromiso.nombre;
         const beneficios_activos = obtenerBeneficiosActivos(compromiso.beneficios, compromisos_sin_beneficios_pagados);
-        //console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
-        //console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
+        ////console.log(`Procesando compromisos con beneficios para tipo '${tipo_compromiso}'...`);
+        ////console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
         const total_por_tipo = total_pagos_por_compromiso(tipo_compromiso, pagos_by_type);
         if (beneficios_activos.length > 0) {
-          console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
-          if ( tipo_compromiso in pagos_by_type) {
-            console.log(`Pagos encontrados para tipo '${tipo_compromiso}' en pagos_by_type:`, pagos_by_type[tipo_compromiso]);
+          //console.log(`Beneficios activos para tipo '${tipo_compromiso}':`, beneficios_activos);
+          /*if ( tipo_compromiso in pagos_by_type) {
+            //console.log(`Pagos encontrados para tipo '${tipo_compromiso}' en pagos_by_type:`, pagos_by_type[tipo_compromiso]);
           } else {
-            console.log(`No se encontraron pagos para tipo '${tipo_compromiso}' en pagos_by_type.`);
-          }
-        } else {
-          console.log(`No hay beneficios activos para tipo '${tipo_compromiso}'.`);
+            //console.log(`No se encontraron pagos para tipo '${tipo_compromiso}' en pagos_by_type.`);
+          }*/
+        /*} else {
+          console.log(`No hay beneficios activos para tipo '${tipo_compromiso}'.`);*/
         }
         if (total_por_tipo > 0) {
           const qty = parseInt(total_por_tipo / compromiso.monto);
@@ -826,7 +878,7 @@
               monto_total: total_por_tipo,
               beneficios: obtenerBeneficiosPorCompromisoPagado(compromisos, tipo_compromiso, qty) // Aquí puedes obtener los beneficios asociados a este compromiso
             };
-            console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
+            //console.log(`Cantidad pagada para tipo '${tipo_compromiso}': ${qty}`);
             // Deshabilitar checkbox y mostrar cantidad pagada
             const checkboxes = document.querySelectorAll(`.pago-check[data-id="${compromiso.id}"]`);
             checkboxes.forEach(checkbox => {
@@ -855,8 +907,8 @@
                 `;
               }
             });
-          } else {
-            console.log(`No se pudo calcular cantidad para tipo '${tipo_compromiso}' debido a monto total de 0.`);
+          /*} else {
+            //console.log(`No se pudo calcular cantidad para tipo '${tipo_compromiso}' debido a monto total de 0.`);*/
           }
         }
       });
@@ -868,46 +920,46 @@
         await init();
         // Adding Payments Commitments
         // Obtener Compromisos de Pago desde BD
-        console.log('Obteniendo compromisos de pago desde /api/compromisos_pago...');
+        //console.log('Obteniendo compromisos de pago desde /api/compromisos_pago...');
         const res_compromisos = await fetch('/api/compromisos_pago');
         compromisos_db = await res_compromisos.json();
         const compromisos = compromisos_db;
-        console.log('/api/compromisos_pago: ', compromisos);
+        //console.log('/api/compromisos_pago: ', compromisos);
 
         // Obtener estado de pagos desde BD
         // Primero reconciliar pagos confirmados que no se registraron
-        console.log('Reconciliando pagos pendientes...');
+        //console.log('Reconciliando pagos pendientes...');
         try {
           await fetch(`/api/reconciliar_pagos?user_email=${encodeURIComponent(user_email)}`);
         } catch(e) { console.log('Error reconciliando:', e); }
 
-        console.log('Obteniendo estado de pagos desde /api/estado_pago_cpa...');
+        //console.log('Obteniendo estado de pagos desde /api/estado_pago_cpa...');
         let pagos = null;
         if (sessionOpened) {
-          console.log('Usuario autenticado, obteniendo pagos desde /api/estado_pago_cpa...');
+          //console.log('Usuario autenticado, obteniendo pagos desde /api/estado_pago_cpa...');
           const response = await fetch('/api/estado_pago_cpa');
           pagos = await response.json();
         } else {
-          console.log('Usuario no autenticado, obteniendo pagos desde /api/estado_pago_cpa_manual...');
+          //console.log('Usuario no autenticado, obteniendo pagos desde /api/estado_pago_cpa_manual...');
           //const response = await fetch('/api/estado_pago_cpa_manual?email=' + encodeURIComponent(user_email));
-          console.log('Intentando obtener pagos desde /api/estado_pago_cpa_manual con correo: ', currentUser);
+          //console.log('Intentando obtener pagos desde /api/estado_pago_cpa_manual con correo: ', currentUser);
           const response = await fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(user_email));
           pagos = await response.json();
         }
-        console.log('/api/estado_pago_cpa: ', pagos);
+        //console.log('/api/estado_pago_cpa: ', pagos);
 
         // Obtener pagos por tipo
         pagos_by_type = obtenerPagosPorTipo(pagos);
 
 
         // Adding payments commitments cards
-        console.log('Actualizando compromisos de pago en la interfaz...');
+        //console.log('Actualizando compromisos de pago en la interfaz...');
         await paymentsCommitmentsUpdate(compromisos);
 
         // Verificar si la cuota CPA ya está pagada y bloquear el checkbox
         const tieneCuotaCpaPagada = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
-        console.log('[pagos_cpa] tieneCuotaCpaPagada:', tieneCuotaCpaPagada, 'pagos tipos:', pagos.map(p => ({tipo: p.tipo, cuota_cpa: p.cuota_cpa})));
-        console.log('[pagos_cpa] compromisos ids/nombres:', compromisos.map(c => ({id: c.id, nombre: c.nombre, descripcion: c.descripcion})));
+        //console.log('[pagos_cpa] tieneCuotaCpaPagada:', tieneCuotaCpaPagada, 'pagos tipos:', pagos.map(p => ({tipo: p.tipo, cuota_cpa: p.cuota_cpa})));
+        //console.log('[pagos_cpa] compromisos ids/nombres:', compromisos.map(c => ({id: c.id, nombre: c.nombre, descripcion: c.descripcion})));
         if (tieneCuotaCpaPagada) {
           // Actualizar estado visual en la tarjeta de Cuota CPA
           const estadoCuotaEl = document.getElementById('estado-cuota-cpa');
@@ -928,6 +980,7 @@
             const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
                                    (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
                                    (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
+            console.log(`Verificando compromiso '${item.nombre}' para invitaciones/fiesta: esInvitaciones=${esInvitaciones}`);
             if (esInvitaciones) {
               const checkbox = document.getElementById(`check-${item.id}`);
               if (checkbox) {
@@ -1010,25 +1063,38 @@
           const invitadosRegistrados = currentUser.invitados || [];
           if (invitadosRegistrados.length > 0) {
             // Calcular máximo permitido según curso
-            let maxInvPermitidos = 2;
+            /*let maxInvPermitidos = 2;
             if (currentUser.hijos && currentUser.hijos.length > 0) {
               const tieneCuartoMedio = currentUser.hijos.some(h => {
                 const curso = (h.curso || '').toLowerCase();
                 return curso.includes('iv') || (curso.includes('4') && curso.includes('medio'));
               });
               if (tieneCuartoMedio) maxInvPermitidos = 6;
-            }
+            }*/
 
             compromisos.forEach(item => {
               const esInvitaciones = (item.nombre && item.nombre.toLowerCase().includes('invitacion')) || 
                                      (item.nombre && item.nombre.toLowerCase().includes('fiesta')) ||
                                      (item.descripcion && item.descripcion.toLowerCase().includes('invitacion'));
+              //console.log(`Verificando compromiso '${item.nombre}' para invitaciones/fiesta: esInvitaciones=${esInvitaciones}`);
               if (esInvitaciones) {
                 const checkbox = document.getElementById(`check-${item.id}`);
                 if (checkbox) {
                   const contenedorCheck = checkbox.parentNode;
                   if (contenedorCheck) {
-                    if (invitadosRegistrados.length >= maxInvPermitidos) {
+                    let unidades_maximas = 0;
+                    if (currentUser.hijos && currentUser.hijos.length > 0 && item.limite_maximo_por_cliente ) {
+                      for (const hijo of currentUser.hijos) {
+                        const curso = curso_map[hijo.curso] || 'default';
+                        let limite_max = item.limite_maximo_por_cliente['default'];
+                        if (item.limite_maximo_por_cliente[curso] !== undefined) {
+                          limite_max = item.limite_maximo_por_cliente[curso];
+                        }
+                        unidades_maximas = Math.max(unidades_maximas, limite_max);
+                      }
+                    }
+                    console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, invitadosRegistrados.length=${invitadosRegistrados.length}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
+                    if (invitadosRegistrados.length >= unidades_maximas) {
                       // Alcanzó el máximo - bloquear
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
@@ -1036,7 +1102,7 @@
                             ✓ Invitaciones pagadas (${invitadosRegistrados.length})
                           </span>
                           <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
-                            ✓ Invitados asignados (${invitadosRegistrados.length}/${maxInvPermitidos})
+                            ✓ Invitados asignados (${invitadosRegistrados.length}/${unidades_maximas})
                           </button>
                         </div>
                       `;
@@ -1047,11 +1113,11 @@
                       }
                     } else {
                       // Aún puede comprar más - mostrar cuántas tiene y dejar habilitado
-                      const faltantes = maxInvPermitidos - invitadosRegistrados.length;
+                      const faltantes = unidades_maximas - invitadosRegistrados.length;
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #f39c12; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            Invitaciones pagadas: ${invitadosRegistrados.length}/${maxInvPermitidos}
+                            Invitaciones pagadas: ${invitadosRegistrados.length}/${unidades_maximas}
                           </span>
                           <div style="margin-top:4px;">
                             <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">
@@ -1059,6 +1125,21 @@
                           </div>
                         </div>
                       `;
+                      // Verificar si checkbox id="check-${item.id}" debe estar desahabilitado por no tener hijos registrados
+                      //console.log(`Verificando si existe el checkbox para '${item.nombre}' ...`);
+                      const checkbox = document.getElementById(`check-${item.id}`);
+                      if (checkbox) {
+                        //console.log(`Verificando si el checkbox para '${item.nombre}' debe estar deshabilitado por no tener hijos registrados...`);
+                        if (!currentUser.hijos || currentUser.hijos.length === 0) {
+                          checkbox.disabled = true;
+                          const label = checkbox.nextElementSibling;
+                          if (label && label.classList.contains('label-pago')) {
+                            label.textContent = 'Debe registrar hijos para comprar invitaciones';
+                            label.style.color = '#e74c3c';
+                          }
+                        }
+                      }
+
                       // Reemplazar el control de cantidad original con el máximo correcto
                       const cantControl = document.getElementById(`cant-${item.id}`);
                       if (cantControl && cantControl.closest('.cantidad-control')) {
@@ -1117,7 +1198,7 @@
     });
 
     async function iniciarPagoFlow(idCompromiso, cantidades = {}) {
-      console.log('Iniciando proceso de pago para:', idCompromiso, 'cantidades:', cantidades);
+      //console.log('Iniciando proceso de pago para:', idCompromiso, 'cantidades:', cantidades);
 
       const compromiso_key = idCompromiso;
       const parent_name = parentInfo ? parentInfo.nombre + ' ' + parentInfo.apellido : 'unknown';
@@ -1137,12 +1218,12 @@
         });
         allParams = await response_raw.json();
         const {token, url, flowOrder, code, message} = allParams;
-        console.log('Retorno de Flow: ', allParams);
+        //console.log('Retorno de Flow: ', allParams);
 
         const boton = document.getElementById('btn-pagar-todo');
 
         if (code === undefined && url !== undefined && token !== undefined && flowOrder) {
-          console.log('Redireccionando a Flow: ', url + "?token=" + token);
+          //console.log('Redireccionando a Flow: ', url + "?token=" + token);
           window.location.href = `${url}?token=${token}`;
         } else {
           const errorMsg = message || JSON.stringify(allParams);
@@ -1175,7 +1256,7 @@
     }
 
     async function iniciarPagoMP(idCompromiso, cantidades = {}) {
-      console.log('Iniciando pago Mercado Pago para:', idCompromiso, 'cantidades:', cantidades);
+      //console.log('Iniciando pago Mercado Pago para:', idCompromiso, 'cantidades:', cantidades);
 
       const compromiso_key = idCompromiso;
       const parent_name = parentInfo ? parentInfo.nombre + ' ' + parentInfo.apellido : 'unknown';
@@ -1197,12 +1278,12 @@
         });
 
         const result = await response_raw.json();
-        console.log('Retorno MP:', result);
+        //console.log('Retorno MP:', result);
 
         if (result.sandbox_init_point || result.init_point) {
           // En sandbox usar sandbox_init_point, en producción usar init_point
           const redirectUrl = result.sandbox_init_point || result.init_point;
-          console.log('Redireccionando a Mercado Pago:', redirectUrl);
+          //console.log('Redireccionando a Mercado Pago:', redirectUrl);
           
           // Abrir en ventana completa del navegador (no dentro del iframe)
           // para que el QR/código de barras se vea completo
@@ -1265,7 +1346,7 @@
         let status = iniciado? 'activo': 'inactivo'
         status = terminado? 'finalizado': status;
 
-        //console.log({ahora, stopDate, 'stopDate > ahora': stopDate > ahora, terminado, status});
+        ////console.log({ahora, stopDate, 'stopDate > ahora': stopDate > ahora, terminado, status});
 
         return status;
       } catch (error) {
@@ -1318,23 +1399,23 @@
       const compromisos_con_beneficios = array_compromisos.filter(c => c.beneficios && c.beneficios.length > 0);
       //const mapa_compromisos = compromisos_con_beneficios.map(c => ({ nombre: c.nombre, beneficios: c.beneficios }));
       compromisos_con_beneficios.forEach(c => {
-        console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}, Cantidad pagada: ${cantidad_pagada}`);
+        //console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}, Cantidad pagada: ${cantidad_pagada}`);
         c.beneficios_activados = c.beneficios.filter(b => {
-          console.log(`Evaluando beneficio: ${b} para compromiso ${c.nombre}`);
+          //console.log(`Evaluando beneficio: ${b} para compromiso ${c.nombre}`);
           // Aquí puedes agregar la lógica de condición específica para cada beneficio
           // Por ejemplo, si el beneficio solo se activa para ciertos tipos o cantidades:
           if (c.nombre === tipo_compromiso_pagado && cantidad_pagada >= 1) {
-            console.log(`Activando beneficio: ${b} para compromiso ${c.nombre}`);
+            //console.log(`Activando beneficio: ${b} para compromiso ${c.nombre}`);
             return true; // Activa este beneficio
           }
           return false; // No activa este beneficio
         });
       });
 
-      mapa_compromisos.forEach(compromiso => {
-        console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}`)
+      /*mapa_compromisos.forEach(compromiso => {
+        //console.log(`Compromiso: ${c.nombre}, Tipo buscado: ${tipo_compromiso_pagado}`)
 
-      });
+      });*/
       const compromiso = mapa_compromisos.find(c => c.nombre === tipo);
       if (!compromiso) return [];
       
@@ -1463,7 +1544,7 @@
           }
         }
 
-        console.log('[autoAsignarInvitados] Invitaciones pagadas:', invitacionesPagadas, 'Invitados actuales:', invitadosActuales.length);
+        //console.log('[autoAsignarInvitados] Invitaciones pagadas:', invitacionesPagadas, 'Invitados actuales:', invitadosActuales.length);
 
         // Si ya tiene los invitados asignados, no hacer nada
         if (invitadosActuales.length >= invitacionesPagadas || invitacionesPagadas === 0) {
@@ -1486,7 +1567,7 @@
               entradasInvitado = Array.isArray(entradas) ? entradas.filter(e => (e.tipo || '').toLowerCase() === 'invitado') : [];
             }
           } catch (err) {
-            console.log('[autoAsignarInvitados] Error obteniendo entradas:', err);
+            //console.log('[autoAsignarInvitados] Error obteniendo entradas:', err);
           }
         }
 
@@ -1514,8 +1595,8 @@
         const regData = await regRes.json();
         if (regData.error) {
           console.error('[autoAsignarInvitados] Error guardando:', regData.error);
-        } else {
-          console.log(`[autoAsignarInvitados] Auto-asignados ${faltantes} invitados`);
+        /*} else {
+          //console.log(`[autoAsignarInvitados] Auto-asignados ${faltantes} invitados`);*/
         }
       } catch (err) {
         console.error('[autoAsignarInvitados] Error:', err);
@@ -1525,7 +1606,7 @@
     function seleccionarPasarela(metodo, elemento) {
       // Guardar la elección
       pasarelaSeleccionada = metodo;
-      console.log("Pasarela elegida:", pasarelaSeleccionada);
+      //console.log("Pasarela elegida:", pasarelaSeleccionada);
 
       // Cambiar estado visual de los botones
       const botones = document.querySelectorAll('.btn-pasarela');
@@ -1558,7 +1639,7 @@
         cantidades[id] = inputCantidad ? parseInt(inputCantidad.value) : 1;
       });
 
-      console.log(`Procesando pago vía ${pasarelaSeleccionada} para IDs:`, ids, 'cantidades:', cantidades);
+      //console.log(`Procesando pago vía ${pasarelaSeleccionada} para IDs:`, ids, 'cantidades:', cantidades);
 
       if (pasarelaSeleccionada === 'flow') {
         iniciarPagoFlow(ids, cantidades);
@@ -1570,6 +1651,17 @@
     function cambiarCantidad(id, delta, max) {
         const input = document.getElementById(`cant-${id}`);
         const checkbox = document.getElementById(`check-${id}`);
+        if (!input || checkbox.disabled) return;
+
+        // Si 'max' es null o undefined, intentamos obtenerlo desde el atributo data-max o max del DOM
+        if (max === null || max === undefined) {
+          console.log(`Max no proporcionado para id=${id}, intentando obtener desde data-max o atributo max...`);
+          const maxDesdeInput = input.dataset.max || input.getAttribute('max');
+          max = maxDesdeInput ? parseInt(maxDesdeInput, 10) : 1;
+          console.log(`Max obtenido para id=${id}: ${max}`);
+        }
+
+        //const checkbox = document.getElementById(`check-${id}`);
         let nuevaCantidad = parseInt(input.value) + delta;
 
         // Validar límites (mínimo 1, máximo según el campo de la BD)

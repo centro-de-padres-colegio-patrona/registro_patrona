@@ -295,6 +295,9 @@
       return estado || 'activa';
     }
 
+    function getTextoBloques(bloques) {
+      return  'Por Confirmar';
+    }
     /**
      * Renderiza una tabla de entradas para un estado especifico
      */
@@ -327,13 +330,14 @@
         const tipo = (entrada.tipo || 'invitado').toLowerCase();
         const badgeClass = `badge-${tipo}`;
         const estadoDisplay = getEstadoEntrada(entrada);
+        const texto_bloques = getTextoBloques(entrada.bloques);
 
         return `
           <tr>
             <td><span class="badge-tipo ${badgeClass}">${entrada.tipo || 'Entrada'}</span></td>
             <td><strong>${entrada.nombre_completo || 'Sin nombre'}</strong></td>
             <td>${entrada.jornada || '—'}</td>
-            <td>${entrada.bloques || '—'}</td>
+            <td>${texto_bloques || '—'}</td>
             <td>${entrada.curso || '—'}</td>
             <td><span class="folio-tag">#${String(entrada.folio || 0).padStart(4, '0')}</span></td>
             <td><span class="estado-tag estado-${estadoDisplay}">${estadoDisplay}</span></td>

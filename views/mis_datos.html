@@ -555,6 +555,41 @@
 
     tests.forEach(t => console.log(t, "->", isRutValidFormat(t)));*/
 
+    async function controlarBotonPagos() {
+      try {
+        /*const response = await fetch('/api/feature/options');
+        if (!response.ok) {
+          throw new Error('Error al consultar /api/feature/options');
+        }
+        
+        // Formato JSON esperado, por ejemplo:
+        // { "ir_a_pagos": true, "permitir_solicitud_invitados": true }
+        const features = await response.json();*/
+        const features = { ir_a_pagos: false }; // Valor por defecto, ya que la llamada a la API está comentada
+        
+        const btnPagos = document.getElementById('btn-ir-a-pagos') || document.getElementById('btn-agregar-invitados');
+
+        if (btnPagos) {
+          // Evaluamos la propiedad correspondiente
+          if (features.ir_a_pagos === false) {
+            // Opción A: Deshabilitarlo físicamente
+            btnPagos.disabled = true;
+            btnPagos.style.opacity = '0.5';
+            btnPagos.style.cursor = 'not-allowed';
+            
+            // Opción B (Si prefieres ocultarlo por completo):
+            // btnPagos.style.display = 'none';
+          } else {
+            btnPagos.disabled = false;
+            btnPagos.style.opacity = '1';
+            btnPagos.style.cursor = 'pointer';
+          }
+        }
+      } catch (error) {
+        console.error('Error al aplicar features en botón de pagos:', error);
+      }
+    }
+
     function validarRutChile(rutCompleto) {
         let is_valid = false;
         let rut = rutCompleto;
@@ -1441,10 +1476,10 @@
         // Ocultar botón solicitar y mostrar botón ir a pagos
         const btnAgregar = document.getElementById('btn-agregar-invitados');
         if (btnAgregar) {
+          btnAgregar.id = 'btn-ir-a-pagos';
           btnAgregar.style.display = '';
           btnAgregar.textContent = '💰 Ir a Mis Pagos';
-          // Aqui agregar una consulta a la API para habilitar / desahilitar el botón
-          /*btnAgregar.onclick = function() {
+          btnAgregar.onclick = function() {
             const url = 'pagos_cpa.html';
             if (window.parent && window.parent.document.getElementById('visor')) {
               const email = currentUser.email || '';
@@ -1452,7 +1487,7 @@
             } else {
               window.location.href = url;
             }
-          };*/
+          };
         }
       }
 
@@ -1464,6 +1499,8 @@
           if (seccion) seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 300);
       }
+
+      controlarBotonPagos();
     }
 
     function solicitarInvitado() {

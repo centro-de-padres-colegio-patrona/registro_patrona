@@ -216,7 +216,7 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
     }
 
     // Remover pagos por cada hijo del usuario
-    for ( const hijo of userInfo.hijos || [] ) {
+    /*for ( const hijo of userInfo.hijos || [] ) {
       const pagosHijoResult = await db_support.pagosDB.find({ id: hijo.nombre }).lean();
       if (pagosHijoResult.length > 0) {
         //console.log(`${tag} user ${user_email} hijo ${hijo.nombre} pagos found: `, pagosHijoResult.length);
@@ -225,6 +225,15 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
       } else {
         console.log(`${tag} user ${user_email} hijo ${hijo.nombre} no pagos found to remove`);
       }
+    }*/
+
+    // Remover pagos por email_apoderado = user_email
+    const pagosApoderadoResult = await db_support.pagosDB.find({ email_apoderado: user_email }).lean();
+    if (pagosApoderadoResult.length > 0) {
+      const pagosApoderadoDeleteResult = await db_support.pagosDB.deleteMany({ email_apoderado: user_email });
+      console.log(`${tag} user ${user_email} pagos by apoderado removed: `, pagosApoderadoDeleteResult.deletedCount);
+    } else {
+      console.log(`${tag} user ${user_email} no pagos by apoderado found to remove`);
     }
 
     // Remover payments por user_email  
@@ -257,7 +266,7 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
       return res.status(400).json({ error: error_msg });
     }
 
-    const targetDocs = await db_support.hermanosMapDB.find({ apoderado_email: user_email });
+    const targetDocs = await db_support.hermanosMapDB.find({ apoderado_email: user_email }).lean();
 
     if (!targetDocs.length) {
       const error_msg = `${tag} No documents matched condition (user_email ${user_email} not present or no matching apoderados found in hermanosMapDB)`;
@@ -270,7 +279,7 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
         { apoderado_email: user_email },
         { apoderado_email: { $in: email_apoderados } }
       ]
-    };    
+    };
     const updatedResult = await db_support.hermanosMapDB.updateMany(
       filter,
       { $pull: { apoderado_email: { $in: email_apoderados } } } // Remueve el email del arreglo
@@ -290,6 +299,19 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
       }
       return obj;
     });
+
+    // Desactivar entradas de hermanosMapDB que quedaron sin apoderado_email
+    const familias_removidas = [];
+    for (const doc of targetDocs) {
+      if ( familias_removidas.includes(doc.nombre_familia) ) continue;
+      const entradas = await db_support.TicketEventoDB.find({ familia: doc.nombre_familia }).lean();
+      if (!entradas || entradas.length === 0) continue;
+      await db_support.TicketEventoDB.updateMany(
+        { familia: doc.nombre_familia },
+        { $set: { estado: 'inactiva' } }
+      );
+      familias_removidas.push(doc.nombre_familia);
+    }
 
     res.status(200).json({
       message: `apoderados [${email_apoderados.join('|')}] of user ${user_email} have been deleted from hermanosMapDB`,

@@ -421,8 +421,21 @@ ticketEventoSchema.pre('save', async function (next) {
   }
 });
 
+const FeatureSchema = new mongoose.Schema({
+  feature_name: { type: String, required: true },
+  enabled: { type: Boolean, default: false },
+  pages: { type: String }
+});
+
+const FrontEndFeaturesSchema = new mongoose.Schema({
+  id_organizacion: { type: String, required: true },
+  id_evento: { type: String, required: true },
+  features: { type: Object, default: {} }
+});
+
 const TicketEventoDB = mongoose.model('TicketEvento', ticketEventoSchema, 'ticketEventos');
 const infoOrganizacionDB = mongoose.model('organizacion', InfoOrganizacionSchema, 'info_organizacion');
+const FrontEndFeaturesDB = mongoose.model('FrontEndFeatures', FrontEndFeaturesSchema, 'front_end_features');
 
 
 

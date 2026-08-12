@@ -318,10 +318,10 @@
           
           <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Seleccione su medio de pago:</p>
           <div class="metodos-pago">
-            <button class="btn-pasarela" onclick="seleccionarPasarela('flow', this)">
+            <button id="btn-pasarela-flow" class="btn-pasarela" onclick="seleccionarPasarela('flow', this)">
               💳 Flow (Webpay/Khipu)
             </button>
-            <button class="btn-pasarela" onclick="seleccionarPasarela('mercadopago', this)">
+            <button id="btn-pasarela-mp" class="btn-pasarela" onclick="seleccionarPasarela('mercadopago', this)">
               🔵 Mercado Pago
             </button>
           </div>
@@ -397,6 +397,63 @@
       "II° Medio": '2M',
       "III° Medio": '3M',
       "IV° Medio": '4M'
+    }
+
+    async function aplicarOpcionesFeature() {
+      try {
+        /*const response = await fetch('/api/feature/options');
+        if (!response.ok) {
+          throw new Error('Error al obtener la configuración de características');
+        }
+        
+        // Formato esperado de la respuesta JSON:
+        // {
+        //   "flow": true,
+        //   "mercadopago": false,
+        //   "btn_pagar": true
+        // }
+        const features = await response.json();*/
+        const features = {
+          flow: true, // Habilitar Flow
+          mercadopago: false, // Habilitar Mercado Pago
+          btn_pagar: false // Habilitar botón de Pagar
+        };
+
+        // 1. Control para la pasarela Flow
+        const btnFlow = document.getElementById('btn-pasarela-flow');
+        if (btnFlow) {
+          if (features.flow === true) {
+            btnFlow.style.display = 'flex'; // Restablece visibilidad (o 'inline-block')
+            btnFlow.disabled = false;
+          } else {
+            btnFlow.style.display = 'none'; // Deshabilita/Oculta
+          }
+        }
+
+        // 2. Control para la pasarela Mercado Pago
+        const btnMP = document.getElementById('btn-pasarela-mp');
+        if (btnMP) {
+          if (features.mercadopago === true) {
+            btnMP.style.display = 'flex';
+            btnMP.disabled = false;
+          } else {
+            btnMP.style.display = 'none';
+          }
+        }
+
+        // 3. Control opcional para habilitar/deshabilitar el botón de Pagar
+        const btnPagar = document.getElementById('btn-pagar-todo');
+        if (btnPagar && features.hasOwnProperty('btn_pagar')) {
+          if (features.btn_pagar === false) {
+            btnPagar.disabled = true;
+            btnPagar.style.opacity = '0.5';
+            btnPagar.style.cursor = 'not-allowed';
+          }
+        }
+
+      } catch (error) {
+        console.error('Error al cargar características dinámicas:', error);
+      }
     }
 
     async function return_to_home(show_alert = true) {
@@ -917,6 +974,8 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
+        await aplicarOpcionesFeature();
+        
         await init();
         // Adding Payments Commitments
         // Obtener Compromisos de Pago desde BD

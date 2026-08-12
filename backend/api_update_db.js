@@ -207,14 +207,24 @@ router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
     }
 
     // Remover pagos por user_email
-    // const pagosResult = await db_support.pagosDB.deleteMany({ email: user_email });
-    // console.log(`${tag} user ${user_email} pagos removed: `, pagosResult.deletedCount);
+    const pagosResult = await db_support.pagosDB.find({ email: user_email }).lean();
+    if (pagosResult.length > 0) {
+      const pagosDeleteResult = await db_support.pagosDB.deleteMany({ email: user_email });
+      console.log(`${tag} user ${user_email} pagos removed: `, pagosDeleteResult.deletedCount);
+    } else {
+      console.log(`${tag} user ${user_email} no pagos found to remove`);
+    }
 
     // Remover pagos por cada hijo del usuario
-    if (userInfo.hijos && userInfo.hijos.length > 0) {
-      const hijosEmails = userInfo.hijos.map(hijo => hijo.email);
-      const pagosHijosResult = await db_support.pagosDB.deleteMany({ email: { $in: hijosEmails } });
-      console.log(`${tag} user ${user_email} hijos pagos removed: `, pagosHijosResult.deletedCount);
+    for ( const hijo of userInfo.hijos || [] ) {
+      const pagosHijoResult = await db_support.pagosDB.find({ id: hijo.nombre }).lean();
+      if (pagosHijoResult.length > 0) {
+        //console.log(`${tag} user ${user_email} hijo ${hijo.nombre} pagos found: `, pagosHijoResult.length);
+        const pagosHijoDeleteResult = await db_support.pagosDB.deleteMany({ id: hijo.nombre });
+        console.log(`${tag} user ${user_email} hijo ${hijo.nombre} pagos removed: `, pagosHijoDeleteResult.deletedCount);
+      } else {
+        console.log(`${tag} user ${user_email} hijo ${hijo.nombre} no pagos found to remove`);
+      }
     }
 
     // Remover payments por user_email  

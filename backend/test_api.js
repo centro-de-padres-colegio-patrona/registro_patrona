@@ -1027,7 +1027,7 @@ async function test_api_delete_apoderado_email(url_server = 'http://localhost:50
   try {
     for (const email_apoderado of user_emails) {
 
-      const result_desactivar_entradas = await fetch(`${url_server}/api/entrada/desactivar`, {
+      /*const result_desactivar_entradas = await fetch(`${url_server}/api/entrada/desactivar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
         body: JSON.stringify({id_organizacion, id_evento, user_email: email_apoderado})
@@ -1038,7 +1038,7 @@ async function test_api_delete_apoderado_email(url_server = 'http://localhost:50
         console.log(`${tag} `, resultados_entradas);
       } else {
         console.log(`${tag} status: ${result_desactivar_entradas.status}, `, resultados_entradas);
-      }
+      }*/
 
       const result = await fetch(`${url_server}/api/update/user/apoderado_email?user_email=${encodeURIComponent(email_apoderado)}`, {
         method: 'DELETE',

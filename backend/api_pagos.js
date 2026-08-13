@@ -191,4 +191,40 @@ router.get('/evento/estado_de_pago', apiKeyAuth, async (req, res) => {
 
 });
 
+// REVISAR ESTE CODIGO PRIMERO
+// endpoint para agrgar un pago de prueba para un usuario
+/*router.post('/pago', apiKeyAuth, async (req, res) => {
+    const tag = '[POST /api/pago]';
+    const { user_email, tipo, monto, cantidad } = req.body;
+    console.log(`${tag} `, {user_email, tipo, monto, cantidad});
+    try {
+        if (!user_email || !tipo || !monto || !cantidad) {
+            return res.status(400).json({ error: 'Faltan parámetros requeridos' });
+        }
+
+        // Buscar usuario
+        const user = await db_support.usersDB.findOne({ email: user_email });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        // Crear un nuevo pago de prueba
+        const nuevoPago = {
+            id: `${user_email}-${Date.now()}`, // Generar un ID único para el pago
+            tipo,
+            monto,
+            cantidad,
+            fecha: new Date(),
+            prueba: true // Indicamos que es un pago de prueba
+        };
+
+        // Guardar el pago en la base de datos
+        await db_support.pagosDB.create(nuevoPago);
+
+        res.json({ message: 'Pago de prueba agregado exitosamente', pago: nuevoPago });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al agregar el pago de prueba' });
+    }
+});*/
+
+
 module.exports = router;

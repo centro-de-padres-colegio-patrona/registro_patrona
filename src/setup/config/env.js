@@ -51,6 +51,7 @@ const DB_MAIN_DATABASE_NAME = process.env.DB_MAIN_DATABASE_NAME;
 
 /// Testing
 const TEST_API_DELETE_APODERADO_EMAIL = process.env.TEST_API_DELETE_APODERADO_EMAIL || 'false';
+const TEST_API_ENVIAR_CORREOS_PRUEBA = process.env.TEST_API_ENVIAR_CORREOS_PRUEBA || 'false';
 
 // Exports
 module.exports = {
@@ -84,4 +85,5 @@ module.exports = {
   DB_URL,
   DB_MAIN_DATABASE_NAME,
   TEST_API_DELETE_APODERADO_EMAIL,
+  TEST_API_ENVIAR_CORREOS_PRUEBA,
 };

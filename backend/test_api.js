@@ -1,6 +1,9 @@
 const db_support = require('../backend/db_support');
 const config_env = require('../src/setup/config/env.js');
 
+const path = require('path');
+const fs = require('fs').promises; // Usamos la versión basada en promesas
+
 const SECRET_API_KEY = config_env.API_KEY;
 
 const test_result_array = {};
@@ -44,6 +47,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
     test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
+  }
+
+  if ( config_env.TEST_API_ENVIAR_CORREOS_PRUEBA && config_env.TEST_API_ENVIAR_CORREOS_PRUEBA === 'true') {
+    test_array.push({test_fn: test_enviar_correos_de_prueba, delay: delay_ms, arguments: url_server});
   }
 
   let test_name = ''
@@ -1169,5 +1176,66 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
   }
 }
 
+
+async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/enviarCorreo]';
+  const file_correos = path.resolve(__dirname,'../tests/respuestas_consultas/respuestas_consultas_2026_08_12.json');
+  try {
+    const data_file = await fs.readFile(file_correos, 'utf-8');
+    const correosData = JSON.parse(data_file);
+
+    const email_key = "Dirección de correo electrónico";
+    const timestamp_key = "Marca temporal";
+    const nombre_key = "Nombre";
+    const consulta_key = "Coméntanos cual es tu problema";
+    const respuesta_key = "Respuesta";
+
+    //const correo = 'l.herreramena@gmail.com';
+
+    for (const correoData of correosData) {
+      const correo = correoData[email_key];
+      const nombre_destinatario = correoData[nombre_key];
+      const timestamp = correoData[timestamp_key];
+      const consulta = correoData[consulta_key];
+      const respuesta = correoData[respuesta_key];
+
+      const asunto = `Respuesta a tu consulta`;
+
+      /*const mensaje_array = [`Hola ${nombre_destinatario}. Hemos recibido la siguiente consulta de parte tuya:`,
+                      `Tu consulta: ${consulta}`,
+                      '',
+                      `Nuestra respuesta: ${respuesta}`,
+                      `Atentamente,`,
+                      `El equipo de soporte.`];*/
+      //const mensaje = mensaje_array.join('\n\n');
+
+      const mensaje = `
+                        <p>Hola ${nombre_destinatario}.</p>
+                        <p>Hemos recibido la siguiente consulta de parte tuya:</p>
+                        <p><strong>Tu consulta:</strong> ${consulta}</p>
+                        <p><strong>Nuestra respuesta:</strong> ${respuesta}</p>
+                        <p>Atentamente,<br>El equipo de soporte.</p>
+                      `;
+
+      const result = await fetch(`${url_server}/api/enviarCorreo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({correo, asunto, mensaje})
+      });
+      if (result.status === 200) {
+        const response = await result.json();
+        console.log(`${tag} correo enviado: `, response);
+        log_result(tag, 'pass');
+      } else {
+        const message = await result.json();
+        console.log(`${tag} status: ${result.status}, message: `, message);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
 
 module.exports.lauch_test_api = lauch_test_api;

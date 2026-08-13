@@ -266,7 +266,7 @@
         { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
-        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026&id_organizacion=cpa_patrona' },
         { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
@@ -283,7 +283,7 @@
         { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
-        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026&id_organizacion=cpa_patrona' },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -291,6 +291,7 @@
       validador: [
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Mis datos', url: 'mis_datos.html' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026' },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -299,6 +300,7 @@
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Mis datos', url: 'mis_datos.html' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026' },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -306,6 +308,7 @@
       presidente: [
         { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html?id_evento=fiesta_chilena_2026' },
         { label: '📊 Estado CPA Curso', url: 'estado_cpa_curso.html' },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
@@ -346,7 +349,7 @@
       // Desktop sidebar
       const container = document.getElementById('menu-container');
       container.innerHTML = '';
-      console.log('Menus a construir:', menus.length, JSON.stringify(menus));
+      //console.log('Menus a construir:', menus.length, JSON.stringify(menus));
       for (let i = 0; i < menus.length; i++) {
         const item = menus[i];
         if (item.label === '---') {
@@ -367,7 +370,7 @@
         btn.setAttribute('data-url', item.url);
         btn.onclick = function() { cargarContenido(item.url, this); };
         container.appendChild(btn);
-        console.log('Desktop btn agregado:', item.label);
+        //console.log('Desktop btn agregado:', item.label);
       }
 
       // Mobile slide menu items
@@ -397,7 +400,7 @@
           btn.onmouseleave = function() { if (!this.classList.contains('mobile-menu-activo')) this.style.background = 'transparent'; };
           btn.onclick = function() { cargarContenido(item.url, this); };
           mobileMenuItems.appendChild(btn);
-          console.log('Mobile menu btn agregado:', item.label);
+          //console.log('Mobile menu btn agregado:', item.label);
         }
       }
 
@@ -483,7 +486,7 @@
       document.getElementById('mobile-rol').textContent = rolDisplay;
       
       // SIEMPRE construir menú al final (combinando menús si tiene múltiples roles)
-      console.log('Construyendo menú para rol:', rol, 'roles:', roles);
+      //console.log('Construyendo menú para rol:', rol, 'roles:', roles);
       construirMenu(rol, roles);
 
       // Determinar página de inicio: usar pagina_inicio del perfil si existe, sino el primer menú del rol

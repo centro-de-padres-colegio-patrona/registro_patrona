@@ -32,6 +32,14 @@ const SECRET_API_KEY = config_env.API_KEY;
 );*/
 
 
+/*
+/// POST /api/update/nombrehermanos
+/// Actualiza el campo apoderado_email en la colección hermanosMapDB
+/// Recorre todos los documentos en hermanosMapDB y verifica si el campo apoderado_email está vacío.
+/// Si está vacío, hace una solicitud a /api/hijos_padres para obtener un mapa de hijos a padres.
+/// Luego, si el nombre del hijo está en el mapa, actualiza el campo apoderado_email con el valor correspondiente.
+/// Retorna un JSON con la cantidad de documentos actualizados.
+*/
 router.post('/update/nombrehermanos', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/update/nombrehermanos]';
   const localPort = process.env.PORT || 5001;
@@ -87,7 +95,14 @@ router.post('/update/nombrehermanos', apiKeyAuth, async (req, res) => {
   }
 });
 
-
+/// GET /api/hijos_padres
+/// Retorna un mapa de hijos a padres en formato JSON
+/// La estructura del JSON es: { "nombre_hijo": ["email_padre1", "email_padre2", ...], ... }
+/// Se obtiene de la colección usersDB, donde cada usuario tiene un arreglo de hijos
+/// Se filtra para obtener solo los campos necesarios (email y hijos)
+/// Se recorre cada usuario y se construye el mapa de hijos a padres
+/// Se retorna el mapa como JSON
+///
 router.get('/hijos_padres', apiKeyAuth, async (req, res) => {
   const tag = '[GET /api/hijos_padres]';
   try {
@@ -129,6 +144,11 @@ router.get('/hijos_padres', apiKeyAuth, async (req, res) => {
 });
 
 
+/// DELETE /api/update/user
+/// Elimina un usuario de la colección usersDB y actualiza hermanosMapDB para remover su email de apoderado_email
+/// Requiere el parámetro user_email en la query string
+/// Retorna un mensaje de éxito o error
+
 router.delete('/update/user', apiKeyAuth, async (req, res) => {
   const tag = '[DEL /api/update/user]';
   try {
@@ -158,7 +178,153 @@ router.delete('/update/user', apiKeyAuth, async (req, res) => {
 
   } catch (error) {
     console.log(`${tag} Unexpected error: `, error);
+    res.status(500).json({ ok: false, error: error.message });
   }
 });
+
+
+/// DELETE /api/update/user/apoderado_email
+/// Elimina los apoderados del user de la colección hermanosMapDB y actualiza los registros correspondientes
+/// Requiere el parámetro user_email en la query string
+/// Retorna todos los itemes de la colleccion hermanoMapDB que contenian el email del apoderado eliminado
+
+router.delete('/update/user/apoderado_email', apiKeyAuth, async (req, res) => {
+  const tag = '[DEL /api/update/user/apoderado_email]';
+  try {
+    const { user_email } = req.query;
+    if ( !user_email ) {
+      const err_msg = `${tag} user_email parameter required`;
+      console.log(err_msg);  
+      res.status(400).json(err_msg);
+      return;
+    }
+
+    const userInfo = await db_support.usersDB.findOne({ email: user_email });
+    if (!userInfo) {
+      const error_msg = `${tag} user ${user_email} not found`;
+      console.log(error_msg);
+      return res.status(404).json({ error: error_msg });
+    }
+
+    // Remover pagos por user_email
+    const pagosResult = await db_support.pagosDB.find({ email: user_email }).lean();
+    if (pagosResult.length > 0) {
+      const pagosDeleteResult = await db_support.pagosDB.deleteMany({ email: user_email });
+      console.log(`${tag} user ${user_email} pagos removed: `, pagosDeleteResult.deletedCount);
+    } else {
+      console.log(`${tag} user ${user_email} no pagos found to remove`);
+    }
+
+    // Remover pagos por cada hijo del usuario
+    /*for ( const hijo of userInfo.hijos || [] ) {
+      const pagosHijoResult = await db_support.pagosDB.find({ id: hijo.nombre }).lean();
+      if (pagosHijoResult.length > 0) {
+        //console.log(`${tag} user ${user_email} hijo ${hijo.nombre} pagos found: `, pagosHijoResult.length);
+        const pagosHijoDeleteResult = await db_support.pagosDB.deleteMany({ id: hijo.nombre });
+        console.log(`${tag} user ${user_email} hijo ${hijo.nombre} pagos removed: `, pagosHijoDeleteResult.deletedCount);
+      } else {
+        console.log(`${tag} user ${user_email} hijo ${hijo.nombre} no pagos found to remove`);
+      }
+    }*/
+
+    // Remover pagos por email_apoderado = user_email
+    const pagosApoderadoResult = await db_support.pagosDB.find({ email_apoderado: user_email }).lean();
+    if (pagosApoderadoResult.length > 0) {
+      const pagosApoderadoDeleteResult = await db_support.pagosDB.deleteMany({ email_apoderado: user_email });
+      console.log(`${tag} user ${user_email} pagos by apoderado removed: `, pagosApoderadoDeleteResult.deletedCount);
+    } else {
+      console.log(`${tag} user ${user_email} no pagos by apoderado found to remove`);
+    }
+
+    // Remover payments por user_email  
+    const paymentsResult = await db_support.paymentOrdersDB.deleteMany({ email: user_email });
+    console.log(`${tag} user ${user_email} payments removed: `, paymentsResult.deletedCount);
+
+    // Remove hijos from userInfo.hijos if they exist
+    if ( userInfo.hijos && userInfo.hijos.length > 0 ) {
+      await db_support.usersDB.updateOne(
+        { email: user_email },
+        { $set: { hijos: [], invitados: [] } }
+      );
+    }
+    if (userInfo.invitados && userInfo.invitados.length > 0) {
+      await db_support.usersDB.updateOne(
+        { email: user_email },
+        { $set: { invitados: [] } }
+      );
+    }
+
+    const info = await db_support.usersDB.findOne({ email: user_email }).lean();
+    console.log(`${tag} user ${user_email} hijos removed: `, info.hijos);
+    console.log(`${tag} user ${user_email} invitados removed: `, info.invitados);
+
+    // Remove apoderado_email from hermanosMapDB
+    const email_apoderados = userInfo.padres.map(p => p.correo);
+    if (!email_apoderados.length) {
+      const error_msg = `${tag} user ${user_email} has no apoderado_email to remove`;
+      console.log(error_msg);
+      return res.status(400).json({ error: error_msg });
+    }
+
+    const targetDocs = await db_support.hermanosMapDB.find({ apoderado_email: user_email }).lean();
+
+    if (!targetDocs.length) {
+      const error_msg = `${tag} No documents matched condition (user_email ${user_email} not present or no matching apoderados found in hermanosMapDB)`;
+      console.log(error_msg);
+      return res.status(404).json({ error: error_msg });
+    }
+
+    const filter = {
+      $and: [
+        { apoderado_email: user_email },
+        { apoderado_email: { $in: email_apoderados } }
+      ]
+    };
+    const updatedResult = await db_support.hermanosMapDB.updateMany(
+      filter,
+      { $pull: { apoderado_email: { $in: email_apoderados } } } // Remueve el email del arreglo
+    );
+
+    // Verificar si realmente se eliminó algún documento
+    if (updatedResult.matchedCount === 0) {
+      const error_msg = `${tag} user ${user_email} not found or could not be updated in hermanosMapDB`;
+      console.log(error_msg);
+      return res.status(404).json({ error: error_msg });
+    }
+
+    const updatedDocs = targetDocs.map(doc => {
+      const obj = doc.toObject ? doc.toObject() : { ...doc };
+      if (Array.isArray(obj.apoderado_email)) {
+        obj.apoderado_email = obj.apoderado_email.filter(email => !email_apoderados.includes(email));
+      }
+      return obj;
+    });
+
+    // Desactivar entradas de hermanosMapDB que quedaron sin apoderado_email
+    const familias_removidas = [];
+    for (const doc of targetDocs) {
+      if ( familias_removidas.includes(doc.nombre_familia) ) continue;
+      const entradas = await db_support.TicketEventoDB.find({ familia: doc.nombre_familia }).lean();
+      if (!entradas || entradas.length === 0) continue;
+      await db_support.TicketEventoDB.updateMany(
+        { familia: doc.nombre_familia },
+        { $set: { estado: 'inactiva' } }
+      );
+      familias_removidas.push(doc.nombre_familia);
+    }
+
+    res.status(200).json({
+      message: `apoderados [${email_apoderados.join('|')}] of user ${user_email} have been deleted from hermanosMapDB`,
+      updatedResult: updatedResult,
+      updatedDocs: updatedDocs
+
+    });
+
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 
 module.exports = router;

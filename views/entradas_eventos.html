@@ -210,7 +210,7 @@
     async function init() {
       if (!userEmail) {
         userEmail = await getUserEmail();
-        console.log(`user email cargado: ${userEmail}`);
+        //console.log(`user email cargado: ${userEmail}`);
       }
     }
 
@@ -257,7 +257,7 @@
               if (currentUser) {
                   nombres_hijos = currentUser.hijos;
               }
-              console.log(`[/api/user] correo: ${user_email}, nombres_hijos: `, nombres_hijos);
+              //console.log(`[/api/user] correo: ${user_email}, nombres_hijos: `, nombres_hijos);
               return user_email;
           }
         } catch (err) {
@@ -295,6 +295,9 @@
       return estado || 'activa';
     }
 
+    function getTextoBloques(bloques) {
+      return  'Por Confirmar';
+    }
     /**
      * Renderiza una tabla de entradas para un estado especifico
      */
@@ -327,13 +330,14 @@
         const tipo = (entrada.tipo || 'invitado').toLowerCase();
         const badgeClass = `badge-${tipo}`;
         const estadoDisplay = getEstadoEntrada(entrada);
+        const texto_bloques = getTextoBloques(entrada.bloques);
 
         return `
           <tr>
             <td><span class="badge-tipo ${badgeClass}">${entrada.tipo || 'Entrada'}</span></td>
             <td><strong>${entrada.nombre_completo || 'Sin nombre'}</strong></td>
             <td>${entrada.jornada || '—'}</td>
-            <td>${entrada.bloques || '—'}</td>
+            <td>${texto_bloques || '—'}</td>
             <td>${entrada.curso || '—'}</td>
             <td><span class="folio-tag">#${String(entrada.folio || 0).padStart(4, '0')}</span></td>
             <td><span class="estado-tag estado-${estadoDisplay}">${estadoDisplay}</span></td>
@@ -414,7 +418,7 @@
         // Ya NO filtramos por estado - mostramos todas separadas por categoria
         entradas = entradas_todas;
 
-        console.log('Entradas encontradas: ', entradas.length);
+        //console.log('Entradas encontradas: ', entradas.length);
 
         if (!Array.isArray(entradas) || entradas.length === 0) {
           contenedor.className = 'mensaje-info';
@@ -450,8 +454,17 @@
 
         // Renderizar tablas por categoria
         let html = '';
+        // Por Implementar: Leer desde la base de datos la configuracion de las tarjetas que se renderizan.
+        const renderizar = {
+          activa: true,
+          usada: true,
+          inactiva: false,
+          anulada: false
+        };
         ['activa', 'usada', 'inactiva', 'anulada'].forEach(estado => {
-          html += renderTablaEstado(grupos[estado], estado, configSecciones[estado]);
+          if (renderizar[estado]) {
+            html += renderTablaEstado(grupos[estado], estado, configSecciones[estado]);
+          }
         });
 
         contenedor.className = '';
@@ -486,9 +499,22 @@
 
         const apiKey = await getApiKey();
 
-        const asuntoCorreo = ' prueba de envio de entradas por correo';
-        const mensajeCorreo = `Entradas`;
-        const tipo_attachment = 'pdf';
+        const id_evento = getParametroURL('id_evento');
+        const id_organizacion = getParametroURL('id_organizacion');
+
+        const resp_correo_tipo = await fetch(`/api/correo_tipo?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          }
+        });
+
+        const { asuntoCorreo, mensajeCorreo, tipo_attachment } = await resp_correo_tipo.json();
+
+        // const asuntoCorreo = ' prueba de envio de entradas por correo';
+        // const mensajeCorreo = `Entradas`;
+        // const tipo_attachment = 'pdf';
 
         // Solo enviar entradas activas por correo
         const entradasActivas = (entradas || []).filter(e => getEstadoEntrada(e) === 'activa');
@@ -521,7 +547,44 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', cargarEntradasUsuario);
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarEntradasUsuario();
+      controlarBotonEnviarCorreo();
+    });
+
+    async function controlarBotonEnviarCorreo() {
+      try {
+        /*const response = await fetch('/api/feature/options');
+        if (!response.ok) {
+          throw new Error('Error al consultar /api/feature/options');
+        }
+        
+        // Obtenemos las opciones habilitadas desde la API
+        const features = await response.json();*/
+        const features = { enviar_entradas_correo: false }; // Simulamos la respuesta de la API para este ejemplo
+
+        const btnCorreo = document.getElementById('btn-enviar-correo');
+        
+        if (btnCorreo) {
+          // Validamos la propiedad configurada en la API (ej: enviar_entradas_correo o similar)
+          if (features.enviar_entradas_correo === false) {
+            btnCorreo.disabled = true;
+            btnCorreo.style.opacity = '0.5';
+            btnCorreo.style.cursor = 'not-allowed';
+            btnCorreo.title = 'Opción deshabilitada temporalmente';
+          } else {
+            btnCorreo.disabled = false;
+            btnCorreo.style.opacity = '1';
+            btnCorreo.style.cursor = 'pointer';
+            btnCorreo.title = '';
+          }
+        }
+      } catch (error) {
+        console.error('Error al verificar feature de envío de correo:', error);
+      }
+    }
+
+
   </script>
 </body>
 </html>

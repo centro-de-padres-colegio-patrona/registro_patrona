@@ -35,6 +35,16 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_historial_ticket, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_qr_entradas, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_get_max_invitados, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
+
+  console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
+  if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
+    test_array.push({test_fn: test_api_delete_apoderado_email, delay: delay_ms, arguments: url_server});
+  }
 
   let test_name = ''
 
@@ -906,6 +916,257 @@ async function test_api_historial_ticket(url_server = 'http://localhost:5001') {
       return;
     }
   });
+}
+
+
+async function test_get_api_correos_tipo(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/correo_tipo]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+
+  try {
+    const result = await fetch(`${url_server}/api/correo_tipo?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if ( result.status === 200 )
+    {
+      const correo_tipo = await result.json();
+      console.log(`${tag} correo_tipo: `, correo_tipo);
+      log_result(tag, 'pass');
+    } else {
+      console.log(`${tag} status: ${result.status}`);
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+async function test_post_api_correos_tipo(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/correo_tipo]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const asuntoCorreo = 'Entradas Fiesta a la Chilena 2026 - Centro de Padres';
+  const mensajeCorreo = [
+    'Estimado(a) apoderado(a),',
+    'Adjunto encontrará las entradas para el evento Fiesta a la Chilena 2026.',
+    'Por favor, asegúrese de revisar los detalles del evento y presentar estas entradas al momento de ingresar.',
+    '¡Esperamos que disfrute de este maravilloso evento familiar!',
+    'Saludos cordiales,',
+    'Centro General de Padres y Apoderados - Colegio Patrona de La Florida'
+  ];
+  const tipo_attachment = 'pdf';
+ 
+  try {
+    const result = await fetch(`${url_server}/api/correo_tipo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+      body: JSON.stringify({ id_organizacion, id_evento, asuntoCorreo, mensajeCorreo, tipo_attachment })
+    });
+    const resultados = await result.json();
+    if ( result.status === 201 )
+    {
+      console.log(`${tag} `, resultados);
+      log_result(tag, 'pass');
+    } else {
+      console.log(`${tag} status: ${result.status}, `, resultados);
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+
+async function test_get_api_pagos(url_server = 'http://localhost:5001') {
+    const tag = '[testGetPagos]';
+    const cursos_under_test = [
+        { curso: '4m', seccion: 'A' },
+        { curso: '4m', seccion: 'B' }
+      ];
+
+    for (const { curso, seccion } of cursos_under_test) {
+        await fetchPagos(curso, seccion, url_server);
+    }
+}
+
+async function fetchPagos(curso, seccion, url_server = 'http://localhost:5001') {
+    const tag = `[fetchPagos] Curso: ${curso}, Sección: ${seccion}`;
+    try {
+        const response = await fetch(`${url_server}/api/pagos/${curso}/${seccion}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': SECRET_API_KEY
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error en la solicitud: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log(`${tag} Pagos obtenidos:`, data);
+    } catch (error) {
+        console.error(`${tag} Error al obtener los pagos:`, error);
+    }
+}
+
+
+async function test_api_delete_apoderado_email(url_server = 'http://localhost:5001') {
+  const tag = '[test DELETE /api/apoderado/email]';
+  const user_emails = [
+    'leo.herrera.mena.fotos.2020@gmail.com'
+  ];
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  
+  try {
+    for (const email_apoderado of user_emails) {
+
+      /*const result_desactivar_entradas = await fetch(`${url_server}/api/entrada/desactivar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({id_organizacion, id_evento, user_email: email_apoderado})
+      });
+      const resultados_entradas = await result_desactivar_entradas.json();
+      if ( result_desactivar_entradas.status === 200 )
+      {
+        console.log(`${tag} `, resultados_entradas);
+      } else {
+        console.log(`${tag} status: ${result_desactivar_entradas.status}, `, resultados_entradas);
+      }*/
+
+      const result = await fetch(`${url_server}/api/update/user/apoderado_email?user_email=${encodeURIComponent(email_apoderado)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      const resultados = await result.json();
+      if ( result.status === 200 )
+      {
+        console.log(`${tag} `, resultados);
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} status: ${result.status}, `, resultados);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+
+async function test_get_max_invitados(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/eventos/max_invitados]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const cursos_under_test = [['4MA', '6B'], ['6A', '6B'], ['PKA', '4MB'], ['1MA', '6A', '4B']];
+
+  try {
+    for (const cursos of cursos_under_test) {
+      const result = await fetch(`${url_server}/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 )
+      {
+        const max_invitados = await result.json();
+        console.log(`${tag} cursos: ${JSON.stringify(cursos)}, max_invitados: `, max_invitados);
+        log_result(tag, 'pass');
+      } else {
+        const message = await result.json()
+        console.log(`${tag} status: ${result.status}, message: `, message);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+
+async function test_add_pase_rule(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/eventos/pase_rule]';
+  const rules = [
+    {
+      "id_rule": "pago_cuota_social",
+      "compromiso_name": "cuota_cpa",
+      "pases_por_compromiso": -1,
+      "compromisos_maximo": 1,
+      "compromiso_maximo_alcanzado": 'liberar_maximo_de_pases',
+    },
+    {
+      "id_rule": "pago_invitados_adicionales",
+      "compromiso_name": "invitaciones_fiesta_chilena",
+      "pases_por_compromiso": 1,
+      "compromisos_maximo": 3,
+      "compromiso_maximo_alcanzado": 'liberar_maximo_de_pases',
+    }
+  ];
+
+  try {
+    for (const pase_rule of rules) {
+      const result = await fetch(`${url_server}/api/eventos/pase_rule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify( pase_rule )
+      });
+      if ( result.status === 200 )
+      {
+        const response = await result.json();
+        console.log(`${tag} pase_rule added: `, response);
+        log_result(tag, 'pass');
+      } else {
+        const message = await result.json()
+        console.log(`${tag} status: ${result.status}, message: `, message);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
+}
+
+
+async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/evento/estado_de_pago]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+
+  const emails = [
+    'l.herreramena@gmail.com',
+    'leo.herrera.mena.fotos.2020@gmail.com',
+    'leo.herrera.mena@gmail.com'
+  ];
+
+  try {
+    for (const user_email of emails) {
+      const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 )
+      {
+        const pago_entradas = await result.json();
+        console.log(`${tag} pago_entradas: `, pago_entradas);
+        log_result(tag, 'pass');
+      } else {
+        const message = await result.json()
+        console.log(`${tag} status: ${result.status}, message: `, message);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    log_result(tag, 'fail');
+  }
 }
 
 

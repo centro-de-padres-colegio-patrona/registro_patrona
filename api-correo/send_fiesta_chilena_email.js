@@ -238,7 +238,7 @@ async function send_email_from_cpa_account(body) {
       from: `Centro de Padres Patrona <${cpaConfig.user}>`,
       to: email_destinatario,
       subject: asuntoCorreo,
-      html: mensajeCorreo,
+      html: Array.isArray(mensajeCorreo) ? mensajeCorreo.join('<br>') : mensajeCorreo,
       attachments
     };
 

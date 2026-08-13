@@ -90,6 +90,87 @@ router.put('/eventos/actualizar', apiKeyAuth, async (req, res) => {
 });
 
 
+router.get('/eventos/max_invitados', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/eventos/max_invitados]';
+  try {
+    const { id_evento , id_organizacion, cursos } = req.query;
+
+    if (!cursos) {
+      return res.status(400).json({ error: 'El parámetro cursos es requerido' });
+    }
+    let cursosArray;
+    try {
+      cursosArray = JSON.parse(cursos);
+    } catch (error) {
+      return res.status(400).json({ error: 'El parámetro cursos debe ser un JSON válido', cursos });
+    }
+
+    if (!id_evento || !id_organizacion || !cursosArray || !Array.isArray(cursosArray) || cursosArray.length === 0) {
+      return res.status(400).json({ error: 'id_evento, id_organizacion y cursos son requeridos y cursos debe ser un arreglo no vacío', received: { id_evento, id_organizacion, cursos } });
+    }
+
+    const evento = await db_support.EventDB.findOne({ id_evento });
+    if (!evento) {
+      return res.status(404).json({ error: 'Evento no encontrado' });
+    }
+
+    // Calcular el máximo de invitados entre los cursos proporcionados
+    const max_invitados = cursosArray.reduce((max, idCurso) => {
+      const infoCurso = Object.values(evento.cursoBloqueMap).find(item => item.id === idCurso);
+
+      if (!infoCurso) {
+        console.warn(`${tag} No se encontró información para el curso: ${idCurso}`);
+        return max;
+      }
+
+      return Math.max(max, infoCurso.pases_invitados || 0);
+    }, 0);
+
+    res.json({ max_invitados });
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error al obtener max_invitados' });
+  }
+});
+
+// Endpoit para Modificar y/o agregar items a PaseRuleDB
+router.post('/eventos/pase_rule', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/eventos/pase_rule]';
+  try {
+    const { id_rule, compromiso_name, pases_por_compromiso, compromisos_maximo, compromiso_maximo_alcanzado } = req.body;
+
+    if (!id_rule || !compromiso_name || pases_por_compromiso === undefined || compromisos_maximo === undefined || !compromiso_maximo_alcanzado) {
+      return res.status(400).json({ error: 'id_rule, compromiso_name, pases_por_compromiso, compromisos_maximo y compromiso_maximo_alcanzado son requeridos' });
+    }
+
+    // Buscar si ya existe un registro para el mismo id_rule
+    let paseRule = await db_support.PaseRuleDB.findOne({ id_rule });
+
+    if (paseRule) {
+      // Si existe, actualizar los campos
+      paseRule.compromiso_name = compromiso_name;
+      paseRule.pases_por_compromiso = pases_por_compromiso;
+      paseRule.compromisos_maximo = compromisos_maximo;
+      paseRule.compromiso_maximo_alcanzado = compromiso_maximo_alcanzado;
+      await paseRule.save();
+      console.log(`${tag} PaseRule actualizado para id_rule: ${id_rule}`);
+    } else {
+      // Si no existe, crear un nuevo registro
+      paseRule = await db_support.PaseRuleDB.create({ id_rule, compromiso_name, pases_por_compromiso, compromisos_maximo, compromiso_maximo_alcanzado });
+      if (!paseRule) return res.status(500).json({ error: 'Error al crear PaseRule' });
+      
+      console.log(`${tag} PaseRule creado para id_rule: ${id_rule}`);
+    }
+
+    res.json({ message: 'PaseRule actualizado/creado con éxito', paseRule });
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error al actualizar/crear PaseRule' });
+  }
+});
+
+
+
 
 
 module.exports = router;

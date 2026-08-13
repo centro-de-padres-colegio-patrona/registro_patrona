@@ -53,6 +53,14 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     test_array.push({test_fn: test_enviar_correos_de_prueba, delay: delay_ms, arguments: url_server});
   }
 
+  if ( config_env.TEST_API_DESACTIVAR_ENTRADAS && config_env.TEST_API_DESACTIVAR_ENTRADAS === 'true') {
+    test_array.push({test_fn: test_desactivar_entradas, delay: delay_ms, arguments: url_server});
+  }
+
+  if ( config_env.TEST_API_ANULAR_ENTRADAS && config_env.TEST_API_ANULAR_ENTRADAS === 'true') {
+    test_array.push({test_fn: test_anular_entradas, delay: delay_ms, arguments: url_server});
+  }
+
   let test_name = ''
 
   try {
@@ -830,6 +838,41 @@ async function test_activar_entradas(url_server = 'http://localhost:5001') {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
         body: JSON.stringify({id_organizacion, id_evento, user_email, familia})
+      });
+      const resultados = await result.json();
+      if ( result.status === 200 )
+      {
+        //console.log(`${tag} hijos_registrados: `, Object.keys(hijos_registrados).length);
+        console.log(`${tag} `, resultados);
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} status: ${result.status}, `, resultados);
+        log_result(tag, 'fail');
+      }
+    } catch (error) {
+      console.log(`${tag} Unexpected error: `, error);
+      log_result(tag, 'fail');
+      return;
+    }
+  })
+}
+
+async function test_anular_entradas(url_server = 'http://localhost:5001') {
+  const tag = '[test POST /api/entrada/anular]';
+
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const user_email = 'l.herreramena@gmail.com';
+  const familias = [
+    "gonzalez perez"
+  ];
+
+  familias.forEach( async familia => {
+    try {
+      const result = await fetch(`${url_server}/api/entrada/desactivar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({id_organizacion, id_evento, familia, user_email, estado: 'anulada'})
       });
       const resultados = await result.json();
       if ( result.status === 200 )

@@ -868,8 +868,15 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/entrada/desactivar]'
   //console.log(`${tag} Starting ...`);
+  const mapaAccion = {
+    'inactiva': 'desactivacion',
+    'activa': 'activacion',
+    'usada': 'uso',
+    'anulada': 'anulacion'
+  };
+  
   try {
-    const { id_organizacion, id_evento, folio, familia, user_email } = req.body;
+    const { id_organizacion, id_evento, folio, familia, user_email, estado = 'inactiva' } = req.body;
     //console.log(`${tag} Continue ...`, {id_organizacion, id_evento, folio, user_email});
 
     if (!id_organizacion) return res.status(400).json({ error: 'Falta id_organizacion' });
@@ -897,8 +904,8 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
       // Si user_email no es administrador, entonces Verificar si folio es entrada de la familia de user_email
       const ticket = await db_support.TicketEventoDB.findOne({ id_organizacion, id_evento, folio: parseInt(folio) });
 
-      if (ticket.estado === 'inactiva' ) {
-        const err_msg = `ticket ${folio} ya esta desactiva`;
+      if (ticket.estado === estado ) {
+        const err_msg = `ticket ${folio} ya esta ${estado}`;
         console.log(`${tag} Error: ${err_msg}`);
         return res.status(404).json({ error: err_msg });
       }
@@ -910,20 +917,20 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
       if (!ticket.usado) {
         return res.status(409).json({ error: 'Este ticket ya está pendiente' });
       }
-      
+
       const result = await db_support.TicketEventoDB.findOneAndUpdate(
-        { id_organizacion, id_evento, folio: parseInt(folio), estado: { $ne: 'inactiva' } },
+        { id_organizacion, id_evento, folio: parseInt(folio), estado: { $ne: estado } },
         { 
           $set: { 
             usado: false, 
             fecha_uso: null, 
             validado_por: null,
-            estado: 'inactiva'
+            estado: estado
           },
           $push: {
             historial: {
-              accion: 'desactivacion',
-              descripcion: `activado por ${user_email}`
+              accion: `${mapaAccion[estado] || 'accion desconocida'}`,
+              descripcion: `${estado} por ${user_email}`
             }
           }
         }
@@ -970,11 +977,11 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
 
       // Extraer folios que estén desactivados/inactivos
       const foliosToUpdate = tickets_desactivacion
-        .filter(t => t.estado !== 'inactiva')
+        .filter(t => t.estado !== estado)
         .map(t => t.folio);
 
       if (foliosToUpdate.length === 0) {
-        return res.status(200).json({ status: 'ok', mensaje: 'Todas las entradas correspondientes ya están activas', activadas: 0 });
+        return res.status(200).json({ status: 'ok', mensaje: `Todas las entradas correspondientes ya están ${estado}`, [`${mapaAccion[estado] || 'accion desconocida'}s`]: 0 });
       }
 
       console.log(`${tag} folios a desactivar: `, foliosToUpdate);
@@ -987,12 +994,12 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
             usado: false, 
             fecha_uso: null, 
             validado_por: null,
-            estado: 'inactiva'
+            estado: estado
           },
           $push: {
             historial: {
-              accion: 'desactivacion',
-              descripcion: `desactivado en lote por ${user_email}`
+              accion: `${mapaAccion[estado] || 'accion desconocida'}`,
+              descripcion: `${estado} en lote por ${user_email}`
             }
           }
         }
@@ -1000,8 +1007,8 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
 
       return res.status(200).json({ 
         status: 'ok', 
-        mensaje: 'Entradas de la familia que se desactivaron correctamente', 
-        desactivadas: updateResult.modifiedCount 
+        mensaje: `Entradas de la familia que se ${estado} correctamente`, 
+        [`${mapaAccion[estado] || 'accion desconocida'}s`]: updateResult.modifiedCount 
       });
     }
   } catch (error) {

@@ -426,7 +426,8 @@
           const user = data.user;
           correo = user?.email || '';
           if (user?.padres && user.padres.length > 0) {
-            const p = user.padres.find(pa => pa.es_usuario_cuenta) || user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase());
+            // Primero buscar el padre cuyo correo coincide con el usuario logueado
+            const p = user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres.find(pa => pa.es_usuario_cuenta);
             if (p) {
               nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
             }
@@ -445,7 +446,8 @@
             const data = await resManual.json();
             const user = data.user;
             if (user?.padres && user.padres.length > 0) {
-              const p = user.padres.find(pa => pa.es_usuario_cuenta) || user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres[0];
+              // Primero buscar el padre cuyo correo coincide con el usuario logueado
+              const p = user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres.find(pa => pa.es_usuario_cuenta) || user.padres[0];
               nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
             }
             if (!nombreCompleto) nombreCompleto = user?.displayName || '';

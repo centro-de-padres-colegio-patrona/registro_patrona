@@ -1222,7 +1222,8 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
 async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
   const tag = '[test POST /api/enviarCorreo]';
-  const file_correos = path.resolve(__dirname,'../tests/respuestas_consultas/respuestas_consultas_2026_08_12.json');
+  const filename = 'actualizacion_consultas_2026_08_12';
+  const file_correos = path.resolve(__dirname,`../tests/respuestas_consultas/${filename}.json`);
   try {
     const data_file = await fs.readFile(file_correos, 'utf-8');
     const correosData = JSON.parse(data_file);
@@ -1233,10 +1234,10 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
     const consulta_key = "Coméntanos cual es tu problema";
     const respuesta_key = "Respuesta";
 
-    //const correo = 'l.herreramena@gmail.com';
+    const correo_verificacion = 'l.herreramena@gmail.com';
 
     for (const correoData of correosData) {
-      const correo = correoData[email_key];
+      const correo_destinatario = correoData[email_key];
       const nombre_destinatario = correoData[nombre_key];
       const timestamp = correoData[timestamp_key];
       const consulta = correoData[consulta_key];
@@ -1252,27 +1253,30 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
                       `El equipo de soporte.`];*/
       //const mensaje = mensaje_array.join('\n\n');
 
-      const mensaje = `
-                        <p>Hola ${nombre_destinatario}.</p>
-                        <p>Hemos recibido la siguiente consulta de parte tuya:</p>
-                        <p><strong>Tu consulta:</strong> ${consulta}</p>
-                        <p><strong>Nuestra respuesta:</strong> ${respuesta}</p>
-                        <p>Atentamente,<br>El equipo de soporte.</p>
-                      `;
+      const email_dests = [correo_destinatario, correo_verificacion];
+      for ( const correo of email_dests) {
+        const mensaje = `
+                          <p>Hola ${nombre_destinatario}.</p>
+                          <p>Hemos recibido la siguiente consulta de parte tuya:</p>
+                          <p><strong>Tu consulta:</strong> ${consulta}</p>
+                          <p><strong>Nuestra respuesta:</strong> ${respuesta}</p>
+                          <p>Atentamente,<br>El equipo de soporte.</p>
+                        `;
 
-      const result = await fetch(`${url_server}/api/enviarCorreo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-        body: JSON.stringify({correo, asunto, mensaje})
-      });
-      if (result.status === 200) {
-        const response = await result.json();
-        console.log(`${tag} correo enviado: `, response);
-        log_result(tag, 'pass');
-      } else {
-        const message = await result.json();
-        console.log(`${tag} status: ${result.status}, message: `, message);
-        log_result(tag, 'fail');
+        const result = await fetch(`${url_server}/api/enviarCorreo`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+          body: JSON.stringify({correo, asunto, mensaje})
+        });
+        if (result.status === 200) {
+          const response = await result.json();
+          console.log(`${tag} correo enviado: `, response);
+          log_result(tag, 'pass');
+        } else {
+          const message = await result.json();
+          console.log(`${tag} status: ${result.status}, message: `, message);
+          log_result(tag, 'fail');
+        }
       }
     }
   } catch (error) {

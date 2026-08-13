@@ -264,6 +264,9 @@
         fillUserInfo(currentUser);
         //console.log('Datos del usuario:', user);
         
+        // Ocultar sección de invitados si no tiene hijos ni padres registrados
+        ocultarInvitadosSiNoHayRegistro();
+        
         // Si tiene datos (heredados o propios con hijos), ocultar el label
         const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
         if (currentUser.datosHeredados || tieneHijos) {
@@ -310,6 +313,8 @@
               mostrarEstado("Datos obtenidos desde la base de datos", 0);
               setEstadoBotonEnviar(false);
               addBrothers();
+              // Ocultar sección de invitados si no tiene hijos ni padres registrados
+              ocultarInvitadosSiNoHayRegistro();
               // Ocultar label completitud si tiene datos
               const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
               if (tieneHijos) {
@@ -1033,6 +1038,46 @@
     function deshabilitarControles(form) {
       const elementos = form.querySelectorAll('input, select, textarea, button');
       elementos.forEach(el => el.disabled = true);
+    }
+
+    /**
+     * Oculta la sección de invitados si el usuario no tiene hijos ni padres registrados.
+     * Se muestra nuevamente después de guardar datos y verificar pago CPA.
+     */
+    function ocultarInvitadosSiNoHayRegistro() {
+      const tieneHijos = currentUser && currentUser.hijos && currentUser.hijos.length > 0 &&
+                         currentUser.hijos.some(h => h.nombre && h.nombre.trim() !== '');
+      const tienePadres = currentUser && currentUser.padres && currentUser.padres.length > 0 &&
+                          currentUser.padres.some(p => p.nombre && p.nombre.trim() !== '');
+
+      const seccionHeader = document.getElementById('invitados-section-header');
+      const seccionInfo = document.getElementById('invitados-info-section');
+      const btnAgregar = document.getElementById('btn-agregar-invitados');
+
+      if (!tieneHijos || !tienePadres) {
+        // Ocultar sección de invitados
+        if (seccionHeader) seccionHeader.style.display = 'none';
+        if (seccionInfo) seccionInfo.style.display = 'none';
+        if (btnAgregar) btnAgregar.style.display = 'none';
+      } else {
+        // Mostrar sección de invitados
+        if (seccionHeader) seccionHeader.style.display = '';
+        if (seccionInfo) seccionInfo.style.display = '';
+      }
+    }
+
+    /**
+     * Después de guardar datos exitosamente, muestra la sección de invitados
+     * ya que ahora tiene hijos y padres registrados.
+     */
+    function mostrarSeccionInvitados() {
+      const seccionHeader = document.getElementById('invitados-section-header');
+      const seccionInfo = document.getElementById('invitados-info-section');
+
+      if (seccionHeader) seccionHeader.style.display = '';
+      if (seccionInfo) seccionInfo.style.display = '';
+      // Recargar la información de invitados
+      fillInvitadosSection(currentUser);
     }
 
     /**
@@ -2219,6 +2264,8 @@
         updateUserEmail();
         mostrarEstado("Datos actualizados correctamente", 0);
         setEstadoBotonEnviar(false);
+        // Mostrar sección de invitados ya que guardó hijos y padres
+        mostrarSeccionInvitados();
       }
     })
     .catch(error => {

@@ -338,6 +338,7 @@ const apiUpdateDBRouter = require('../backend/api_update_db');
 const apiConsultasDBRouter = require('../backend/api_consultas_db');
 const apiCorreosTipoDBRouter = require('../backend/api_correos_tipo');
 const apiPagosRouter = require('../backend/api_pagos');
+const apiCorreosRouter = require('../backend/api_correos');
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
 app.use('/api', apiEntradasRouter);
@@ -348,6 +349,7 @@ app.use('/api', apiUpdateDBRouter);
 app.use('/api', apiConsultasDBRouter);
 app.use('/api', apiCorreosTipoDBRouter);
 app.use('/api', apiPagosRouter);
+app.use('/api', apiCorreosRouter);
 
 
 // Ruta para la página "hello world" (index.html)
@@ -1114,6 +1116,24 @@ app.get('/api/estado_pago_cpa', async (req, res) => {
           console.log(`[/api/estado_pago_cpa] Hijos heredados de ${relacionado.email}`);
         }
       }*/
+
+      // Si el usuario no tiene hijos, buscar herencia (mismo correo como padre en otro registro)
+      if (!user.hijos || user.hijos.length === 0) {
+        const email = user.email;
+        const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        const emailNorm = normalizar(email);
+        const todos = await db_support.usersDB.find({});
+        const relacionado = todos.find(u => {
+          if (u.email === email) return false;
+          if (!u.padres || !Array.isArray(u.padres)) return false;
+          if (!u.hijos || u.hijos.length === 0) return false;
+          return u.padres.some(p => normalizar(p.correo) === emailNorm || normalizar(p.email) === emailNorm);
+        });
+        if (relacionado) {
+          user.hijos = relacionado.hijos;
+          console.log(`[/api/estado_pago_cpa] Hijos heredados de ${relacionado.email} para ${email}`);
+        }
+      }
 
       const pagos = [];
       if (user.hijos !== undefined && user.hijos.length > 0) {

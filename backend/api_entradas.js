@@ -6,7 +6,7 @@ const fs = require('fs').promises; // Usamos la versión basada en promesas
 
 // Requerir dependencias compartidas necesarias para las entradas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
-const { genEntradaCanvas, genQrEntradaCanvas } = require('../src/generateTicket'); 
+const { genEntradaCanvas, genQrEntradaCanvas, genQrData } = require('../src/generateTicket'); 
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
 //const { info } = require('console');
@@ -868,8 +868,15 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/entrada/desactivar]'
   //console.log(`${tag} Starting ...`);
+  const mapaAccion = {
+    'inactiva': 'desactivacion',
+    'activa': 'activacion',
+    'usada': 'uso',
+    'anulada': 'anulacion'
+  };
+  
   try {
-    const { id_organizacion, id_evento, folio, familia, user_email } = req.body;
+    const { id_organizacion, id_evento, folio, familia, user_email, estado = 'inactiva' } = req.body;
     //console.log(`${tag} Continue ...`, {id_organizacion, id_evento, folio, user_email});
 
     if (!id_organizacion) return res.status(400).json({ error: 'Falta id_organizacion' });
@@ -897,8 +904,8 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
       // Si user_email no es administrador, entonces Verificar si folio es entrada de la familia de user_email
       const ticket = await db_support.TicketEventoDB.findOne({ id_organizacion, id_evento, folio: parseInt(folio) });
 
-      if (ticket.estado === 'inactiva' ) {
-        const err_msg = `ticket ${folio} ya esta desactiva`;
+      if (ticket.estado === estado ) {
+        const err_msg = `ticket ${folio} ya esta ${estado}`;
         console.log(`${tag} Error: ${err_msg}`);
         return res.status(404).json({ error: err_msg });
       }
@@ -910,20 +917,20 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
       if (!ticket.usado) {
         return res.status(409).json({ error: 'Este ticket ya está pendiente' });
       }
-      
+
       const result = await db_support.TicketEventoDB.findOneAndUpdate(
-        { id_organizacion, id_evento, folio: parseInt(folio), estado: { $ne: 'inactiva' } },
+        { id_organizacion, id_evento, folio: parseInt(folio), estado: { $ne: estado } },
         { 
           $set: { 
             usado: false, 
             fecha_uso: null, 
             validado_por: null,
-            estado: 'inactiva'
+            estado: estado
           },
           $push: {
             historial: {
-              accion: 'desactivacion',
-              descripcion: `activado por ${user_email}`
+              accion: `${mapaAccion[estado] || 'accion desconocida'}`,
+              descripcion: `${estado} por ${user_email}`
             }
           }
         }
@@ -970,11 +977,11 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
 
       // Extraer folios que estén desactivados/inactivos
       const foliosToUpdate = tickets_desactivacion
-        .filter(t => t.estado !== 'inactiva')
+        .filter(t => t.estado !== estado)
         .map(t => t.folio);
 
       if (foliosToUpdate.length === 0) {
-        return res.status(200).json({ status: 'ok', mensaje: 'Todas las entradas correspondientes ya están activas', activadas: 0 });
+        return res.status(200).json({ status: 'ok', mensaje: `Todas las entradas correspondientes ya están ${estado}`, [`${mapaAccion[estado] || 'accion desconocida'}s`]: 0 });
       }
 
       console.log(`${tag} folios a desactivar: `, foliosToUpdate);
@@ -987,12 +994,12 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
             usado: false, 
             fecha_uso: null, 
             validado_por: null,
-            estado: 'inactiva'
+            estado: estado
           },
           $push: {
             historial: {
-              accion: 'desactivacion',
-              descripcion: `desactivado en lote por ${user_email}`
+              accion: `${mapaAccion[estado] || 'accion desconocida'}`,
+              descripcion: `${estado} en lote por ${user_email}`
             }
           }
         }
@@ -1000,8 +1007,8 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
 
       return res.status(200).json({ 
         status: 'ok', 
-        mensaje: 'Entradas de la familia que se desactivaron correctamente', 
-        desactivadas: updateResult.modifiedCount 
+        mensaje: `Entradas de la familia que se ${estado} correctamente`, 
+        [`${mapaAccion[estado] || 'accion desconocida'}s`]: updateResult.modifiedCount 
       });
     }
   } catch (error) {
@@ -1476,6 +1483,49 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
     }
 
     for ( const entrada of personas ) {
+      // Buscar si la entrada ya existe en la base de datos
+      const existingEntry = await db_support.TicketEventoDB.findOne({
+        id_organizacion: entrada.id_organizacion,
+        id_evento: entrada.id_evento,
+        familia: entrada.familia,
+        nombre_completo: entrada.nombre_completo,
+        tipo: entrada.tipo
+      });
+
+      if (existingEntry) {
+        if (existingEntry.estado === 'anulada' || existingEntry.estado === 'inactiva') {
+          const prev_estado = existingEntry.estado;
+          console.log(`${tag} La entrada para ${entrada.nombre_completo} estaba ${prev_estado}. Se reactivará. Folio: ${existingEntry.folio}`);
+          await db_support.TicketEventoDB.findOneAndUpdate(
+            { _id: existingEntry._id },
+            { 
+              $set: {
+                estado: 'inactiva',
+                bloques: entrada.bloques,
+                jornada: entrada.jornada,
+                curso: entrada.curso,
+                qr_str: genQrData(entrada),
+                usado: false,
+                fecha_uso: null,
+                validado_por: null
+              },
+              $push: {
+                historial: {
+                  accion: 'reactivacion',
+                  descripcion: `entrada reactivada (inactiva) durante creacion de entradas de la familia`
+                }
+              }
+            }
+          );
+        } else
+          console.log(`${tag} La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
+        if (entrada.tipo === 'estudiante') {
+          lista_entradas.push(entrada.nombre_completo);
+        }
+        continue; // Saltar a la siguiente entrada si ya existe
+      }
+
+      // Si la entrada no existe, crearla mediante la API
       const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },

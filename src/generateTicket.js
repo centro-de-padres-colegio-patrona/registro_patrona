@@ -27,6 +27,16 @@ function colores_to_bloques(colores) {
   return array.map(color => bloqueMap[color] ?? color);
 }
 
+function genQrData({ url_server, id_organizacion, id_evento, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
+  const tag = '[genQrData]';
+  try {
+    const qrData = `${url_server}/api/entrada/consultar?organizacion=${encodeURIComponent(id_organizacion)}&evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloques=${encodeURIComponent(bloques)}&num_listado=${num_listado}`;
+    return qrData;
+  } catch (err) {
+    console.log(`${tag} Error: `, err.stack || err.message || err);
+    return null;
+  }
+}
 
 async function genQrEntradaCanvas({ url_server, id_organizacion, id_evento, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
   const tag = '[genQrEntradaCanvas]';
@@ -163,4 +173,4 @@ async function genEntradaCanvas({ url_server, id_organizacion, id_evento, imagen
 
 setTimeout(test_brother, 2000);*/
 
-module.exports = { genEntradaCanvas, genQrEntradaCanvas };
+module.exports = { genEntradaCanvas, genQrEntradaCanvas, genQrData };

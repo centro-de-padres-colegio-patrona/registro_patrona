@@ -1228,7 +1228,7 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
 async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
   const tag = '[test POST /api/enviarCorreo]';
-  const filename = 'actualizacion_consultas_2026_08_12';
+  const filename = 'respuestas_consultas_2026_08_13';
   const file_correos = path.resolve(__dirname,`../tests/respuestas_consultas/${filename}.json`);
   const file_leidos = path.resolve(__dirname, '../tests/respuestas_consultas/archivos_leidos.json');
   try {
@@ -1268,6 +1268,8 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
       const consulta = correoData[consulta_key];
       const respuesta = correoData[respuesta_key];
 
+      console.log(`${tag} Enviando correo a: ${correo_destinatario}, Respuesta: ${respuesta}`);
+
       const asunto = `Respuesta a tu consulta`;
 
       /*const mensaje_array = [`Hola ${nombre_destinatario}. Hemos recibido la siguiente consulta de parte tuya:`,
@@ -1278,15 +1280,15 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
                       `El equipo de soporte.`];*/
       //const mensaje = mensaje_array.join('\n\n');
 
-      const email_dests = [correo_destinatario, correo_verificacion];
+      const mensaje = `
+                        <p>Hola ${nombre_destinatario}.</p>
+                        <p>Hemos recibido la siguiente consulta de parte tuya:</p>
+                        <p><strong>Tu consulta:</strong> ${consulta}</p>
+                        <p><strong>Nuestra respuesta:</strong> ${respuesta}</p>
+                        <p>Atentamente,<br>El equipo de soporte.</p>
+                      `;
+      const email_dests = [correo_destinatario, correo_verificacion];  //  , 
       for ( const correo of email_dests) {
-        const mensaje = `
-                          <p>Hola ${nombre_destinatario}.</p>
-                          <p>Hemos recibido la siguiente consulta de parte tuya:</p>
-                          <p><strong>Tu consulta:</strong> ${consulta}</p>
-                          <p><strong>Nuestra respuesta:</strong> ${respuesta}</p>
-                          <p>Atentamente,<br>El equipo de soporte.</p>
-                        `;
 
         const result = await fetch(`${url_server}/api/enviarCorreo`, {
           method: 'POST',

@@ -6,7 +6,7 @@ const fs = require('fs').promises; // Usamos la versión basada en promesas
 
 // Requerir dependencias compartidas necesarias para las entradas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
-const { genEntradaCanvas, genQrEntradaCanvas } = require('../src/generateTicket'); 
+const { genEntradaCanvas, genQrEntradaCanvas, genQrData } = require('../src/generateTicket'); 
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
 //const { info } = require('console');
@@ -1493,13 +1493,18 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
       });
 
       if (existingEntry) {
-        if (existingEntry.estado === 'anulada') {
-          console.log(`${tag} La entrada para ${entrada.nombre_completo} estaba anulada. Se reactivará. Folio: ${existingEntry.folio}`);
+        if (existingEntry.estado === 'anulada' || existingEntry.estado === 'inactiva') {
+          const prev_estado = existingEntry.estado;
+          console.log(`${tag} La entrada para ${entrada.nombre_completo} estaba ${prev_estado}. Se reactivará. Folio: ${existingEntry.folio}`);
           await db_support.TicketEventoDB.findOneAndUpdate(
             { _id: existingEntry._id },
             { 
               $set: {
                 estado: 'inactiva',
+                bloques: entrada.bloques,
+                jornada: entrada.jornada,
+                curso: entrada.curso,
+                qr_str: genQrData(entrada),
                 usado: false,
                 fecha_uso: null,
                 validado_por: null
@@ -1512,8 +1517,8 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
               }
             }
           );
-        }
-        console.log(`${tag} La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
+        } else
+          console.log(`${tag} La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
         if (entrada.tipo === 'estudiante') {
           lista_entradas.push(entrada.nombre_completo);
         }

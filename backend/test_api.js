@@ -61,6 +61,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     test_array.push({test_fn: test_anular_entradas, delay: delay_ms, arguments: url_server});
   }
 
+  if ( config_env.TEST_API_GENERAR_ENTRADAS_FAMILIA && config_env.TEST_API_GENERAR_ENTRADAS_FAMILIA === 'true') {
+    test_array.push({test_fn: test_api_entradas_familia, delay: delay_ms, arguments: url_server});
+  }
+
   let test_name = ''
 
   try {
@@ -375,13 +379,15 @@ async function test_api_pre_generate_entradas(url_server = 'http://localhost:500
 async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
   const tag = 'test /api/entradas/generar/familia';
   const estudiantes = [
-    'mendiz pozo constantino panagiotis',
+    'gonzalez perez simona elena',
+    'Gonzalez perez mateo ignacio'
+    /*'mendiz pozo constantino panagiotis',
     'morales perez antonia margarita',
     'gutierrez zapata agustin antonio',
     'herrera messina florencia isidora',
-    'madariaga jara martina esperanza',
+    'madariaga jara martina esperanza',*/
     /*'lepin hugueno antonia sara',
-    'montero arroyo isidora daniela',*/
+    'montero arroyo isidora daniela',
     'alarcon salazar julieta ignacia'/*,
     'herrera gongora martina ignacia',
     'diaz rodriguez fernando jesus'*/
@@ -393,10 +399,10 @@ async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
     //const nombre_completo = 'herrera messina florencia isidora';
 
     // Borrando Entradas anteriores
-    const drop_result = await fetch (`${url_server}/api/entradas?id_evento=${encodeURIComponent(id_evento)}`, {
+    /*const drop_result = await fetch (`${url_server}/api/entradas?id_evento=${encodeURIComponent(id_evento)}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-    });
+    });*/
 
     const evento_result = await fetch(`${url_server}/api/eventos/buscar?id_evento=${encodeURIComponent(id_evento)}`, {
       method: 'GET',
@@ -1222,8 +1228,28 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
 async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
   const tag = '[test POST /api/enviarCorreo]';
-  const file_correos = path.resolve(__dirname,'../tests/respuestas_consultas/respuestas_consultas_2026_08_12.json');
+  const filename = 'respuestas_consultas_2026_08_13';
+  const file_correos = path.resolve(__dirname,`../tests/respuestas_consultas/${filename}.json`);
+  const file_leidos = path.resolve(__dirname, '../tests/respuestas_consultas/archivos_leidos.json');
   try {
+    let archivos_leidos = [];
+    try {
+      const data_leidos = await fs.readFile(file_leidos, 'utf-8');
+      archivos_leidos = JSON.parse(data_leidos);
+    } catch (err) {
+      // Si el archivo no existe o está vacío, iniciamos con un array vacío
+      archivos_leidos = [];
+    }
+
+    if (archivos_leidos.includes(file_correos)) {
+      console.log(`${tag} El archivo "${path.basename(file_correos)}" ya fue procesado anteriormente. Omitiendo envío.`);
+      log_result(tag, 'pass');
+      return;
+    }
+
+    archivos_leidos.push(file_correos);
+    await fs.writeFile(file_leidos, JSON.stringify(archivos_leidos, null, 2), 'utf-8');
+
     const data_file = await fs.readFile(file_correos, 'utf-8');
     const correosData = JSON.parse(data_file);
 
@@ -1233,14 +1259,16 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
     const consulta_key = "Coméntanos cual es tu problema";
     const respuesta_key = "Respuesta";
 
-    //const correo = 'l.herreramena@gmail.com';
+    const correo_verificacion = 'l.herreramena@gmail.com';
 
     for (const correoData of correosData) {
-      const correo = correoData[email_key];
+      const correo_destinatario = correoData[email_key];
       const nombre_destinatario = correoData[nombre_key];
       const timestamp = correoData[timestamp_key];
       const consulta = correoData[consulta_key];
       const respuesta = correoData[respuesta_key];
+
+      console.log(`${tag} Enviando correo a: ${correo_destinatario}, Respuesta: ${respuesta}`);
 
       const asunto = `Respuesta a tu consulta`;
 
@@ -1259,20 +1287,23 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
                         <p><strong>Nuestra respuesta:</strong> ${respuesta}</p>
                         <p>Atentamente,<br>El equipo de soporte.</p>
                       `;
+      const email_dests = [correo_destinatario, correo_verificacion];  //  , 
+      for ( const correo of email_dests) {
 
-      const result = await fetch(`${url_server}/api/enviarCorreo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-        body: JSON.stringify({correo, asunto, mensaje})
-      });
-      if (result.status === 200) {
-        const response = await result.json();
-        console.log(`${tag} correo enviado: `, response);
-        log_result(tag, 'pass');
-      } else {
-        const message = await result.json();
-        console.log(`${tag} status: ${result.status}, message: `, message);
-        log_result(tag, 'fail');
+        const result = await fetch(`${url_server}/api/enviarCorreo`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+          body: JSON.stringify({correo, asunto, mensaje})
+        });
+        if (result.status === 200) {
+          const response = await result.json();
+          console.log(`${tag} correo enviado: `, response);
+          log_result(tag, 'pass');
+        } else {
+          const message = await result.json();
+          console.log(`${tag} status: ${result.status}, message: `, message);
+          log_result(tag, 'fail');
+        }
       }
     }
   } catch (error) {

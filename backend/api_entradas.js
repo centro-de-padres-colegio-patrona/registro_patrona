@@ -6,7 +6,7 @@ const fs = require('fs').promises; // Usamos la versión basada en promesas
 
 // Requerir dependencias compartidas necesarias para las entradas
 const db_support = require('./db_support'); // Ajustado a la ruta relativa del backend
-const { genEntradaCanvas, genQrEntradaCanvas } = require('../src/generateTicket'); 
+const { genEntradaCanvas, genQrEntradaCanvas, genQrData } = require('../src/generateTicket'); 
 const apiKeyAuth = require('./apiKeyAuth');
 const config_env = require('../src/setup/config/env.js');
 //const { info } = require('console');
@@ -1483,6 +1483,49 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
     }
 
     for ( const entrada of personas ) {
+      // Buscar si la entrada ya existe en la base de datos
+      const existingEntry = await db_support.TicketEventoDB.findOne({
+        id_organizacion: entrada.id_organizacion,
+        id_evento: entrada.id_evento,
+        familia: entrada.familia,
+        nombre_completo: entrada.nombre_completo,
+        tipo: entrada.tipo
+      });
+
+      if (existingEntry) {
+        if (existingEntry.estado === 'anulada' || existingEntry.estado === 'inactiva') {
+          const prev_estado = existingEntry.estado;
+          console.log(`${tag} La entrada para ${entrada.nombre_completo} estaba ${prev_estado}. Se reactivará. Folio: ${existingEntry.folio}`);
+          await db_support.TicketEventoDB.findOneAndUpdate(
+            { _id: existingEntry._id },
+            { 
+              $set: {
+                estado: 'inactiva',
+                bloques: entrada.bloques,
+                jornada: entrada.jornada,
+                curso: entrada.curso,
+                qr_str: genQrData(entrada),
+                usado: false,
+                fecha_uso: null,
+                validado_por: null
+              },
+              $push: {
+                historial: {
+                  accion: 'reactivacion',
+                  descripcion: `entrada reactivada (inactiva) durante creacion de entradas de la familia`
+                }
+              }
+            }
+          );
+        } else
+          console.log(`${tag} La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
+        if (entrada.tipo === 'estudiante') {
+          lista_entradas.push(entrada.nombre_completo);
+        }
+        continue; // Saltar a la siguiente entrada si ya existe
+      }
+
+      // Si la entrada no existe, crearla mediante la API
       const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },

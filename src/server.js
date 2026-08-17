@@ -40,7 +40,7 @@ let BASEURL = (PORT === LOCAL_PORT)
 
 console.log(`Starting Server with PORT: ${PORT}`);
 
-const database_year_name = config_env.DATABASE_YEAR_NAME || '';
+const database_year_name = config_env.TEST_DATABASE_YEAR_NAME ? config_env.TEST_DATABASE_YEAR_NAME : config_env.DATABASE_YEAR_NAME || '';
 const db_support = require('../backend/db_support');
 const url_api = (PORT == LOCAL_PORT) ? `http://localhost:${LOCAL_PORT}` : BASEURL;
 db_support.connectToDB(database_year_name, url_api);
@@ -479,10 +479,10 @@ app.post('/api/hermanos', express.json(), async(req, res) => {
 
 app.get('/api/curso', async (req, res) => {
   const {nombre} = req.query;
-  //console.log('/api/curso: ', nombre);
+  console.log('/api/curso: ', nombre);
   const query = { id: nombre };
   const result = await db_support.nombreCursoMapDB.findOne(query);
-  //console.log('result: ', result);
+  console.log('result: ', result);
   let curso = result.value.slice(0,-1);
   let seccion = result.value.slice(-1);
   res.json({curso, seccion});

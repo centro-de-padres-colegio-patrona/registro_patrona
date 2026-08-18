@@ -583,10 +583,8 @@
         }
         
         // Formato JSON esperado, por ejemplo:
-        // { "ir_a_pagos": true, "permitir_solicitud_invitados": true }
+        // { feature: "ir_a_pagos", enabled: false }
         const features = await response.json();
-        // const features = { ir_a_pagos: { enabled: false } }; // Valor por defecto, ya que la llamada a la API está comentada
-        //console.log('Features obtenidos:', features);
         
         const btnPagos = document.getElementById('btn-ir-a-pagos') || document.getElementById('btn-agregar-invitados');
 

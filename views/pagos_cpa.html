@@ -421,19 +421,14 @@
         }
         
         // Formato esperado de la respuesta JSON:
-        // {
-        //   "flow": true,
-        //   "mercadopago": false,
-        //   "btn_pagar": true
-        // }
+        // [
+        //  { feature: 'flow', enabled: true }, // Habilitar Flow
+        //  { feature: 'mercadopago', enabled: false }, // Habilitar Mercado Pago
+        //  { feature: 'btn_pagar', enabled: false } // Habilitar botón de Pagar
+        // ]
         const features = await response.json();
         console.log('Features obtenidos:', features);
-        /*const features = {
-          flow: true, // Habilitar Flow
-          mercadopago: false, // Habilitar Mercado Pago
-          btn_pagar: false // Habilitar botón de Pagar
-        };*/
-        const feature_flow = features.filter(f => f.feature === 'flow')[0];
+        const feature_flow = features.find(f => f.feature === 'flow');
 
 
         // 1. Control para la pasarela Flow
@@ -450,7 +445,7 @@
         // 2. Control para la pasarela Mercado Pago
         const btnMP = document.getElementById('btn-pasarela-mp');
         if (btnMP) {
-          const feature_mercadopago = features.filter(f => f.feature === 'mercadopago')[0];
+          const feature_mercadopago = features.find(f => f.feature === 'mercadopago');
           if (feature_mercadopago.enabled === true) {
             btnMP.style.display = 'flex';
             btnMP.disabled = false;
@@ -461,7 +456,7 @@
 
         // 3. Control opcional para habilitar/deshabilitar el botón de Pagar
         const btnPagar = document.getElementById('btn-pagar-todo');
-        const feature_btn_pagar = features.filter(f => f.feature === 'btn_pagar')[0];
+        const feature_btn_pagar = features.find(f => f.feature === 'btn_pagar');
         if (btnPagar && feature_btn_pagar) {
           if (feature_btn_pagar.enabled === false) {
             btnPagar.disabled = true;

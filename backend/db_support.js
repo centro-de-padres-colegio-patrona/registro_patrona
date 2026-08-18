@@ -582,6 +582,7 @@ module.exports.infoOrganizacionDB = infoOrganizacionDB
 module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;
 module.exports.dbUri = dbUri;
+module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
 
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;

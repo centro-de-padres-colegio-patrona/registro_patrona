@@ -387,6 +387,7 @@
       // 1. Obtener el id_evento de la URL
       const id_evento = getParametroURL('id_evento');
       const id_organizacion = getParametroURL('id_organizacion');
+      const id_seccion = window.location.pathname.split('/').pop();
 
       if (id_evento) {
         const tituloFormateado = id_evento.replace(/_/g, ' ').toUpperCase();
@@ -554,20 +555,22 @@
 
     async function controlarBotonEnviarCorreo() {
       try {
-        /*const response = await fetch('/api/feature/options');
+        const feature = 'enviar_entradas_correo';
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_seccion=${encodeURIComponent(id_seccion)}&feature=${encodeURIComponent(feature)}&default=false`);
+        //const response = await fetch('/api/feature/options');
         if (!response.ok) {
           throw new Error('Error al consultar /api/feature/options');
         }
         
         // Obtenemos las opciones habilitadas desde la API
-        const features = await response.json();*/
-        const features = { enviar_entradas_correo: false }; // Simulamos la respuesta de la API para este ejemplo
+        const features = await response.json();
+        //const features = { enviar_entradas_correo: false }; // Simulamos la respuesta de la API para este ejemplo
 
         const btnCorreo = document.getElementById('btn-enviar-correo');
         
         if (btnCorreo) {
           // Validamos la propiedad configurada en la API (ej: enviar_entradas_correo o similar)
-          if (features.enviar_entradas_correo === false) {
+          if (features.feature === feature && features.enabled === false) {
             btnCorreo.disabled = true;
             btnCorreo.style.opacity = '0.5';
             btnCorreo.style.cursor = 'not-allowed';

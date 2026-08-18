@@ -33,7 +33,16 @@ router.get('/feature/options', async (req, res) => {
     console.log(`Fetching feature option for id_organizacion: ${id_organizacion}, id_seccion: ${id_seccion}, feature: ${feature}`);
     const value = await db_support.FrontEndFeaturesDB.findOne({ id_organizacion, id_seccion }).lean();
     if (!value) {
-      return res.status(404).json({ error: 'Feature options not found' });
+      // If the document does not exist, create it with the default value for the feature option
+      const result = await db_support.FrontEndFeaturesDB.updateOne(
+        { id_organizacion, id_seccion },
+        { $push: { features: { feature, enabled: defaultValue } } },
+        { upsert: true }
+      );
+
+      console.log('Feature options document created with default value:', result);
+      console.log(`Returning default value for feature: ${feature}, enabled: ${defaultValue}`);
+      return res.json({ feature, enabled: defaultValue });
     }
 
     const featureOption = value.features.find(f => f.feature === feature);
@@ -48,10 +57,10 @@ router.get('/feature/options', async (req, res) => {
 
         console.log('Feature option added with default value:', result);
         console.log(`Returning default value for feature: ${feature}, enabled: ${defaultValue}`);
-        return res.json({ feature: {enabled: defaultValue} });
+        return res.json({ feature, enabled: defaultValue });
     }
     console.log(`Returning feature option for feature: ${feature}, enabled: ${featureOption.enabled}`);
-    res.json({ feature: {enabled: featureOption.enabled} });
+    res.json({ feature, enabled: featureOption.enabled });
   } catch (error) {
     console.error('Error fetching feature option:', error);
     res.status(500).json({ error: 'Internal server error' });

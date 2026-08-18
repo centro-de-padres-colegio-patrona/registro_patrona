@@ -371,6 +371,11 @@
       `;
     }
 
+    const id_evento = getParametroURL('id_evento');
+    const id_organizacion = getParametroURL('id_organizacion');
+    const id_seccion = window.location.pathname.split('/').pop();
+
+
     async function cargarEntradasUsuario() {
       // Ejecutar inicializacion al cargar el script
       await init();
@@ -385,10 +390,6 @@
       }
 
       // 1. Obtener el id_evento de la URL
-      const id_evento = getParametroURL('id_evento');
-      const id_organizacion = getParametroURL('id_organizacion');
-      const id_seccion = window.location.pathname.split('/').pop();
-
       if (id_evento) {
         const tituloFormateado = id_evento.replace(/_/g, ' ').toUpperCase();
         tituloHeader.textContent = `Entradas: ${tituloFormateado}`;
@@ -565,7 +566,7 @@
         // Obtenemos las opciones habilitadas desde la API
         const features = await response.json();
         //const features = { enviar_entradas_correo: false }; // Simulamos la respuesta de la API para este ejemplo
-
+        console.log('Features obtenidos:', features);
         const btnCorreo = document.getElementById('btn-enviar-correo');
         
         if (btnCorreo) {

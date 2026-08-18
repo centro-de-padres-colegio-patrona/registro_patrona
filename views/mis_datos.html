@@ -937,8 +937,8 @@
         //console.log("Cursos hijos para max_invitados:", cursos);
 
         //console.log("GET /api/eventos/max_invitados?output=json&cursos=" + encodeURIComponent(JSON.stringify(cursos)));
-        const id_organizacion = 'cpa_patrona';
-        const id_evento = 'fiesta_chilena_2026';
+        /*const id_organizacion = 'cpa_patrona';
+        const id_evento = 'fiesta_chilena_2026';*/
         const result = await fetch(`/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
@@ -1375,7 +1375,7 @@
           .then(config => {
             const apiKey = config.apiKey;
             const nombreHijo = hijos[0].nombre;
-            return fetch(`/api/entrada/familia?id_organizacion=cpa_patrona&id_evento=fiesta_chilena_2026&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
+            return fetch(`/api/entrada/familia?id_organizacion=${id_organizacion}&id_evento=${id_evento}&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
               method: 'GET',
               headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
             });
@@ -1417,8 +1417,8 @@
         .then(res => res.json())
         .then(async pagos => {
           //console.log('[mis_datos] /api/estado_pago_cpa:', pagos);
-          const id_organizacion = 'cpa_patrona';
-          const id_evento = 'fiesta_chilena_2026';
+          /*const id_organizacion = 'cpa_patrona';
+          const id_evento = 'fiesta_chilena_2026';*/
           let compromiso_maximo_alcanzado = false;
           const result = await fetch(`/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(emailPago)}`, {
             method: 'GET',

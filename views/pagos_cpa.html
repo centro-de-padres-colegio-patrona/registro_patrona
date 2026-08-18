@@ -382,6 +382,18 @@
     let nombres_hijos = [];
     let parentInfo = null;
 
+    /**
+     * Obtiene el valor de un parametro de la URL por su nombre
+    */
+    function getParametroURL(nombre) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(nombre);
+    }
+
+    const id_evento = getParametroURL('id_evento');
+    const id_organizacion = getParametroURL('id_organizacion');
+    const id_seccion = window.location.pathname.split('/').pop();
+
     const curso_map = {
       "Prekínder": 'PK',
       "Kínder": 'K',
@@ -401,7 +413,9 @@
 
     async function aplicarOpcionesFeature() {
       try {
-        /*const response = await fetch('/api/feature/options');
+        const features_keys = ['flow', 'mercadopago', 'btn_pagar'];
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_seccion=${encodeURIComponent(id_seccion)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default=false`);
+        //const response = await fetch('/api/feature/options');
         if (!response.ok) {
           throw new Error('Error al obtener la configuración de características');
         }
@@ -412,17 +426,20 @@
         //   "mercadopago": false,
         //   "btn_pagar": true
         // }
-        const features = await response.json();*/
-        const features = {
+        const features = await response.json();
+        console.log('Features obtenidos:', features);
+        /*const features = {
           flow: true, // Habilitar Flow
           mercadopago: false, // Habilitar Mercado Pago
           btn_pagar: false // Habilitar botón de Pagar
-        };
+        };*/
+        const feature_flow = features.filter(f => f.feature === 'flow')[0];
+
 
         // 1. Control para la pasarela Flow
         const btnFlow = document.getElementById('btn-pasarela-flow');
         if (btnFlow) {
-          if (features.flow === true) {
+          if (feature_flow.enabled === true) {
             btnFlow.style.display = 'flex'; // Restablece visibilidad (o 'inline-block')
             btnFlow.disabled = false;
           } else {
@@ -433,7 +450,8 @@
         // 2. Control para la pasarela Mercado Pago
         const btnMP = document.getElementById('btn-pasarela-mp');
         if (btnMP) {
-          if (features.mercadopago === true) {
+          const feature_mercadopago = features.filter(f => f.feature === 'mercadopago')[0];
+          if (feature_mercadopago.enabled === true) {
             btnMP.style.display = 'flex';
             btnMP.disabled = false;
           } else {
@@ -443,8 +461,9 @@
 
         // 3. Control opcional para habilitar/deshabilitar el botón de Pagar
         const btnPagar = document.getElementById('btn-pagar-todo');
-        if (btnPagar && features.hasOwnProperty('btn_pagar')) {
-          if (features.btn_pagar === false) {
+        const feature_btn_pagar = features.filter(f => f.feature === 'btn_pagar')[0];
+        if (btnPagar && feature_btn_pagar) {
+          if (feature_btn_pagar.enabled === false) {
             btnPagar.disabled = true;
             btnPagar.style.opacity = '0.5';
             btnPagar.style.cursor = 'not-allowed';
@@ -1617,7 +1636,7 @@
             const configRes = await fetch(`/api/config?email=${encodeURIComponent(currentUser.email || user_email || '')}`);
             const config = await configRes.json();
             const nombreHijo = currentUser.hijos[0].nombre;
-            const entRes = await fetch(`/api/entrada/familia?id_organizacion=cpa_patrona&id_evento=fiesta_chilena_2026&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
+            const entRes = await fetch(`/api/entrada/familia?id_organizacion=${id_organizacion}&id_evento=${id_evento}&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
               method: 'GET',
               headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
             });

@@ -386,7 +386,7 @@
 
       // 1. Obtener el id_evento de la URL
       const id_evento = getParametroURL('id_evento');
-      const id_organizacion = 'cpa_patrona';
+      const id_organizacion = getParametroURL('id_organizacion');
 
       if (id_evento) {
         const tituloFormateado = id_evento.replace(/_/g, ' ').toUpperCase();

@@ -339,6 +339,8 @@ const apiConsultasDBRouter = require('../backend/api_consultas_db');
 const apiCorreosTipoDBRouter = require('../backend/api_correos_tipo');
 const apiPagosRouter = require('../backend/api_pagos');
 const apiCorreosRouter = require('../backend/api_correos');
+const apiFeatures = require('../backend/api_feature');
+
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
 app.use('/api', apiEntradasRouter);
@@ -350,6 +352,7 @@ app.use('/api', apiConsultasDBRouter);
 app.use('/api', apiCorreosTipoDBRouter);
 app.use('/api', apiPagosRouter);
 app.use('/api', apiCorreosRouter);
+app.use('/api', apiFeatures);
 
 
 // Ruta para la página "hello world" (index.html)

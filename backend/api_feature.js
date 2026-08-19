@@ -21,7 +21,7 @@ const { BASEURL } = require('../backend/git_branch');
 router.get('/feature/options', async (req, res) => {
   const id_organizacion = req.query.id_organizacion;
   //const id_evento = req.query.id_evento;
-  const id_seccion = req.query.id_seccion
+  const id_pagina = req.query.id_pagina
   const feature = req.query.feature;
   const defaultValue = req.query.default === 'true'; // Convert to boolean, default is false
   const features = req.query.features ? JSON.parse(req.query.features) : null;
@@ -31,13 +31,13 @@ router.get('/feature/options', async (req, res) => {
   }
 
   try {
-    console.log(`Fetching feature option for id_organizacion: ${id_organizacion}, id_seccion: ${id_seccion}, feature: ${feature}`);
-    const value = await db_support.FrontEndFeaturesDB.findOne({ id_organizacion, id_seccion }).lean();
+    console.log(`Fetching feature option for id_organizacion: ${id_organizacion}, id_pagina: ${id_pagina}, feature: ${feature}`);
+    const value = await db_support.FrontEndFeaturesDB.findOne({ id_organizacion, id_pagina }).lean();
     if (!value) {
       // If the document does not exist, create it with the default value for the feature option
       if (feature) {
         const result = await db_support.FrontEndFeaturesDB.updateOne(
-          { id_organizacion, id_seccion },
+          { id_organizacion, id_pagina },
           { $push: { features: { feature, enabled: defaultValue } } },
           { upsert: true }
         );
@@ -48,7 +48,7 @@ router.get('/feature/options', async (req, res) => {
       } else if (features) {
         const featureOptions = features.map(f => ({ feature: f, enabled: defaultValue }));
         const result = await db_support.FrontEndFeaturesDB.updateOne(
-          { id_organizacion, id_seccion },
+          { id_organizacion, id_pagina },
           { $push: { features: { $each: featureOptions } } },
           { upsert: true }
         );
@@ -65,7 +65,7 @@ router.get('/feature/options', async (req, res) => {
           // If the feature option does not exist, return the default value
           // Add the feature option to the database with the default value
           const result = await db_support.FrontEndFeaturesDB.updateOne(
-            { id_organizacion, id_seccion },
+            { id_organizacion, id_pagina },
             { $push: { features: { feature, enabled: defaultValue } } },
             { upsert: true }
           );
@@ -85,7 +85,7 @@ router.get('/feature/options', async (req, res) => {
           // If the feature option does not exist, return the default value
           // Add the feature option to the database with the default value
           db_support.FrontEndFeaturesDB.updateOne(
-            { id_organizacion, id_seccion },
+            { id_organizacion, id_pagina },
             { $push: { features: { feature: f, enabled: defaultValue } } },
             { upsert: true }
           ).then(result => {

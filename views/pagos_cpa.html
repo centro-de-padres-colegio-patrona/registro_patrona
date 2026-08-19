@@ -381,6 +381,8 @@
     };
     let nombres_hijos = [];
     let parentInfo = null;
+    let num_invitaciones_pagadas = 0;
+    let maximo_alcanzado = false;
 
     /**
      * Obtiene el valor de un parametro de la URL por su nombre
@@ -427,7 +429,7 @@
         //  { feature: 'btn_pagar', enabled: false } // Habilitar botón de Pagar
         // ]
         const features = await response.json();
-        console.log('Features obtenidos:', features);
+        //console.log('Features obtenidos:', features);
         const feature_flow = features.find(f => f.feature === 'flow');
 
 
@@ -515,6 +517,12 @@
                 //console.log('Información del padre encontrada (manual):', parentInfo);
               } else {
                 console.log('No se encontraron padres asociados al usuario (manual).');
+              }
+              if (user_email) {
+                obtenerPagosEntradas(user_email).then(({ compromiso_maximo_alcanzado, numero_entradas }) => {
+                  maximo_alcanzado = compromiso_maximo_alcanzado;
+                  num_invitaciones_pagadas = numero_entradas;
+                });
               }
               resolve();
             })
@@ -986,6 +994,35 @@
       return compromisos_pagados;
     }
 
+    async function obtenerPagosEntradas(user_email) {
+      let compromiso_maximo_alcanzado = false;
+      let numero_entradas = 0;
+      try {
+        const configRes = await fetch(`/api/config?email=${encodeURIComponent(currentUser.email || user_email || '')}`);
+        const config = await configRes.json();
+
+        const result = await fetch(`/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
+        });
+        if ( result.status === 200 ) {
+          const pago_entradas = await result.json();
+          const tipo_pase = 'pases_invitados';
+          if ( Object.hasOwn(pago_entradas, tipo_pase )) {
+            for (const pago of pago_entradas[tipo_pase]) {
+              if ( compromiso_maximo_alcanzado ) break;
+              compromiso_maximo_alcanzado = pago.compromiso_maximo_alcanzado;
+              numero_entradas += pago.cantidad;
+            }
+          }
+        }
+        //console.log(`Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}`);
+      } catch (err) {
+        console.log('[mis_datos] Error obteniendo pagos entradas:', err);
+      }
+      return { compromiso_maximo_alcanzado, numero_entradas };
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         await aplicarOpcionesFeature();
@@ -1132,9 +1169,18 @@
             `;
           }
 
+          /////////////////////////////////////////////////////////////////////////////////////
+          // Se reemplaza **invitadosRegistrados.length**  por   **num_invitaciones_pagadas**
+          // invitadosRegistrados.length se actualiza en mis_datos.html,
+          // por lo que cuando retorna de un pago, no se actualiza sino hasta 
+          // ingresar a mis_datos.html,
+          // num_invitaciones_pagadas se obtiene desde la API de pagos y refleja el 
+          // estado real de invitaciones pagadas.
+          /////////////////////////////////////////////////////////////////////////////////////
           // Verificar si ya pagó invitaciones (sin CPA) y bloquear la tarjeta
-          const invitadosRegistrados = currentUser.invitados || [];
-          if (invitadosRegistrados.length > 0) {
+          //const invitadosRegistrados = currentUser.invitados || [];
+          //if (invitadosRegistrados.length > 0) {
+          if (num_invitaciones_pagadas > 0) {
             // Calcular máximo permitido según curso
             /*let maxInvPermitidos = 2;
             if (currentUser.hijos && currentUser.hijos.length > 0) {
@@ -1166,16 +1212,17 @@
                         unidades_maximas = Math.max(unidades_maximas, limite_max);
                       }
                     }
-                    console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, invitadosRegistrados.length=${invitadosRegistrados.length}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
-                    if (invitadosRegistrados.length >= unidades_maximas) {
+                    //console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, invitadosRegistrados.length=${invitadosRegistrados.length}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
+                    //if (invitadosRegistrados.length >= unidades_maximas) {
+                    if (num_invitaciones_pagadas >= unidades_maximas) {
                       // Alcanzó el máximo - bloquear
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            ✓ Invitaciones pagadas (${invitadosRegistrados.length})
+                            ✓ Invitaciones pagadas (${num_invitaciones_pagadas})
                           </span>
                           <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
-                            ✓ Invitados asignados (${invitadosRegistrados.length}/${unidades_maximas})
+                            ✓ Invitados asignados (${num_invitaciones_pagadas}/${unidades_maximas})
                           </button>
                         </div>
                       `;
@@ -1186,11 +1233,12 @@
                       }
                     } else {
                       // Aún puede comprar más - mostrar cuántas tiene y dejar habilitado
-                      const faltantes = unidades_maximas - invitadosRegistrados.length;
+                      //const faltantes = unidades_maximas - invitadosRegistrados.length;
+                      const faltantes = unidades_maximas - num_invitaciones_pagadas;
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #f39c12; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            Invitaciones pagadas: ${invitadosRegistrados.length}/${unidades_maximas}
+                            Invitaciones pagadas: ${num_invitaciones_pagadas}/${unidades_maximas}
                           </span>
                           <div style="margin-top:4px;">
                             <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">

@@ -242,6 +242,18 @@
       window.location.replace = "/";
     }
 
+    async function init() {
+      fetch(`/api/config?email=${encodeURIComponent(currentUser.email || '')}`)
+        .then(res => res.json())
+        .then(config => {
+          apiKey = config.apiKey;
+          //console.log(`ApiKey: ${apiKey}`);
+        });
+    }
+
+    let apiKey = ''
+
+    init().then(() => {
     fetch('/api/user')
       .then(response => {
         //console.log('Respuesta del servidor:', response);
@@ -336,6 +348,8 @@
           }
         }
       });
+    });
+
   </script>
 
   <h2>Mis Datos</h2>
@@ -546,21 +560,10 @@
       return regex.test(value);
     }
 
-    let apiKey = ''
-
     // Obtener el id_evento de la URL
     const id_evento = getParametroURL('id_evento');
     const id_organizacion = getParametroURL('id_organizacion');
-    const id_seccion = window.location.pathname.split('/').pop();
-
-    async function init() {
-      fetch(`/api/config?email=${encodeURIComponent(currentUser.email || '')}`)
-        .then(res => res.json())
-        .then(config => {
-          apiKey = config.apiKey;
-          //console.log(`ApiKey: ${apiKey}`);
-        });
-    }
+    const id_pagina = window.location.pathname.split('/').pop();
 
     // ✅ Tests
     /*const tests = [
@@ -576,7 +579,7 @@
     async function controlarBotonPagos() {
       try {
         const feature = 'ir_a_pagos';
-        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_seccion=${encodeURIComponent(id_seccion)}&feature=${encodeURIComponent(feature)}&default=false`);
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
         if (!response.ok) {
           console.log({response});
           throw new Error('Error al consultar /api/feature/options');
@@ -649,6 +652,12 @@
 
 
     document.addEventListener('DOMContentLoaded', () => {
+
+      if (paginaInicializada(`${id_pagina}_1`)) {
+        //console.log('Carga ya procesada previamente en este iframe, omitiendo duplicado.');
+        return;
+      }
+      console.log(`Inicializando página ${id_pagina}...`);
       init();
 
       // Filtrar campos RUT: solo permitir números y K/k, máximo 9 dígitos
@@ -1255,6 +1264,9 @@
         // Simula llamada a API para cargar nombres válidos
         if (cursoLargo && hijo.seccion) {
           //console.log(`#4 fetch(/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`);
+          /*if (!apiKey) {
+            await init();
+          }*/
           fetch(`/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`)
             .then(res => res.json())
             .then(alumnos => {
@@ -1266,7 +1278,7 @@
               .then( alumnos_ya_registrados => {
               const nombreSelect = form.querySelector("select[name='childName[]']");
               nombreSelect.innerHTML = '<option value="">Seleccione</option>';
-              
+              //console.log('Alumnos ya registrados:', alumnos_ya_registrados);
               // Si el hijo tiene nombre y no está en la lista, agregarlo primero
               if (hijo.nombre && !alumnos.includes(hijo.nombre)) {
                 const optActual = document.createElement('option');
@@ -1274,7 +1286,6 @@
                 optActual.textContent = hijo.nombre;
                 nombreSelect.appendChild(optActual);
               }
-              
               alumnos.forEach(nombre => {
                 const option = document.createElement('option');
                 option.value = nombre;
@@ -1404,7 +1415,9 @@
 
       max_invitados = await obtenerMaxInvitados();
       //console.log('[mis_datos] max_invitados:', max_invitados);
-      const maxInvitados = entradasInvitados.length || max_invitados;
+      // Max Invitados se obtiene desde la API de eventos, no desde las entradas de invitados
+      //const maxInvitados = entradasInvitados.length || max_invitados;
+      const maxInvitados = max_invitados;
       const invitadosSolicitados = currentUser.invitados || [];
 
       // Esperar a que se resuelva el estado de pago CPA antes de renderizar
@@ -1425,7 +1438,10 @@
           if ( result.status === 200 ) {
             const pago_entradas = await result.json();
             const tipo_pase = 'pases_invitados';
+            //console.log(`[mis_datos] pago_entradas:`, pago_entradas);
+            //console.log(`[mis_datos] pago_entradas:`, pago_entradas[tipo_pase]);
             if ( Object.hasOwn(pago_entradas, tipo_pase )) {
+              //console.log(`[mis_datos] pago_entradas[${tipo_pase}]:`, pago_entradas[tipo_pase]);
               for (const pago of pago_entradas[tipo_pase]) {
                 if ( compromiso_maximo_alcanzado ) break;
                 compromiso_maximo_alcanzado = pago.compromiso_maximo_alcanzado;
@@ -1477,11 +1493,13 @@
       if (cpaPagada || invitacionesPagadas > 0 || invitadosSolicitados.length > 0) {
         const maxPermitidos = cpaPagada ? maxInvitados : (invitacionesPagadas > 0 ? invitacionesPagadas : invitadosSolicitados.length);
         const etiqueta = cpaPagada ? 'Invitados permitidos' : (invitacionesPagadas > 0 ? 'Invitaciones pagadas' : 'Invitados asignados');
+        //console.log('[mis_datos] cpaPagada:', cpaPagada, ', maxInvitados', maxInvitados ,', invitacionesPagadas:', invitacionesPagadas, ', invitadosSolicitados.length:', invitadosSolicitados.length, 'maxPermitidos:', maxPermitidos);
         html += `
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
             <span style="color:#2ecc71; font-weight:700; font-size:0.9rem;">✓ ${etiqueta}: ${maxPermitidos}</span>
           </div>
         `;
+
 
         // Mostrar cajas de invitados ya solicitados
         if (invitadosSolicitados.length > 0) {
@@ -1489,11 +1507,16 @@
             const nombre = inv.nombre_completo || 'Invitado ' + (i + 1);
             const folioText = inv.folio ? ' — Folio: #' + String(inv.folio).padStart(4, '0') : '';
             
+            // Verificar si es el último invitado de la lista
+            const esElUltimo = i === invitadosSolicitados.length - 1;
+
             // Si NO tiene CPA pagada, los invitados fueron pagados individualmente → no permitir quitar
             const puedeQuitar = cpaPagada;
-            const botonQuitar = puedeQuitar 
+            // Randerizar botón Quitar solo si es el último invitado, 
+            // para facilitar la gestión de invitados y evitar inconsistencias en el orden de folios
+            const botonQuitar = puedeQuitar && esElUltimo
               ? `<button type="button" onclick="eliminarInvitado(${i})" style="background:#f8d7da; color:#721c24; border:none; border-radius:5px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">Quitar</button>`
-              : `<span style="font-size:0.72rem; color:#2ecc71; font-weight:600;">Pagado</span>`;
+              : ( puedeQuitar ? '' : `<span style="font-size:0.72rem; color:#2ecc71; font-weight:600;">Pagado</span>`);
 
             html += `
               <div style="background:#f8f9fa; border-radius:6px; padding:10px 14px; margin-bottom:8px; border-left:3px solid #2ecc71; display:flex; justify-content:space-between; align-items:center;">
@@ -1565,7 +1588,8 @@
     function solicitarInvitado() {
       const invitados = currentUser.invitados || [];
       const entradasInv = _invitadosCargados || [];
-      const maxInvitados = entradasInv.length || max_invitados;
+      //const maxInvitados = entradasInv.length || max_invitados;
+      const maxInvitados = max_invitados;
 
       // Validar si tiene cuota CPA pagada
       if (!window._cuotaCpaPagada) {
@@ -1580,6 +1604,7 @@
         return;
       }
 
+      console.log('[mis_datos] Invitados actuales:', invitados, 'Max permitidos:', maxInvitados);
       if (invitados.length >= maxInvitados) {
         alert('Ya alcanzaste el máximo de invitados permitidos (' + maxInvitados + ')');
         return;
@@ -1648,6 +1673,36 @@
         }
       })
       .catch(err => alert('Error de conexión'));
+
+      // Desactivar la entrada de invitado correspondiente si existe
+      fetch(`/api/entrada/familia?id_organizacion=${id_organizacion}&id_evento=${id_evento}&nombre_completo=${encodeURIComponent(currentUser.hijos[0].nombre || '')}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+      })
+      .then(res => res.json())
+      .then(entradas => {
+        const entradasInvitados = entradas.filter(e => e.tipo && e.tipo === 'invitado');
+        console.log('[mis_datos] Entradas de invitados actuales:', entradasInvitados);
+        if (entradasInvitados.length > index) {
+          const entradaParaDesactivar = entradasInvitados[index];
+          const folioParaDesactivar = entradaParaDesactivar.folio;
+          console.log('[mis_datos] Desactivando entrada de invitado con folio:', folioParaDesactivar);
+          fetch('/api/entrada/desactivar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+            body: JSON.stringify({ id_organizacion, id_evento, folio: folioParaDesactivar, user_email: currentUser.email})
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              console.error('Error desactivando entrada de invitado:', data.error);
+            } else {
+              console.log('Entrada de invitado desactivada correctamente');
+            }
+          })
+          .catch(err => console.error('Error de conexión al eliminar entrada de invitado:', err));
+        }
+      })
     }
 
     function irAgregarInvitados() {
@@ -1778,6 +1833,8 @@
 
     // Detectar cambios en el formulario para reactivar el botón Enviar
     document.addEventListener('DOMContentLoaded', () => {
+      if (paginaInicializada(`${id_pagina}_2`)) return;
+      console.log('DOM fully loaded and parsed. Setting up form change detection.');
       const form = document.getElementById('registro-form');
       if (form) {
         form.addEventListener('change', enableSubmitButton);
@@ -1902,7 +1959,7 @@
         return null;
       const apiKey = await getApiKey();
       const apoderados = await fetch('/api/consulta/apoderados', {
-        method: 'POST',
+        method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
       });
     }
@@ -2301,6 +2358,49 @@
       submitButton.style.opacity = habilitado ? '' : '0.8';
     }
   }
+
+  const id_paginas = [];
+
+  function paginaInicializada(paginaId = id_pagina) {
+    try {
+      //console.log('Verificando si la página ya fue inicializada:', paginaId);
+      if (window.top && window.top[paginaId]) {
+        //console.log('Carga ya procesada previamente en este iframe, omitiendo duplicado.');
+        return true;
+      }
+      window.top[paginaId] = true;
+      id_paginas.push(paginaId);
+      //console.log('Página inicializada:', paginaId);
+    } catch (e) {
+      return window.top[paginaId] === true;
+    }
+    return false;
+  }
+
+  window.addEventListener('beforeunload', () => {
+    try {
+      if (window.top) {
+        if (id_paginas && id_paginas.length > 0) {
+          for (const paginaId of id_paginas) {
+            delete window.top[paginaId];
+          }
+          id_paginas.length = 0; // Limpiar el array después de eliminar las páginas
+        } else {
+            delete window.top[id_pagina];
+        }
+      }
+    } catch (e) {
+      if (id_paginas && id_paginas.length > 0) {
+        for (const paginaId of id_paginas) {
+          delete window.top[paginaId];
+        }
+        id_paginas.length = 0; // Limpiar el array después de eliminar las páginas
+      } else {
+          delete window.top[id_pagina];
+      }
+    }
+  });
+
 </script>
 
 </body>

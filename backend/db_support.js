@@ -314,7 +314,7 @@ const EventoSchema = new mongoose.Schema({
   hora_inicio: { type: String },
   hora_termino: { type: String },
   hora_apertura_puertas: { type: String },
-  regla_de_negocios_entradas: { type: [Object] },
+  regla_de_negocios_entradas: { type: Object },
   entradas_disponibles: { type: Number, default: 0 },
   entradas_vendidas: { type: Number, default: 0 },
   entradas_usadas: { type: Number, default: 0 },
@@ -429,7 +429,7 @@ const FeatureSchema = new mongoose.Schema({
 const FrontEndFeaturesSchema = new mongoose.Schema({
   id_organizacion: { type: String, required: true },
   //id_evento: { type: String, required: true },
-  id_seccion: { type: String, required: true },
+  id_pagina: { type: String, required: true },
   features: { type: [FeatureSchema], default: [] }
 });
 

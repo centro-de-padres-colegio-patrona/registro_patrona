@@ -532,6 +532,14 @@
       "IV° Medio": "4M"
     }
 
+    /**
+     * Obtiene el valor de un parametro de la URL por su nombre
+    */
+    function getParametroURL(nombre) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(nombre);
+    }
+
     function isRutValidFormat(value) {
       const regex = /^(\d{7}[\dkK]|\d{1}\.\d{3}\.\d{3}[\dkK]|\d{7}-[\dkK]|\d{1}\.\d{6}-[\dkK]|\d{1}\.\d{3}\.\d{3}-[\dkK]|\d{8}[\dkK]|\d{2}\.\d{3}\.\d{3}[\dkK]|\d{8}-[\dkK]|\d{2}\.\d{6}-[\dkK]|\d{2}\.\d{3}\.\d{3}-[\dkK])$/;
 
@@ -539,6 +547,11 @@
     }
 
     let apiKey = ''
+
+    // Obtener el id_evento de la URL
+    const id_evento = getParametroURL('id_evento');
+    const id_organizacion = getParametroURL('id_organizacion');
+    const id_seccion = window.location.pathname.split('/').pop();
 
     async function init() {
       fetch(`/api/config?email=${encodeURIComponent(currentUser.email || '')}`)
@@ -562,21 +575,22 @@
 
     async function controlarBotonPagos() {
       try {
-        /*const response = await fetch('/api/feature/options');
+        const feature = 'ir_a_pagos';
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_seccion=${encodeURIComponent(id_seccion)}&feature=${encodeURIComponent(feature)}&default=false`);
         if (!response.ok) {
+          console.log({response});
           throw new Error('Error al consultar /api/feature/options');
         }
         
         // Formato JSON esperado, por ejemplo:
-        // { "ir_a_pagos": true, "permitir_solicitud_invitados": true }
-        const features = await response.json();*/
-        const features = { ir_a_pagos: false }; // Valor por defecto, ya que la llamada a la API está comentada
+        // { feature: "ir_a_pagos", enabled: false }
+        const features = await response.json();
         
         const btnPagos = document.getElementById('btn-ir-a-pagos') || document.getElementById('btn-agregar-invitados');
 
         if (btnPagos) {
           // Evaluamos la propiedad correspondiente
-          if (features.ir_a_pagos === false) {
+          if (features.feature === feature && features.enabled === false) {
             // Opción A: Deshabilitarlo físicamente
             btnPagos.disabled = true;
             btnPagos.style.opacity = '0.5';
@@ -921,8 +935,8 @@
         //console.log("Cursos hijos para max_invitados:", cursos);
 
         //console.log("GET /api/eventos/max_invitados?output=json&cursos=" + encodeURIComponent(JSON.stringify(cursos)));
-        const id_organizacion = 'cpa_patrona';
-        const id_evento = 'fiesta_chilena_2026';
+        /*const id_organizacion = 'cpa_patrona';
+        const id_evento = 'fiesta_chilena_2026';*/
         const result = await fetch(`/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
@@ -1359,7 +1373,7 @@
           .then(config => {
             const apiKey = config.apiKey;
             const nombreHijo = hijos[0].nombre;
-            return fetch(`/api/entrada/familia?id_organizacion=cpa_patrona&id_evento=fiesta_chilena_2026&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
+            return fetch(`/api/entrada/familia?id_organizacion=${id_organizacion}&id_evento=${id_evento}&nombre_completo=${encodeURIComponent(nombreHijo)}`, {
               method: 'GET',
               headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
             });
@@ -1389,7 +1403,7 @@
       _invitadosCargados = entradasInvitados.length > 0 ? entradasInvitados : invitadosUser;
 
       max_invitados = await obtenerMaxInvitados();
-      console.log('[mis_datos] max_invitados:', max_invitados);
+      //console.log('[mis_datos] max_invitados:', max_invitados);
       const maxInvitados = entradasInvitados.length || max_invitados;
       const invitadosSolicitados = currentUser.invitados || [];
 
@@ -1400,9 +1414,9 @@
       fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(emailPago))
         .then(res => res.json())
         .then(async pagos => {
-          console.log('[mis_datos] /api/estado_pago_cpa:', pagos);
-          const id_organizacion = 'cpa_patrona';
-          const id_evento = 'fiesta_chilena_2026';
+          //console.log('[mis_datos] /api/estado_pago_cpa:', pagos);
+          /*const id_organizacion = 'cpa_patrona';
+          const id_evento = 'fiesta_chilena_2026';*/
           let compromiso_maximo_alcanzado = false;
           const result = await fetch(`/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(emailPago)}`, {
             method: 'GET',
@@ -1418,7 +1432,7 @@
               }
             }
           }
-          console.log(`Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}`);
+          //console.log(`Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}`);
 
           window._cuotaCpaPagada = compromiso_maximo_alcanzado || (Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa'));
           // También verificar si pagó invitaciones sin CPA
@@ -1436,7 +1450,7 @@
               }
             });
           }
-          console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
+          //console.log('[mis_datos] Cuota CPA pagada:', window._cuotaCpaPagada, 'Invitaciones pagadas:', window._invitacionesPagadas);
           renderInvitadosConEstado(container, maxInvitados, invitadosSolicitados);
         })
         .catch(err => {

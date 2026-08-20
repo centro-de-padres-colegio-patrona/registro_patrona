@@ -206,6 +206,8 @@
     let nombres_hijos = null;
     let entradas = null;
 
+    const id_pagina = window.location.pathname.split('/').pop();
+
     // Funcion de inicializacion
     async function init() {
       if (!userEmail) {
@@ -373,8 +375,6 @@
 
     const id_evento = getParametroURL('id_evento');
     const id_organizacion = getParametroURL('id_organizacion');
-    const id_seccion = window.location.pathname.split('/').pop();
-
 
     async function cargarEntradasUsuario() {
       // Ejecutar inicializacion al cargar el script
@@ -396,33 +396,27 @@
       }
 
       try {
-        const apiKey = await getApiKey();
+        let entradas_todas = await obtenerEntradasFamilia(nombres_hijos[0].nombre);
+        //console.log(`Entradas obtenidas: `, entradas_todas, `\nCantidad: ${entradas_todas.length}`);
 
-        const result_entradas = await fetch('/api/entrada/activar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-          body: JSON.stringify({ id_organizacion, id_evento, user_email: userEmail })
-        });
-
-        const response = await fetch(`/api/entrada/familia?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&nombre_completo=${encodeURIComponent(nombres_hijos[0].nombre)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey
+        if (!Array.isArray(entradas_todas) || entradas_todas.length === 0) {
+          const featureOptions = await getFeatureOptions('generar_entradas');
+          if (featureOptions && featureOptions.enabled) {
+            // Generar entradas
+            await generarEntradasFamilia(nombres_hijos[0].nombre);
+            // Obtener las entradas después de generarlas
+            entradas_todas = await obtenerEntradasFamilia(nombres_hijos[0].nombre);
           }
-        });
-
-        if (!response.ok) {
-          throw new Error('No se pudieron obtener las entradas.');
         }
 
-        const entradas_todas = await response.json();
         // Ya NO filtramos por estado - mostramos todas separadas por categoria
         entradas = entradas_todas;
 
         //console.log('Entradas encontradas: ', entradas.length);
+        
 
         if (!Array.isArray(entradas) || entradas.length === 0) {
+          controlarBotonEnviarCorreo(false); // Deshabilitar boton si no hay entradas
           contenedor.className = 'mensaje-info';
           contenedor.innerHTML = '<p>No se encontraron entradas disponibles para esta actividad.</p>';
           return;
@@ -446,6 +440,12 @@
           }
         });
 
+        if (grupos.activa.length > 0) {
+          controlarBotonEnviarCorreo(true); // Habilitar boton si hay entradas activas
+        } else {
+          controlarBotonEnviarCorreo(false); // Deshabilitar boton si no hay entradas activas
+        }
+        
         // Configuracion visual de cada seccion
         const configSecciones = {
           activa: { titulo: 'Activas', icono: '✅', headerClass: 'header-activa' },
@@ -550,14 +550,127 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Verificar si ya se ejecutó en este ciclo de navegación
+      if (paginaInicializada()) {
+        //console.log('Carga ya procesada previamente en este iframe, omitiendo duplicado.');
+        return;
+      }
+
+      console.log('DOM cargado, iniciando carga de entradas...');
       cargarEntradasUsuario();
-      controlarBotonEnviarCorreo();
+      controlarBotonEnviarCorreo(false); // Inicialmente deshabilitado, se habilitará según la configuración de feature
     });
 
-    async function controlarBotonEnviarCorreo() {
+    function paginaInicializada(paginaId = id_pagina) {
+      try {
+        if (window.top && window.top[paginaId]) {
+          //console.log('Carga ya procesada previamente en este iframe, omitiendo duplicado.');
+          return true;
+        }
+        window.top[paginaId] = true;
+      } catch (e) {
+        return window.top[paginaId] === true;
+      }
+      return false;
+    }
+
+    window.addEventListener('beforeunload', () => {
+      try {
+        if (window.top) {
+          delete window.top[id_pagina];
+        }
+      } catch (e) {
+        delete window.top[id_pagina];
+      }
+    });
+
+    async function getFeatureOptions(feature) {
+      try {
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+        if (!response.ok) {
+          throw new Error('Error al consultar /api/feature/options');
+        }
+        const featureOptions = await response.json();
+        return featureOptions;
+      } catch (error) {
+        console.error('Error al obtener opciones de feature:', error);
+        return null;
+      }
+    }
+
+    async function obtenerEntradasFamilia(nombre_completo) {
+      try {
+        const apiKey = await getApiKey();
+
+        const result_entradas = await fetch('/api/entrada/activar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({ id_organizacion, id_evento, user_email: userEmail })
+        });
+
+        const response = await fetch(`/api/entrada/familia?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&nombre_completo=${encodeURIComponent(nombre_completo)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('No se pudieron obtener las entradas.');
+        }
+
+        const entradas = await response.json();
+
+        return entradas;
+      } catch (error) {
+        console.error('Error al obtener entradas de la familia:', error);
+        return null;
+      }
+    }
+
+    async function generarEntradasFamilia(nombre_completo) {
+      try {
+        const apiKey = await getApiKey();
+        const evento_result = await fetch(`/api/eventos/buscar?id_evento=${encodeURIComponent(id_evento)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+        });
+
+        // Obteniendo la informacion del evento para generar las entradas
+        const eventoInfo = await evento_result.json();
+        const curso_bloques = eventoInfo.cursoBloqueMap;
+        const imagen_ticket_path = eventoInfo.imagen_ticket_path;
+
+        //console.log('Información del evento obtenida:', eventoInfo);
+        //console.log('Nombre completo para generar entradas:', nombre_completo);
+
+        // Generando entradas para la familia
+        const result = await fetch('/api/entradas/generar/familia', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({
+            id_organizacion,
+            id_evento,
+            nombre_completo,
+            imagen_ticket_path,
+            curso_bloques,
+            save_file: false
+          })
+        });
+        const entradas = await result.json();
+        //console.log('Entradas generadas para la familia:', entradas);
+        return entradas;
+      } catch (error) {
+        console.error('Error al generar entradas:', error);
+        return null;
+      }
+    }
+
+    async function controlarBotonEnviarCorreo(enable = false) {
       try {
         const feature = 'enviar_entradas_correo';
-        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_seccion=${encodeURIComponent(id_seccion)}&feature=${encodeURIComponent(feature)}&default=false`);
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
         //const response = await fetch('/api/feature/options');
         if (!response.ok) {
           throw new Error('Error al consultar /api/feature/options');
@@ -566,12 +679,12 @@
         // Obtenemos las opciones habilitadas desde la API
         const features = await response.json();
         //const features = { enviar_entradas_correo: false }; // Simulamos la respuesta de la API para este ejemplo
-        console.log('Features obtenidos:', features);
+        //console.log('Features obtenidos:', features);
         const btnCorreo = document.getElementById('btn-enviar-correo');
         
         if (btnCorreo) {
           // Validamos la propiedad configurada en la API (ej: enviar_entradas_correo o similar)
-          if (features.feature === feature && features.enabled === false) {
+          if ((features.feature === feature && features.enabled === false) || !enable) {
             btnCorreo.disabled = true;
             btnCorreo.style.opacity = '0.5';
             btnCorreo.style.cursor = 'not-allowed';

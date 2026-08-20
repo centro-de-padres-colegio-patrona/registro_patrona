@@ -1895,9 +1895,8 @@ app.put('/api/perfiles/:email', express.json(), async (req, res) => {
     // Si se está actualizando curso_asignado, buscar específicamente el perfil de presidente
     if (curso_asignado !== undefined) {
       queryFilter.rol = 'presidente';
-    } else if (rol !== undefined) {
-      queryFilter.rol = rol;
     }
+    // Para edición general, no filtrar por rol (permite cambiar el rol del perfil)
 
     console.log('[PUT /api/perfiles] Buscando con filtro:', JSON.stringify({email: emailParam, ...queryFilter}));
 
@@ -2082,6 +2081,40 @@ app.post('/api/actualizar_cuota_cpa', express.json(), async (req, res) => {
     res.json({ status: 'ok' });
   } catch (error) {
     console.error('[/api/actualizar_cuota_cpa] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Actualizar estado CPA por nombre de alumno (sin apoderado registrado)
+app.post('/api/actualizar_cuota_cpa_alumno', express.json(), async (req, res) => {
+  try {
+    const { nombre_alumno, cuota_cpa } = req.body;
+    if (!nombre_alumno) return res.status(400).json({ error: 'Nombre del alumno requerido' });
+
+    if (cuota_cpa) {
+      const pagoExistente = await db_support.pagosDB.findOne({ id: nombre_alumno, tipo: 'cuota_cpa' });
+      if (!pagoExistente) {
+        await db_support.pagosDB.create({
+          id: nombre_alumno,
+          tipo: 'cuota_cpa',
+          cuota_cpa: true,
+          monto: 20000,
+          fecha: new Date().toLocaleDateString('es-CL'),
+          payment_method: 'manual',
+          commerce_order: 'manual'
+        });
+      } else {
+        await db_support.pagosDB.updateOne({ _id: pagoExistente._id }, { $set: { cuota_cpa: true } });
+      }
+    } else {
+      await db_support.pagosDB.deleteMany({ id: nombre_alumno, tipo: 'cuota_cpa' });
+      await db_support.pagosDB.updateMany({ id: nombre_alumno, cuota_cpa: true }, { $set: { cuota_cpa: false } });
+    }
+
+    console.log(`[/api/actualizar_cuota_cpa_alumno] ${nombre_alumno} -> cuota_cpa: ${cuota_cpa}`);
+    res.json({ status: 'ok' });
+  } catch (error) {
+    console.error('[/api/actualizar_cuota_cpa_alumno] Error:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -850,7 +850,7 @@
           <td>${tipo_pago_descripcion}</td>
           <td>${pago.fecha || '—'}</td>
           <td>${montoFormateado}</td>
-          <td>${pago.payment_method || pago.metodo_pago || '—'}</td>
+          <td>${(pago.payment_method && pago.payment_method !== 'unknown' ? pago.payment_method : null) || (pago.metodo_pago && pago.metodo_pago !== 'unknown' ? pago.metodo_pago : null) || 'Desconocido'}</td>
           <td>${pago.commerce_order || '—'}</td>
           <td><span class="status-pill ${pago.estado === 'Pagado' ? 'status-pagado' : 'status-pendiente'}">${pago.estado}</span></td>
         `;

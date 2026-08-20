@@ -207,9 +207,11 @@ router.get('/estado_cpa_curso', async (req, res) => {
 
       // Buscar apoderado (desde hermanosMapDB o users)
       let apoderado = '—';
+      let apoderado_email = '';
       const hermanoInfo = await db_support.hermanosMapDB.findOne({ id: nombreAlumno });
       if (hermanoInfo && hermanoInfo.apoderado_email && hermanoInfo.apoderado_email.length > 0) {
-        apoderado = hermanoInfo.apoderado_email[0];
+        apoderado_email = hermanoInfo.apoderado_email[0];
+        apoderado = apoderado_email;
         // Intentar obtener nombre del apoderado desde users
         const userApoderado = await db_support.usersDB.findOne({ email: hermanoInfo.apoderado_email[0] });
         if (userApoderado && userApoderado.padres && userApoderado.padres.length > 0) {
@@ -224,6 +226,7 @@ router.get('/estado_cpa_curso', async (req, res) => {
         curso: curso,
         seccion: seccion || '',
         apoderado,
+        apoderado_email,
         cpa_pagado: cpaPagado
       });
     }

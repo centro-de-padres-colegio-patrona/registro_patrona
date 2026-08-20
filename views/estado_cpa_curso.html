@@ -144,7 +144,7 @@
   <div class="filtro-grupo">
     <label>Sección</label>
     <select id="filtro-seccion" onchange="cargarEstadoCPA()">
-      <option value="">Todas</option>
+      <option value="">— Seleccionar Sección —</option>
       <option value="A">A</option>
       <option value="B">B</option>
     </select>
@@ -177,6 +177,7 @@
         <th>Curso</th>
         <th>Apoderado</th>
         <th>Estado CPA</th>
+        <th id="th-accion" style="display:none;">Acción</th>
       </tr>
     </thead>
     <tbody id="tabla-estado-cpa">
@@ -189,6 +190,9 @@
 </div>
 
 <script>
+  // Variable global para saber si el usuario puede editar el estado CPA
+  let _puedeEditarCPA = false;
+
   const params = new URLSearchParams(window.location.search);
   const userEmail = params.get('user_email') || '';
 
@@ -232,6 +236,13 @@
         const cursoAsignado = partes[0] || '';
         const seccionAsignada = partes[1] || '';
 
+        // Verificar si también es admin o supervisor para habilitar edición
+        const esAdmin = (perfil.roles || []).includes('administrador');
+        const esSupervisor = (perfil.roles || []).includes('supervisor');
+        if (esAdmin || esSupervisor) {
+          _puedeEditarCPA = true;
+        }
+
         if (cursoAsignado) {
           document.querySelector('h2').textContent = `Estado Cuota CPA — ${cursoAsignado} ${seccionAsignada}`;
           document.getElementById('filtro-curso').value = cursoAsignado;
@@ -253,6 +264,7 @@
       const esAdmin = (perfil.roles || []).includes('administrador');
       const esSupervisor = (perfil.roles || []).includes('supervisor');
       if (esAdmin || esSupervisor) {
+        _puedeEditarCPA = true;
         document.getElementById('filtros-container').style.display = 'flex';
         return;
       }
@@ -272,8 +284,9 @@
     const curso = document.getElementById('filtro-curso').value;
     const seccion = document.getElementById('filtro-seccion').value;
 
-    if (!curso) {
+    if (!curso || !seccion) {
       document.getElementById('mensaje-vacio').style.display = 'block';
+      document.getElementById('mensaje-vacio').textContent = 'Selecciona un curso y sección para ver el estado de pagos CPA.';
       document.getElementById('tabla-container').style.display = 'none';
       document.getElementById('resumen-container').style.display = 'none';
       return;
@@ -317,6 +330,11 @@
     document.getElementById('total-pagados').textContent = pagados;
     document.getElementById('total-pendientes').textContent = pendientes;
 
+    // Mostrar columna de acción si tiene permisos
+    if (_puedeEditarCPA) {
+      document.getElementById('th-accion').style.display = '';
+    }
+
     // Renderizar filas
     alumnos.forEach((alumno, idx) => {
       const row = document.createElement('tr');
@@ -324,12 +342,17 @@
         ? '<span class="badge-pagado">Pagado</span>'
         : '<span class="badge-pendiente">Pendiente</span>';
 
+      const botonAccion = _puedeEditarCPA
+        ? `<td><button onclick="toggleEstadoCPA('${(alumno.apoderado_email || '').replace(/'/g, "\\'")}', ${!alumno.cpa_pagado}, this, '${(alumno.nombre || '').replace(/'/g, "\\'")}')" style="padding:4px 12px; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer; ${alumno.cpa_pagado ? 'background:#ffebee; color:#c62828;' : 'background:#e8f5e9; color:#2e7d32;'}">${alumno.cpa_pagado ? 'Marcar Pendiente' : 'Marcar Pagado'}</button></td>`
+        : '';
+
       row.innerHTML = `
         <td>${idx + 1}</td>
         <td>${alumno.nombre || '—'}</td>
         <td>${alumno.curso || ''} ${alumno.seccion || ''}</td>
         <td>${alumno.apoderado || '—'}</td>
         <td>${estadoBadge}</td>
+        ${botonAccion}
       `;
       tbody.appendChild(row);
     });
@@ -337,6 +360,68 @@
     document.getElementById('loading').style.display = 'none';
     document.getElementById('resumen-container').style.display = 'flex';
     document.getElementById('tabla-container').style.display = 'block';
+  }
+
+  async function toggleEstadoCPA(apoderadoEmail, nuevoCpaPagado, btn, nombreAlumno) {
+    const mensaje = nuevoCpaPagado 
+      ? '¿Está seguro que desea marcar como pagado el CPA?' 
+      : '¿Está seguro que desea marcar como pendiente el CPA?';
+    if (!confirm(mensaje)) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+      let res;
+      if (apoderadoEmail) {
+        // Actualizar por email del apoderado (afecta a todos sus hijos)
+        res = await fetch('/api/actualizar_cuota_cpa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: apoderadoEmail, cuota_cpa: nuevoCpaPagado })
+        });
+      } else {
+        // Sin apoderado registrado: actualizar directamente por nombre del alumno
+        res = await fetch('/api/actualizar_cuota_cpa_alumno', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre_alumno: nombreAlumno, cuota_cpa: nuevoCpaPagado })
+        });
+      }
+      const data = await res.json();
+      if (res.ok) {
+        // Actualizar solo la fila sin recargar todo
+        const row = btn.closest('tr');
+        const estadoTd = row.querySelector('td:nth-last-child(2)');
+        if (nuevoCpaPagado) {
+          estadoTd.innerHTML = '<span class="badge-pagado">Pagado</span>';
+          btn.textContent = 'Marcar Pendiente';
+          btn.style.background = '#ffebee';
+          btn.style.color = '#c62828';
+          btn.onclick = function() { toggleEstadoCPA(apoderadoEmail, false, btn, nombreAlumno); };
+        } else {
+          estadoTd.innerHTML = '<span class="badge-pendiente">Pendiente</span>';
+          btn.textContent = 'Marcar Pagado';
+          btn.style.background = '#e8f5e9';
+          btn.style.color = '#2e7d32';
+          btn.onclick = function() { toggleEstadoCPA(apoderadoEmail, true, btn, nombreAlumno); };
+        }
+        btn.disabled = false;
+
+        // Actualizar contadores del resumen
+        const totalAlumnos = parseInt(document.getElementById('total-alumnos').textContent);
+        const pagadosActual = parseInt(document.getElementById('total-pagados').textContent);
+        document.getElementById('total-pagados').textContent = nuevoCpaPagado ? pagadosActual + 1 : pagadosActual - 1;
+        document.getElementById('total-pendientes').textContent = nuevoCpaPagado ? totalAlumnos - pagadosActual - 1 : totalAlumnos - pagadosActual + 1;
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo actualizar'));
+        btn.disabled = false;
+        btn.textContent = nuevoCpaPagado ? 'Marcar Pagado' : 'Marcar Pendiente';
+      }
+    } catch (err) {
+      alert('Error de conexión');
+      btn.disabled = false;
+      btn.textContent = nuevoCpaPagado ? 'Marcar Pagado' : 'Marcar Pendiente';
+    }
   }
 </script>
 

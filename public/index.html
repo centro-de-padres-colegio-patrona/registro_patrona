@@ -282,6 +282,9 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      white-space: pre-line; /* Clave para que \n funcione */
+      text-align: center;    /* Centra ambos textos */
+      line-height: 1.4;      /* Mejora el espaciado entre líneas */
     }
 
   </style>
@@ -559,20 +562,22 @@
 
   async function verificarBranch() {
     try {
-      const [resCurrent, resProd] = await Promise.all([
+      const [resCurrent, resProd, resDatabaseName] = await Promise.all([
         fetch('/api/branch/current'),
-        fetch('/api/branch/produccion')
+        fetch('/api/branch/produccion'),
+        fetch('/api/consulta/database/name') 
       ]);
 
-      if (!resCurrent.ok || !resProd.ok) return;
+      if (!resCurrent.ok || !resProd.ok || !resDatabaseName.ok) return;
 
       const { currentBranch } = await resCurrent.json();
       const { productionBranch } = await resProd.json();
+      const { currentDatabaseName } = await resDatabaseName.json();
 
       // Si los branches son válidos y distintos de producción, mostrar el banner
       if (currentBranch && productionBranch && currentBranch !== productionBranch) {
         const banner = document.getElementById('branchBanner');
-        banner.textContent = `Entorno de Pruebas: ${currentBranch}`;
+        banner.textContent = `Entorno de Pruebas: ${currentBranch}\nBase de Datos: ${currentDatabaseName}`;
         banner.style.display = 'block';
       }
     } catch (err) {

@@ -1389,9 +1389,9 @@ async function test_api_consulta_listas_curso(url_server = 'http://localhost:500
 async function test_api_branch(url_server = 'http://localhost:5001') {
   const tag = '[test GET /api/branch]';
   try {
-    const consultas = ['produccion', 'current'];
+    const consultas = ['branch/produccion', 'branch/current', 'consulta/database/name'];
     for (const consulta of consultas) {
-      const result = await fetch(`${url_server}/api/branch/${consulta}`, {
+      const result = await fetch(`${url_server}/api/${consulta}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });

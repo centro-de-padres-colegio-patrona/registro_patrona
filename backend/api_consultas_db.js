@@ -328,5 +328,58 @@ router.get('/reconciliar_pagos', async (req, res) => {
 });
 
 
+// Consulta Listas de Curso (para pruebas y herramientas internas)
+// Queries: id_organizacion=cpa_patrona, curso=1A, cpa_pagado=true, hermanos=true
+router.get('/consulta/listas_curso', async (req, res) => {
+  const tag = '[GET /api/consulta/listas_curso]';
+  try {
+    const { id_organizacion, curso, cpa_pagado = 'false', hermanos = 'false' } = req.query;
+
+    // Verificar que id_organizacion esté presente
+    if (!id_organizacion) {
+      return res.status(400).json({ error: 'Parámetro "id_organizacion" es requerido' });
+    }
+    // Verificar que curso esté presente
+    if (!curso) {
+      return res.status(400).json({ error: 'Parámetro "curso" es requerido' });
+    }
+    
+    // Convertir cpa_pagado y hermanos a booleanos
+    const cpaPagadoBool = cpa_pagado === 'true';
+    const hermanosBool = hermanos === 'true';
+
+    // Buscar listado de curso
+    const listadoCurso = await db_support.listadoCursosDB.findOne({ id: curso }).lean();
+    if (!listadoCurso || !listadoCurso.listaCurso) {
+      return res.status(404).json({ error: `No se encontró listado para curso ${curso}` });
+    }
+
+    let alumnos = listadoCurso.listaCurso;
+
+    // Filtrar aquellos que no tienen apoderados registrados
+    const lista_hermanos = await db_support.hermanosMapDB.find({ id: { $in: alumnos } }).lean();
+    const alumnosSinApoderado = lista_hermanos.filter(alumno => !alumno.apoderado_email || alumno.apoderado_email.length === 0).map(alumno => alumno.id);
+    alumnos = alumnos.filter(alumno => alumnosSinApoderado.includes(alumno));
+    // Si se requiere filtrar por hermanos registrados
+    if (hermanosBool) {
+      const alumnosConHermanos = lista_hermanos.filter(alumno => alumno.hermanos.length > 1).map(alumno => alumno.id);
+      alumnos = alumnos.filter(alumno => alumnosConHermanos.includes(alumno));
+    }
+
+
+    // Si se requiere filtrar por CPA pagado
+    if (cpaPagadoBool) {
+      const lista_pagos = await db_support.pagosDB.find({ cuota_cpa: true, id: { $in: alumnos } }).lean();
+      const alumnosConPago = lista_pagos.map(pago => pago.id);
+      alumnos = alumnos.filter(alumno => alumnosConPago.includes(alumno));
+    }
+
+    res.json({ alumnos });
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al consultar listas de curso' });
+  }
+});
+
 module.exports = router;
 

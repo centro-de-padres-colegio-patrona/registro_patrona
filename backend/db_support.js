@@ -462,7 +462,7 @@ function hasAdministradorAccessRights(rol) {
 
 
 
-
+let current_database_name = '';
 
 async function connectToDB(year = '', url_server = 'http://localhost:5001') {
   //return;
@@ -482,6 +482,7 @@ async function connectToDB(year = '', url_server = 'http://localhost:5001') {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
+    current_database_name = database_name;
     console.log('Conexión exitosa a MongoDB Atlas');
     test_api.lauch_test_api(500, url_server, db_uri);
     run_db_tests();
@@ -587,6 +588,8 @@ module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;
 module.exports.hasAdministradorAccessRights = hasAdministradorAccessRights;
+
+module.exports.current_database_name = current_database_name;
 
 //module.exports.ticketsDB = mongoose.model('tickets', ticketSchema, 'tickets');
 

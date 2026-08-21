@@ -73,3 +73,4 @@ const BASEURL = `https://${branchSubdomain}.onrender.com`;
 
 module.exports.BASEURL = BASEURL;
 module.exports.isRebasedWith = isRebasedWith;
+module.exports.currentBranch = currentBranch;

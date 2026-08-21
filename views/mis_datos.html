@@ -216,6 +216,26 @@
         padding: 10px;
       }
     }
+    .branch-banner {
+      display: none; /* Oculto por defecto */
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(231, 76, 60, 0.9); /* Fondo de advertencia/entorno */
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: pre-line; /* Clave para que \n funcione */
+      text-align: center;    /* Centra ambos textos */
+      line-height: 1.4;      /* Mejora el espaciado entre líneas */
+    }
   </style>
 </head>
 <body>
@@ -505,6 +525,8 @@
   <div id="statusLabel" style="margin-bottom: 10px; font-weight: bold; min-height: 1.2em;"></div>
   <!--button type="submit" style="font-size: 18px; padding: 12px 24px;">Enviar</button-->
   <button type="submit" class="enviar-btn">Enviar</button>
+
+  <div id="branchBanner" class="branch-banner"></div>
 
 </div>
 
@@ -2400,6 +2422,35 @@
       }
     }
   });
+
+
+  async function verificarBranch() {
+    try {
+      const [resCurrent, resProd, resDatabaseName] = await Promise.all([
+        fetch('/api/branch/current'),
+        fetch('/api/branch/produccion'),
+        fetch('/api/consulta/database/name') 
+      ]);
+
+      if (!resCurrent.ok || !resProd.ok || !resDatabaseName.ok) return;
+
+      const { currentBranch } = await resCurrent.json();
+      const { productionBranch } = await resProd.json();
+      const { currentDatabaseName } = await resDatabaseName.json();
+
+      // Si los branches son válidos y distintos de producción, mostrar el banner
+      if (currentBranch && productionBranch && currentBranch !== productionBranch) {
+        const banner = document.getElementById('branchBanner');
+        banner.textContent = `Entorno de Pruebas: ${currentBranch}\nBase de Datos: ${currentDatabaseName}`;
+        banner.style.display = 'block';
+      }
+    } catch (err) {
+      console.error('Error al obtener la información del branch:', err);
+    }
+  }
+
+  // Ejecutar la verificación al cargar la página
+  verificarBranch();  
 
 </script>
 

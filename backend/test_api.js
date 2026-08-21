@@ -45,6 +45,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_listas_curso, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_api_branch, delay: delay_ms, arguments: url_server});
 
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
@@ -1383,5 +1384,28 @@ async function test_api_consulta_listas_curso(url_server = 'http://localhost:500
     }
   }
 }
+
+
+async function test_api_branch(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/branch]';
+  try {
+    const consultas = ['branch/produccion', 'branch/current', 'consulta/database/name'];
+    for (const consulta of consultas) {
+      const result = await fetch(`${url_server}/api/${consulta}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 ) {
+        const response = await result.json();
+        console.log(`${tag} Nombre Branch de ${consulta}: `, response);
+      } else {
+        console.log(`${tag} Error al consultar branch. Status: ${result.status}`);
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+  }
+}
+
 
 module.exports.lauch_test_api = lauch_test_api;

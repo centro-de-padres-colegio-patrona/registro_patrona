@@ -406,5 +406,50 @@ router.get('/consulta/listas_curso', async (req, res) => {
   }
 });
 
+/*router.get('/consulta/database/name', async (req, res) => {
+  const tag = '[GET /api/consulta/database/name]';
+  try {
+    const currentDatabaseName = db_support.current_database_name;
+    console.log(`${tag} currentDatabaseName: `, currentDatabaseName);
+    res.json({ currentDatabaseName });
+  } catch (error) {
+    console.error(`${tag} Error: `, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});*/
+
+router.get('/consulta/database/name', async (req, res) => {
+  const tag = '[GET /api/consulta/database/name]';
+  try {
+    // 1. Obtener la conexión activa desde db_support o mongoose
+    const connection = db_support.connection || db_support.mongoose?.connection;
+
+    // 2. Extraer el nombre de la BD utilizando las distintas propiedades posibles de Mongoose/MongoDB Native Driver
+    let currentDatabaseName = 
+      connection?.name || 
+      connection?.db?.databaseName || 
+      '';
+
+    // 3. Fallback: Parsear desde la cadena de conexión en config_env si sigue vacío
+    if (!currentDatabaseName && config_env.MONGODB_URI) {
+      try {
+        const uri = new URL(config_env.MONGODB_URI);
+        currentDatabaseName = uri.pathname.replace('/', '');
+      } catch (e) {
+        // Si no es un formato URL estándar, parsear manualmente
+        const match = config_env.MONGODB_URI.match(/\/([^/?]+)(\?|$)/);
+        if (match) currentDatabaseName = match[1];
+      }
+    }
+
+    console.log(`${tag} currentDatabaseName: `, currentDatabaseName);
+    currentDatabaseName = 'cpa_patrona_' + config_env.DATABASE_YEAR_NAME;
+    res.json({ currentDatabaseName });
+  } catch (error) {
+    console.error(`${tag} Error: `, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;
 

@@ -1811,7 +1811,7 @@ app.get('/api/mi-perfil', async (req, res) => {
     }
 
     // Determinar el rol principal por jerarquía
-    const jerarquia = ['administrador', 'supervisor', 'presidente', 'validador', 'apoderado'];
+    const jerarquia = ['administrador', 'supervisor', 'presidente', 'validador', 'tester', 'apoderado'];
     const roles = perfiles.filter(p => p.activo !== false).map(p => p.rol);
     const rolPrincipal = jerarquia.find(r => roles.includes(r)) || 'apoderado';
     const perfilPrincipal = perfiles.find(p => p.rol === rolPrincipal) || perfiles[0];

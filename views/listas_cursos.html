@@ -153,7 +153,7 @@
       border-radius: 20px;
       font-size: 0.75rem;
       font-weight: 700;
-      background: #f8d7da;
+      background: #f8f9fa;
       color: #721c24;
     }
 
@@ -181,7 +181,7 @@
   <div class="form-row">
     <div class="form-field">
       <label>Curso</label>
-      <select id="inp-curso" onchange="cargarListaEstudiantes()">
+      <select id="inp-curso" onchange="alCambiarCurso()">
         <option value="" disabled selected>Seleccione curso</option>
         <option value="HA">HA - Huilen Adulto</option>
         <option value="HI">HI - Huilen Infantil</option>
@@ -219,11 +219,11 @@
 
     <div class="checkbox-group">
       <label class="checkbox-item">
-        <input type="checkbox" id="chk-cpa" onchange="renderTabla()">
+        <input type="checkbox" id="chk-cpa" onchange="alCambiarCheckbox()">
         CPA Pagado
       </label>
       <label class="checkbox-item">
-        <input type="checkbox" id="chk-hermano" onchange="renderTabla()">
+        <input type="checkbox" id="chk-hermano" onchange="alCambiarCheckbox()">
         Hermano en Otro Curso
       </label>
     </div>
@@ -252,6 +252,42 @@
 
 <script>
   let estudiantesCache = [];
+
+  // Guardar datos en localStorage
+  function guardarEstado() {
+    const curso = document.getElementById('inp-curso').value;
+    const cpa = document.getElementById('chk-cpa').checked;
+    const hermano = document.getElementById('chk-hermano').checked;
+
+    localStorage.setItem('listas_curso_id', curso);
+    localStorage.setItem('listas_curso_cpa', cpa);
+    localStorage.setItem('listas_curso_hermano', hermano);
+  }
+
+  // Cargar estado guardado al iniciar
+  function restaurarEstado() {
+    const cursoGuardado = localStorage.getItem('listas_curso_id');
+    const cpaGuardado = localStorage.getItem('listas_curso_cpa') === 'true';
+    const hermanoGuardado = localStorage.getItem('listas_curso_hermano') === 'true';
+
+    document.getElementById('chk-cpa').checked = cpaGuardado;
+    document.getElementById('chk-hermano').checked = hermanoGuardado;
+
+    if (cursoGuardado) {
+      document.getElementById('inp-curso').value = cursoGuardado;
+      cargarListaEstudiantes();
+    }
+  }
+
+  function alCambiarCurso() {
+    guardarEstado();
+    cargarListaEstudiantes();
+  }
+
+  function alCambiarCheckbox() {
+    guardarEstado();
+    renderTabla();
+  }
 
   async function cargarListaEstudiantes() {
     const cursoId = document.getElementById('inp-curso').value;
@@ -323,6 +359,9 @@
       tbody.appendChild(row);
     });
   }
+
+  // Inicializar restaurando la selección previa
+  restaurarEstado();
 </script>
 
 </body>

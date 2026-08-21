@@ -394,7 +394,7 @@
 
     const id_evento = getParametroURL('id_evento');
     const id_organizacion = getParametroURL('id_organizacion');
-    const id_seccion = window.location.pathname.split('/').pop();
+    const id_pagina = window.location.pathname.split('/').pop();
 
     const curso_map = {
       "Prekínder": 'PK',
@@ -416,7 +416,7 @@
     async function aplicarOpcionesFeature() {
       try {
         const features_keys = ['flow', 'mercadopago', 'btn_pagar'];
-        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_seccion=${encodeURIComponent(id_seccion)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default=false`);
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default=false`);
         //const response = await fetch('/api/feature/options');
         if (!response.ok) {
           throw new Error('Error al obtener la configuración de características');
@@ -432,7 +432,7 @@
         //console.log('Features obtenidos:', features);
         const feature_flow = features.find(f => f.feature === 'flow');
 
-
+        console.log(`[aplicarOpcionesFeature] `, {feature_flow});
         // 1. Control para la pasarela Flow
         const btnFlow = document.getElementById('btn-pasarela-flow');
         if (btnFlow) {

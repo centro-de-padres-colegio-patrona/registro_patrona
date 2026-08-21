@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      padding: 24px;
+    }
+
+    .page-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #4A90E2;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+
+    .card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 14px;
+    }
+
+    .form-field {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .form-field select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      background: #fafafa;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .form-field select:focus {
+      border-color: #4A90E2;
+      background: white;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #444;
+      cursor: pointer;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .table-container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      word-wrap: break-word;
+    }
+
+    thead { background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
+
+    th, td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 0.82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    th {
+      color: #495057;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    tr:hover { background: #f1f4f9; }
+
+    .badge-si {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-no {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #f8f9fa;
+      color: #721c24;
+    }
+
+    /* Responsive */
+    @media screen and (max-width: 768px) {
+      body { padding: 12px; }
+      .page-title { font-size: 1.05rem; }
+      .card { padding: 16px; }
+      .form-row { flex-direction: column; gap: 12px; align-items: stretch; }
+      .form-field { min-width: 100%; }
+      .form-field select { font-size: 1rem; padding: 10px 12px; }
+      .checkbox-group { flex-direction: column; align-items: flex-start; gap: 10px; }
+      table { min-width: 500px; }
+      th, td { padding: 8px 6px; font-size: 0.78rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">🏫 Listas por Curso</div>
+
+<!-- Filtros -->
+<div class="card">
+  <h3>Filtrar por Curso y Criterios</h3>
+  <div class="form-row">
+    <div class="form-field">
+      <label>Curso</label>
+      <select id="inp-curso" onchange="alCambiarSeleccion()">
+        <option value="" disabled selected>Seleccione curso</option>
+        <option value="HA">HA - Huilen Adulto</option>
+        <option value="HI">HI - Huilen Infantil</option>
+        <option value="HJ">HJ - Huilen Juvenil</option>
+        <option value="PKA">PKA - Prekinder A</option>
+        <option value="PKB">PKB - Prekinder B</option>
+        <option value="KA">KA - Kinder A</option>
+        <option value="KB">KB - Kinder B</option>
+        <option value="1A">1A - Primero Básico A</option>
+        <option value="1B">1B - Primero Básico B</option>
+        <option value="2A">2A - Segundo Básico A</option>
+        <option value="2B">2B - Segundo Básico B</option>
+        <option value="3A">3A - Tercero Básico A</option>
+        <option value="3B">3B - Tercero Básico B</option>
+        <option value="4A">4A - Cuarto Básico A</option>
+        <option value="4B">4B - Cuarto Básico B</option>
+        <option value="5A">5A - Quinto Básico A</option>
+        <option value="5B">5B - Quinto Básico B</option>
+        <option value="6A">6A - Sexto Básico A</option>
+        <option value="6B">6B - Sexto Básico B</option>
+        <option value="7A">7A - Séptimo Básico A</option>
+        <option value="7B">7B - Séptimo Básico B</option>
+        <option value="8A">8A - Octavo Básico A</option>
+        <option value="8B">8B - Octavo Básico B</option>
+        <option value="1MA">1MA - Primero Medio A</option>
+        <option value="1MB">1MB - Primero Medio B</option>
+        <option value="2MA">2MA - Segundo Medio A</option>
+        <option value="2MB">2MB - Segundo Medio B</option>
+        <option value="3MA">3MA - Tercero Medio A</option>
+        <option value="3MB">3MB - Tercero Medio B</option>
+        <option value="4MA">4MA - Cuarto Medio A</option>
+        <option value="4MB">4MB - Cuarto Medio B</option>
+      </select>
+    </div>
+
+    <div class="checkbox-group">
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-cpa" onchange="alCambiarSeleccion()">
+        CPA Pagado
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-hermano" onchange="alCambiarSeleccion()">
+        Hermano en Otro Curso
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Tabla -->
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 50px; text-align:center;">Num</th>
+        <th>Nombre</th>
+        <th style="width: 100px; text-align:center;">Pago CPA</th>
+        <th style="width: 110px; text-align:center;">Hermana/o</th>
+        <th style="width: 90px; text-align:center;">Entradas</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-estudiantes">
+      <tr>
+        <td colspan="5" style="text-align:center; color:#888; padding: 20px;">Seleccione un curso para ver la lista.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  let estudiantesCache = [];
+
+  // Obtener id_organizacion desde la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const idOrganizacion = urlParams.get('id_organizacion') || 'cpa_patrona';
+
+  // Guardar datos en localStorage
+  function guardarEstado() {
+    const curso = document.getElementById('inp-curso').value;
+    const cpa = document.getElementById('chk-cpa').checked;
+    const hermano = document.getElementById('chk-hermano').checked;
+
+    localStorage.setItem('listas_curso_id', curso);
+    localStorage.setItem('listas_curso_cpa', cpa);
+    localStorage.setItem('listas_curso_hermano', hermano);
+  }
+
+  // Cargar estado guardado al iniciar
+  function restaurarEstado() {
+    const cursoGuardado = localStorage.getItem('listas_curso_id');
+    const cpaGuardado = localStorage.getItem('listas_curso_cpa') === 'true';
+    const hermanoGuardado = localStorage.getItem('listas_curso_hermano') === 'true';
+
+    document.getElementById('chk-cpa').checked = cpaGuardado;
+    document.getElementById('chk-hermano').checked = hermanoGuardado;
+
+    if (cursoGuardado) {
+      document.getElementById('inp-curso').value = cursoGuardado;
+      consultarListasCurso();
+    }
+  }
+
+  function alCambiarSeleccion() {
+    guardarEstado();
+    consultarListasCurso();
+  }
+
+  async function consultarListasCurso() {
+    const curso = document.getElementById('inp-curso').value;
+    if (!curso) return;
+
+    const cpaPagado = document.getElementById('chk-cpa').checked;
+    const hermanos = document.getElementById('chk-hermano').checked;
+
+    // Construir la URL con parámetros de consulta
+    const query = new URLSearchParams({
+      id_organizacion: idOrganizacion,
+      curso: curso,
+      cpa_pagado: cpaPagado,
+      hermanos: hermanos
+    });
+
+    try {
+      const res = await fetch(`/api/consulta/listas_curso?${query.toString()}`);
+      if (res.ok) {
+        estudiantesCache = (await res.json()).alumnos || [];
+      } else {
+        estudiantesCache = [];
+      }
+      console.log('Estudiantes obtenidos:', estudiantesCache);
+      renderTabla();
+    } catch (err) {
+      console.error('Error al consultar listas por curso:', err);
+      estudiantesCache = [];
+      renderTabla();
+    }
+  }
+
+  function renderTabla() {
+    const tbody = document.getElementById('tabla-estudiantes');
+    tbody.innerHTML = '';
+
+    const cursoSeleccionado = document.getElementById('inp-curso').value;
+    if (!cursoSeleccionado) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888; padding: 20px;">Seleccione un curso para ver la lista.</td></tr>';
+      return;
+    }
+
+    if (estudiantesCache.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888; padding: 20px;">No se encontraron registros con los criterios seleccionados.</td></tr>';
+      return;
+    }
+
+    estudiantesCache.forEach((est, index) => {
+      const row = document.createElement('tr');
+
+      const badgeCpa = (est.pago_cpa || est.cpa_pagado)
+        ? '<span class="badge-si">SÍ</span>' 
+        : '<span class="badge-no">NO</span>';
+
+      const badgeHermano = (est.hermano_otro_curso || est.hermanos)
+        ? '<span class="badge-si">SÍ</span>' 
+        : '<span class="badge-no">NO</span>';
+
+      const entradasCount = est.entradas !== undefined ? est.entradas : 0;
+
+      row.innerHTML = `
+        <td style="text-align:center;"><strong>${index + 1}</strong></td>
+        <td>${est.nombre || 'Sin Nombre'}</td>
+        <td style="text-align:center;">${badgeCpa}</td>
+        <td style="text-align:center;">${badgeHermano}</td>
+        <td style="text-align:center;"><strong>${entradasCount}</strong></td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  // Inicializar restaurando la selección previa
+  restaurarEstado();
+</script>
+
+</body>
+</html>

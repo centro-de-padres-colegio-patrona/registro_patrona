@@ -232,7 +232,7 @@ const perfilSchema = new mongoose.Schema({
   email: { type: String, required: true },
   rut: { type: String, required: true },
   nombre_completo: { type: String, required: true },
-  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente'] },
+  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente', 'tester'] },
   pagina_inicio: { type: String, default: '' },
   curso_asignado: { type: String, default: '' },
   activo: { type: Boolean, default: true },

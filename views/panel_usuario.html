@@ -260,6 +260,57 @@
       }
     }
 
+    async function getApiKey() {
+      try {
+          const config_response = await fetch('/api/config');
+          if (!config_response.ok) 
+              return null;
+          const data = await config_response.json();
+          if (data && data.apiKey)
+              return data.apiKey;
+          return null;
+      } catch (error) {
+          console.error('Unexpected Error: ', error);
+      }
+      return null;
+    }
+
+    async function desvincular_datos_usuario() {
+      getApiKey().then(apiKey => {
+        if (!apiKey) {
+          console.error('No se pudo obtener la API Key. Revise la consola para más detalles.');
+          // Mostrar mensaje de error al usuario
+          alert('No se pudo desvincular los datos del usuario. Revise la consola para más detalles.');
+          return;
+        }
+        fetch(`/api/update/user/apoderado_email?user_email=${encodeURIComponent(document.getElementById('usuario-correo').textContent)}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            // Mostrar mensaje de error al usuario
+            alert('No se pudo desvincular los datos del usuario. Revise la consola para más detalles.');
+            throw new Error(`Error en la solicitud: ${response.status} ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Datos desvinculados correctamente:', data);
+          // Mostrar mensaje de éxito al usuario
+          alert('Los datos del usuario han sido desvinculados correctamente.');
+        });
+      })
+      .catch(err => {
+        console.error('Error al obtener la API Key:', err);
+        // Mostrar mensaje de error al usuario
+        alert('No se pudo desvincular los datos del usuario. Revise la consola para más detalles.');
+      });
+    }
+
     // Definición de menús por rol
     const query = '?id_evento=fiesta_chilena_2026&id_organizacion=cpa_patrona';
     const menusPorRol = {
@@ -277,6 +328,10 @@
         { label: '👤 Perfiles', url: 'mantenedores.html' },
         { label: '👨‍👩‍👧 Apoderados', url: 'apoderados.html' },
         { label: '📚 Cursos/Bloque', url: 'cursos_bloque.html' },
+        { label: '---', url: '' },
+        { label: '::Herramientas para Pruebas', url: '' },
+        { label: '🏫 Listas por Curso', url: 'listas_cursos.html' },
+        { label: '🔗 Desvincular Datos Usuario', onclick: desvincular_datos_usuario },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -314,6 +369,19 @@
         { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' + query },
         { label: '📊 Estado CPA Curso', url: 'estado_cpa_curso.html' + query },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '---', url: '' },
+        { label: '::Ayuda', url: '' },
+        { label: '❓ Ayuda', url: 'ayuda.html' },
+      ],
+      tester: [
+        { label: '📋 Mis datos', url: 'mis_datos.html' + query },
+        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' + query },
+        //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
+        { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '---', url: '' },
+        { label: '::Herramientas para Pruebas', url: '' },
+        { label: '🏫 Listas por Curso', url: 'listas_cursos.html' + query },
+        { label: '🔗 Desvincular Datos Usuario', onclick: desvincular_datos_usuario },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -371,8 +439,12 @@
         }
         const btn = document.createElement('button');
         btn.textContent = item.label;
-        btn.setAttribute('data-url', item.url);
-        btn.onclick = function() { cargarContenido(item.url, this); };
+        if (item.onclick) {
+          btn.onclick = item.onclick;
+        } else {
+          btn.setAttribute('data-url', item.url);
+          btn.onclick = function() { cargarContenido(item.url, this); };
+        }
         container.appendChild(btn);
         //console.log('Desktop btn agregado:', item.label);
       }

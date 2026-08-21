@@ -1376,6 +1376,49 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
 });
 
 
+router.delete('/entrada/familia', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entrada/familia]';
+  try {
+    const { id_organizacion, id_evento, user_email } = req.query;
+
+    if (!id_organizacion || !id_evento || !user_email) {
+      return res.status(400).json({ error: 'Faltan parámetros requeridos: id_organizacion, id_evento, user_email' });
+    }
+
+    // Buscar entradas de la familia en la base de datos
+    // 1. Buscar usuario por email
+    const userInfo = await db_support.usersDB.findOne({ email: user_email });
+    if (!userInfo) {
+      return res.status(404).json({ error: `Usuario con email ${user_email} no encontrado` });
+    }
+
+    // 2. Verificar si el usuario tiene hijos y obtener la familia
+    const { hijos } = userInfo;
+    if (!hijos || !hijos.length) {
+      return res.status(404).json({ error: `Usuario con email ${user_email} no tiene hijos enrolados` });
+    }
+
+    // 3. Obtener la familia del primer hijo (asumiendo que todos los hijos pertenecen a la misma familia)
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': hijos[0].nombre }).lean();
+    const familia = familiaInfo ? familiaInfo.nombre_familia : null;
+    if (!familia) {
+      return res.status(404).json({ error: `No se encontró información de familia para el usuario con email ${user_email}` });
+    }
+    
+    // Eliminar entradas de la familia
+    const deleteResult = await db_support.TicketEventoDB.deleteMany({ id_organizacion, id_evento, familia });
+
+    console.log(`${tag} Entradas de la familia ${familia} eliminadas correctamente. Total eliminadas: ${deleteResult.deletedCount}`);
+
+    res.status(200).json({
+      deletedCount: deleteResult.deletedCount
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: `${tag} Error no especifico` });
+  }
+});
+
 
 router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entradas/pre_generar]';

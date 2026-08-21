@@ -49,6 +49,9 @@ const DB_URL = process.env.DB_URL;
 const DB_MAIN_DATABASE_NAME = process.env.DB_MAIN_DATABASE_NAME;
 
 
+/// Produccion Branch
+const GIT_BRANCH_PRODUCTION = process.env.GIT_BRANCH_PRODUCTION || 'produccion';
+
 /// Testing
 const TEST_API_DELETE_APODERADO_EMAIL = process.env.TEST_API_DELETE_APODERADO_EMAIL || 'false';
 const TEST_API_ENVIAR_CORREOS_PRUEBA = process.env.TEST_API_ENVIAR_CORREOS_PRUEBA || 'false';

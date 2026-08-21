@@ -1850,7 +1850,7 @@ app.post('/api/perfiles', express.json(), async (req, res) => {
     if (!email || !rut || !nombre_completo || !rol) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
     }
-    const rolesValidos = ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente'];
+    const rolesValidos = ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente', 'tester'];
     if (!rolesValidos.includes(rol)) {
       return res.status(400).json({ error: `Rol inválido. Opciones: ${rolesValidos.join(', ')}` });
     }

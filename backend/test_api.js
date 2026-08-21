@@ -43,6 +43,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_get_max_invitados, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_api_consulta_listas_curso, delay: delay_ms, arguments: url_server});
 
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
@@ -1349,5 +1350,37 @@ async function test_api_borrar_entradas(url_server = 'http://localhost:5001') {
   }
 }
 
+
+async function test_api_consulta_listas_curso(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/consulta/listas_curso]';
+  const cursos_under_test = [
+    { curso: '4M', seccion: 'A' },
+    { curso: 'PK', seccion: 'B' }
+  ];
+  const id_organizacion = 'cpa_patrona';
+  const cpaPagado = false; // Cambia esto según tus necesidades
+  const hermanos = false; // Cambia esto según tus necesidades
+
+  for (const { curso, seccion } of cursos_under_test) {
+      const query = new URLSearchParams({
+      id_organizacion: id_organizacion,
+      curso: curso + seccion,
+      cpa_pagado: cpaPagado,
+      hermanos: hermanos
+    });
+
+    try {
+      const res = await fetch(`${url_server}/api/consulta/listas_curso?${query.toString()}`);
+      if (res.ok) {
+        const estudiantesCache = (await res.json()).alumnos || [];
+        console.log(`${tag} Estudiantes obtenidos:`, estudiantesCache);
+      } else {
+        console.log(`${tag} Error al consultar listas de curso. Status: ${res.status}`);
+      }
+    } catch (err) {
+      console.error(`${tag} Error al consultar listas por curso:`, err);
+    }
+  }
+}
 
 module.exports.lauch_test_api = lauch_test_api;

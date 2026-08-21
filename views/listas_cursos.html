@@ -181,7 +181,7 @@
   <div class="form-row">
     <div class="form-field">
       <label>Curso</label>
-      <select id="inp-curso" onchange="alCambiarCurso()">
+      <select id="inp-curso" onchange="alCambiarSeleccion()">
         <option value="" disabled selected>Seleccione curso</option>
         <option value="HA">HA - Huilen Adulto</option>
         <option value="HI">HI - Huilen Infantil</option>
@@ -219,11 +219,11 @@
 
     <div class="checkbox-group">
       <label class="checkbox-item">
-        <input type="checkbox" id="chk-cpa" onchange="alCambiarCheckbox()">
+        <input type="checkbox" id="chk-cpa" onchange="alCambiarSeleccion()">
         CPA Pagado
       </label>
       <label class="checkbox-item">
-        <input type="checkbox" id="chk-hermano" onchange="alCambiarCheckbox()">
+        <input type="checkbox" id="chk-hermano" onchange="alCambiarSeleccion()">
         Hermano en Otro Curso
       </label>
     </div>
@@ -253,6 +253,10 @@
 <script>
   let estudiantesCache = [];
 
+  // Obtener id_organizacion desde la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const idOrganizacion = urlParams.get('id_organizacion') || 'cpa_patrona';
+
   // Guardar datos en localStorage
   function guardarEstado() {
     const curso = document.getElementById('inp-curso').value;
@@ -275,48 +279,44 @@
 
     if (cursoGuardado) {
       document.getElementById('inp-curso').value = cursoGuardado;
-      cargarListaEstudiantes();
+      consultarListasCurso();
     }
   }
 
-  function alCambiarCurso() {
+  function alCambiarSeleccion() {
     guardarEstado();
-    cargarListaEstudiantes();
+    consultarListasCurso();
   }
 
-  function alCambiarCheckbox() {
-    guardarEstado();
-    renderTabla();
-  }
+  async function consultarListasCurso() {
+    const curso = document.getElementById('inp-curso').value;
+    if (!curso) return;
 
-  async function cargarListaEstudiantes() {
-    const cursoId = document.getElementById('inp-curso').value;
-    if (!cursoId) return;
+    const cpaPagado = document.getElementById('chk-cpa').checked;
+    const hermanos = document.getElementById('chk-hermano').checked;
+
+    // Construir la URL con parámetros de consulta
+    const query = new URLSearchParams({
+      id_organizacion: idOrganizacion,
+      curso: curso,
+      cpa_pagado: cpaPagado,
+      hermanos: hermanos
+    });
 
     try {
-      const res = await fetch(`/api/estudiantes?curso=${encodeURIComponent(cursoId)}`);
+      const res = await fetch(`/api/consulta/listas_curso?${query.toString()}`);
       if (res.ok) {
-        estudiantesCache = await res.json();
+        estudiantesCache = (await res.json()).alumnos || [];
       } else {
         estudiantesCache = [];
       }
+      console.log('Estudiantes obtenidos:', estudiantesCache);
       renderTabla();
     } catch (err) {
-      console.error('Error cargando estudiantes:', err);
+      console.error('Error al consultar listas por curso:', err);
       estudiantesCache = [];
       renderTabla();
     }
-  }
-
-  function getFiltrados() {
-    const cpaPagadoFilter = document.getElementById('chk-cpa').checked;
-    const hermanoFilter = document.getElementById('chk-hermano').checked;
-
-    return estudiantesCache.filter(est => {
-      const cumpleCpa = !cpaPagadoFilter || est.pago_cpa === true;
-      const cumpleHermano = !hermanoFilter || est.hermano_otro_curso === true;
-      return cumpleCpa && cumpleHermano;
-    });
   }
 
   function renderTabla() {
@@ -329,21 +329,19 @@
       return;
     }
 
-    const filtrados = getFiltrados();
-
-    if (filtrados.length === 0) {
+    if (estudiantesCache.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888; padding: 20px;">No se encontraron registros con los criterios seleccionados.</td></tr>';
       return;
     }
 
-    filtrados.forEach((est, index) => {
+    estudiantesCache.forEach((est, index) => {
       const row = document.createElement('tr');
 
-      const badgeCpa = est.pago_cpa 
+      const badgeCpa = (est.pago_cpa || est.cpa_pagado)
         ? '<span class="badge-si">SÍ</span>' 
         : '<span class="badge-no">NO</span>';
 
-      const badgeHermano = est.hermano_otro_curso 
+      const badgeHermano = (est.hermano_otro_curso || est.hermanos)
         ? '<span class="badge-si">SÍ</span>' 
         : '<span class="badge-no">NO</span>';
 

@@ -263,7 +263,7 @@ router.get('/reconciliar_pagos', async (req, res) => {
       const ordenesPagadas = await db_support.paymentOrdersDB.find({ 
         email: user_email, 
         estado_del_pago: 'pagado',
-        status: '200',
+        status: 200,
         pasarela_de_pagos: pasarela
       });
 

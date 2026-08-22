@@ -615,7 +615,7 @@
 
         if (btnPagos) {
           // Evaluamos la propiedad correspondiente
-          if (features.feature === feature && features.enabled === false) {
+          if ((features.feature === feature && features.enabled === false) || !currentUser || !currentUser.hijos || currentUser.hijos.length === 0) {
             // Opción A: Deshabilitarlo físicamente
             btnPagos.disabled = true;
             btnPagos.style.opacity = '0.5';
@@ -1583,6 +1583,13 @@
           btnAgregar.id = 'btn-ir-a-pagos';
           btnAgregar.style.display = '';
           btnAgregar.textContent = '💰 Ir a Mis Pagos';
+          if (!currentUser || !currentUser.hijos || currentUser.hijos.length === 0) {
+            console.log('[mis_datos] No tiene hijos registrados, deshabilitando botón de pagos');
+            btnAgregar.disabled = true;
+          } else {
+            console.log('[mis_datos] Tiene hijos registrados, habilitando botón de pagos');
+            btnAgregar.disabled = false;
+          }
           btnAgregar.onclick = function() {
             const url = 'pagos_cpa.html';
             if (window.parent && window.parent.document.getElementById('visor')) {

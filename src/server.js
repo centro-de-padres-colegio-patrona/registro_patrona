@@ -1512,15 +1512,16 @@ async function confirmar_pago_flow(token = '') {
     }
 
     // Guardar el resultado en la base de datos
-    console.log(`${tag} Resultado:`, result);
-    console.log(`${tag} Nombres hijos:`, nombres_hijos);
+    //console.log(`${tag} Resultado:`, result);
+    //console.log(`${tag} Nombres hijos:`, nombres_hijos);
     
     const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
       { commerceOrder: result.commerceOrder },
       { $set: { ...result, estado_del_pago: 'pagado' } },
       { returnDocument: 'after' }
     );
-    console.log(`${tag} Resultado guardado en DB:`, resultDbUpdate);
+    //console.log(`${tag} Resultado guardado en DB:`, resultDbUpdate);
+    console.log(`${tag} payment updated a pagado:`);
 
     //console.log(`${tag} result.optional:`, result.optional);
     //const nombres_hijos = result.optional.nombres_hijos.split(',');
@@ -1546,84 +1547,42 @@ async function confirmar_pago_flow(token = '') {
       cantidades: resultDbUpdate.cantidades || {},
       email_apoderado: result.payer
     }
-    console.log(`${tag} Pago a guardar en DB:`, pago);
+    //console.log(`${tag} Pago a guardar en DB:`, pago);
     const resultPagoCreate = await db_support.pagosDB.create(pago);
-    console.log(`${tag} Pago guardado en DB:`, resultPagoCreate);
+    //console.log(`${tag} Pago guardado en DB:`, resultPagoCreate);
+    console.log(`${tag} Pago guardado en DB:`);
   }
   return result;
 }
 
 // Flow enviará un POST a esta ruta con el token del pago
 app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async (req, res) => {
+  const tag = 'POST [/api/payments/confirm]';
   try {
     const { token } = req.body;
-    console.log('[/api/payments/confirm] Recibida confirmación de Flow para el token:', token);
+    console.log(`${tag} Recibida confirmación de Flow para el token:`, token);
 
-    // 1. Consultar el estado real del pago en Flow
-    /*console.log('[/api/payments/confirm] Consultando estado del pago en Flow...');
-    const result = await flow.send("payment/getStatus", { token }, "GET");
-    console.log('[/api/payments/confirm] Resultado:', result);
-    if (result.status === 200) { // Estado 2 es "Pagado" en Flow
-      console.log('[/api/payments/confirm] Pago confirmado exitosamente:', result.commerceOrder);
-      const nombres_hijos = result.optional.nombres_hijos.split(',');
-      const optional = {...result.optional};
-      result.optional = JSON.stringify(optional);
-      // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
-      //const resultDbCreate = await db_support.paymentOrdersDB.create(result);
-      const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
-        { commerceOrder: result.commerceOrder },
-        { $set: { ...result, estado_del_pago: 'pagado' } },
-        { returnDocument: 'after' }
-      );
-      console.log('[/api/payments/confirm] Resultado guardado en DB:', resultDbUpdate);
-
-      const pago = {
-        id: nombres_hijos[0],
-        num_folio: result.commerceOrder,
-        tipo: 'flow',
-        subtipo: result.subject || '',
-        cuota_cpa: result.subject === 'cuota_cpa' || result.subject === 'Cuota CPA',
-        monto: result.amount,
-        cantidad_agendas: 0,
-        entrega_agendas: 0,
-        fecha: result.requestDate,
-        comentarios: '',
-        entradas_pagadas: 0,
-        payment_method: 'flow',
-        commerce_order: result.commerceOrder,
-      }
-      const resultPagoCreate = await db_support.pagosDB.create(pago);
-      console.log('[/api/payments/confirm] Pago guardado en DB:', resultPagoCreate);*/
-
-      // Ejemplo: buscar al usuario/estudiante y marcar el compromiso como pagado
-      /*const emailPagador = result.payer;
-      const concepto = result.subject; // 'cuota_cpa' por ejemplo
-      
-      await db_support.pagosDB.updateOne(
-        { email: emailPagador, 'pagos.id': concepto },
-        { $set: { 'pagos.$.estado': 'Pagado', 'pagos.$.fecha': new Date().toLocaleDateString() } }
-      );
-    } else {
-      console.error('[/api/payments/confirm] Hubo un problema con el pago: ', result);
-    }*/
+    console.log(`${tag} Confirmando pago en Flow...`);
     await confirmar_pago_flow(token);
 
     // SIEMPRE responder con un 200 para que Flow sepa que recibiste la notificación
     res.status(200).send('OK');
   } catch (error) {
-    console.error('[/api/payments/confirm] Error en confirmación de pago:', error);
+    console.error(`${tag} Error en confirmación de pago:`, error);
     res.status(500).send('Error');
   }
 });
 
 // Flow redirige al usuario aquí mediante POST
 app.post('/api/payments/return', express.urlencoded({ extended: true }), async (req, res) => {
+  const tag = 'POST [/api/payments/return]';
   const url_panel_usuario = path.join(__dirname, '../views', 'pagos_cpa.html');
   try {
     const { token } = req.body;
     
     // Consultamos el estado para mostrar un mensaje personalizado
     // const result = await flow.send("payment/getStatus", { token }, "GET");
+    console.log(`${tag} Recibida redirección de Flow para el token:`, token);
     const result = await confirmar_pago_flow(token);
     
     // Renderizamos una vista con el resultado
@@ -1640,8 +1599,8 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
       mensaje = "El pago no pudo ser procesado o fue cancelado.";
     }
 
-    console.log('[/api/payments/return] Resultado del pago:', result);
-    console.log('[/api/payments/return] Mensaje para el usuario:', mensaje);
+    console.log(`${tag} Resultado del pago:`, result);
+    console.log(`${tag} Mensaje para el usuario:`, mensaje);
 
     if (!req.session.user && result.payer) {
       // Asumiendo que guardas al usuario en req.session.user o req.session.passport
@@ -1651,20 +1610,20 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
     //const forwarding = `${url_panel_usuario}?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
     const webPath = "/pagos_cpa.html";
     const params = `?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
-    console.log('[/api/payments/return] Redirigiendo al panel de usuario con mensaje...', webPath + params);
+    console.log(`${tag} Redirigiendo al panel de usuario con mensaje...`, webPath + params);
     // Opción A: Redirigir de vuelta al panel con parámetros
     req.session.save((err) => {
       if (err) {
-        console.error("Error guardando la sesión:", err);
+        console.error(`${tag} Error guardando la sesión:`, err);
       }
-      console.log('[/api/payments/return] Redirigiendo al panel con sesión guardada...');
+      console.log(`${tag} Redirigiendo al panel con sesión guardada...`);
       res.redirect(webPath + params);
     });
     //res.redirect(webPath + params);
     
   } catch (error) {
-    console.error('[/api/payments/return] Error al verificar el estado del pago:', error);
-    res.redirect(`${url_panel_usuario}?status=error&msg=Error al verificar el estado del pago`);
+    console.error(`${tag} Error al verificar el estado del pago:`, error);
+    res.redirect(`${url_panel_usuario}?status=error&msg=${encodeURIComponent('Error al verificar el estado del pago')}`);
   }
 });
 

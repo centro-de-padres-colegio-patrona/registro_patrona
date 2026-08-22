@@ -1484,6 +1484,17 @@ app.get('/api/payments/confirm', async (req, res) => {
 async function confirmar_pago_flow(token = '') {
   const tag = '[confirmar_pago_flow]';
 
+  const pagoEnProceso = await db_support.paymentOrdersDB.findOneAndUpdate(
+    { token: token, estado_del_pago: 'esperando_confirmacion' },
+    { $set: { estado_del_pago: 'confirmando' } },
+    { returnDocument: 'after' }
+  );
+  if (!pagoEnProceso) {
+    console.log(`${tag} token: ${token} por confirmar o confirmado.`);
+    return await db_support.paymentOrdersDB.findOne({ token: token });
+    //throw new Error('Pago no encontrado');
+  }
+
   // 1. Consultar el estado real del pago en Flow
   console.log(`${tag} Consultando estado del pago en Flow...`);
   const result = await flow.send("payment/getStatus", { token }, "GET");
@@ -1591,7 +1602,7 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
     let exito = false;
 
     if (result.status === 200) {
-      mensaje = "¡Tu pago ha sido procesado con éxito!";
+      mensaje = "¡Tu pago ha sido procesado con exito!";
       exito = true;
     } else if (result.status === 1) {
       mensaje = "Tu pago aún está pendiente de confirmación.";

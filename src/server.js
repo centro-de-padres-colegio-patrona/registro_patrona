@@ -1614,14 +1614,20 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
     console.log(`${tag} Resultado del pago:`, result);
     console.log(`${tag} Mensaje para el usuario:`, mensaje);
 
-    if (!req.session.user && result.payer) {
+    const optional = typeof result.optional === 'string' ? JSON.parse(result.optional) : result.optional;
+    const payer = result.payer || req.user?.emails?.[0]?.value || result.email || '';
+
+    console.log(`${tag} Payer:`, payer);
+    console.log(`${tag} Optional:`, optional);
+
+    if (!req.session.user && payer) {
       // Asumiendo que guardas al usuario en req.session.user o req.session.passport
-      req.session.user = { email: result.payer }; 
+      req.session.user = { email: payer }; 
     }
 
     //const forwarding = `${url_panel_usuario}?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
     const webPath = "/pagos_cpa.html";
-    const params = `?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
+    const params = `?user_email=${encodeURIComponent(payer)}&hijos=${encodeURIComponent(optional.nombres_hijos)}`;
     console.log(`${tag} Redirigiendo al panel de usuario con mensaje...`, webPath + params);
     // Opción A: Redirigir de vuelta al panel con parámetros
     req.session.save((err) => {

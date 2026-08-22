@@ -1577,6 +1577,7 @@ app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async 
     await confirmar_pago_flow(token);
 
     // SIEMPRE responder con un 200 para que Flow sepa que recibiste la notificación
+    console.log(`${tag} Confirmación de pago procesada correctamente.`);
     res.status(200).send('OK');
   } catch (error) {
     console.error(`${tag} Error en confirmación de pago:`, error);
@@ -1607,7 +1608,7 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
     } else if (result.status === 1) {
       mensaje = "Tu pago aún está pendiente de confirmación.";
     } else {
-      mensaje = "El pago no pudo ser procesado o fue cancelado.";
+      mensaje = "Tu pago no pudo ser procesado o fue cancelado.";
     }
 
     console.log(`${tag} Resultado del pago:`, result);
@@ -2517,7 +2518,6 @@ app.post('/api/mp/create', async (req, res) => {
       urlConfirmation: BASEURL + '/api/mp/confirm',
       urlReturn: BASEURL + '/api/mp/return',
       optional: JSON.stringify(optional),
-      status: 'pending',
       payment_method: 'mercadopago'
     };
     await db_support.paymentOrdersDB.create(paymentOrder);
@@ -2568,7 +2568,7 @@ app.post('/api/mp/confirm', express.json(), async (req, res) => {
         if (orderInDB) {
           await db_support.paymentOrdersDB.findOneAndUpdate(
             { commerceOrder },
-            { $set: { status: 'approved', paymentData: payment } },
+            { $set: { estado_del_pago: 'pagado', paymentData: payment } },
             { returnDocument: 'after' }
           );
 

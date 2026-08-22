@@ -163,7 +163,7 @@ const commerceSchema = new mongoose.Schema({
   flowOrder: String,
   pending_info: Object,
   paymentData: Object,
-  status: String,
+  status: { type: Number , default: 0 },
   statusText: String,
   requestDate: String,
   estado_del_pago: { type: String, required: true, enum: ['esperando_confirmacion', 'confirmando', 'pagado', 'rechazado', 'cancelado'], default: 'esperando_confirmacion' },

@@ -1499,6 +1499,8 @@ async function confirmar_pago_flow(token = '') {
   console.log(`${tag} Consultando estado del pago en Flow...`);
   const result = await flow.send("payment/getStatus", { token }, "GET");
 
+  let resultDbUpdate = pagoEnProceso; // Valor por defecto si no se actualiza
+
   // Verificar si Status es 200
   if (result.status === 200) { // Estado 2 es "Pagado" en Flow
     console.log(`${tag} Pago confirmado exitosamente. commerceOrder:`, result.commerceOrder);
@@ -1526,7 +1528,7 @@ async function confirmar_pago_flow(token = '') {
     //console.log(`${tag} Resultado:`, result);
     //console.log(`${tag} Nombres hijos:`, nombres_hijos);
     
-    const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
+    resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
       { commerceOrder: result.commerceOrder },
       { $set: { ...result, estado_del_pago: 'pagado' } },
       { returnDocument: 'after' }
@@ -1563,7 +1565,7 @@ async function confirmar_pago_flow(token = '') {
     //console.log(`${tag} Pago guardado en DB:`, resultPagoCreate);
     console.log(`${tag} Pago guardado en DB:`);
   }
-  return result;
+  return resultDbUpdate;
 }
 
 // Flow enviará un POST a esta ruta con el token del pago
@@ -1602,10 +1604,10 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
     let mensaje = "";
     let exito = false;
 
-    if (result.status === 200) {
+    if (result.estado_del_pago === 'pagado') {
       mensaje = "¡Tu pago ha sido procesado con exito!";
       exito = true;
-    } else if (result.status === 1) {
+    } else if (result.estado_del_pago === 'esperando_confirmacion') {
       mensaje = "Tu pago aún está pendiente de confirmación.";
     } else {
       mensaje = "Tu pago no pudo ser procesado o fue cancelado.";
@@ -1615,7 +1617,7 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
     console.log(`${tag} Mensaje para el usuario:`, mensaje);
 
     const optional = typeof result.optional === 'string' ? JSON.parse(result.optional) : result.optional;
-    const payer = result.payer || req.user?.emails?.[0]?.value || result.email || '';
+    const payer = result.email || req.user?.emails?.[0]?.value || '';
 
     console.log(`${tag} Payer:`, payer);
     console.log(`${tag} Optional:`, optional);

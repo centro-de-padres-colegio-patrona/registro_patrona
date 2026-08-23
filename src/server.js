@@ -52,12 +52,24 @@ let pasarela_endpoint = 'sandbox'; // 'sandbox' o 'production';
 let flow = null;
 let mp = null;
 {
+  // Obtener el nombre del archivo actual (server.js) y la rama de git
+  const filename = path.basename(__filename);
+  const nombre = 'pasarelas_pago';
   const features_keys = ['flow', 'mercadopago'];
-  fetch(`/api/feature/options?id_organizacion=${encodeURIComponent('server.js')}&id_pagina=${encodeURIComponent(git_branch.currentBranch)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default='sandbox'`)
+  const key_option = 'endpoint';
+  fetch(`${url_api}/api/feature/options?id_organizacion=${encodeURIComponent(filename)}&id_pagina=${encodeURIComponent(nombre)}&key=${encodeURIComponent(key_option)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default=${encodeURIComponent(pasarela_endpoint)}`)
   .then(response => response.json())
-  .then(data => {
-    flow = new FlowApi();
-    mp = new MercadoPagoApi('sandbox');
+  .then(features => {
+    const feature_flow = features.find(f => f.feature === 'flow');
+    if (feature_flow && feature_flow.options && feature_flow.options.endpoint)
+      pasarela_endpoint = feature_flow.options.endpoint;
+    flow = new FlowApi(null, null, pasarela_endpoint);
+    console.log(`Flow API initialized with endpoint: ${pasarela_endpoint}`);
+    const feature_mp = features.find(f => f.feature === 'mercadopago');
+    if (feature_mp && feature_mp.options && feature_mp.options.endpoint)
+      pasarela_endpoint = feature_mp.options.endpoint;
+    mp = new MercadoPagoApi(pasarela_endpoint);
+    console.log(`Mercado Pago API initialized with endpoint: ${pasarela_endpoint}`);
   });
 }
 /// Fin Pasarelas de Pago

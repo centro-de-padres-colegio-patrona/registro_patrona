@@ -11,14 +11,8 @@ const git_branch = require('../backend/git_branch');
 
 //const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
 //const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
-const flow_api_key = config_env.FLOW_API_KEY;
-const flow_secret_key = config_env.FLOW_SECRET_KEY;
-
-const FlowApi = require('./flow_api');
-const flow = new FlowApi();
-
-const MercadoPagoApi = require('./mercado_pago_api');
-const mp = new MercadoPagoApi('sandbox');
+//const flow_api_key = config_env.FLOW_API_KEY;
+//const flow_secret_key = config_env.FLOW_SECRET_KEY;
 
 const { genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
@@ -49,6 +43,24 @@ db_support.connectToDB(database_year_name, url_api);
 
 const path = require('path'); 
 const fs = require('fs');
+
+/// Pasarelas de Pago
+const FlowApi = require('./flow_api');
+const MercadoPagoApi = require('./mercado_pago_api');
+
+let pasarela_endpoint = 'sandbox'; // 'sandbox' o 'production';
+let flow = null;
+let mp = null;
+{
+  const features_keys = ['flow', 'mercadopago'];
+  fetch(`/api/feature/options?id_organizacion=${encodeURIComponent('server.js')}&id_pagina=${encodeURIComponent(git_branch.currentBranch)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default='sandbox'`)
+  .then(response => response.json())
+  .then(data => {
+    flow = new FlowApi();
+    mp = new MercadoPagoApi('sandbox');
+  });
+}
+/// Fin Pasarelas de Pago
 
 // Import the axios library, to make HTTP requests
 const axios = require('axios')

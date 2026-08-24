@@ -224,6 +224,7 @@ async function send_email_from_cpa_account(body) {
       };
     }
 
+    console.log('Using authConfig:', authConfig);
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,

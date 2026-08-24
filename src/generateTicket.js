@@ -107,6 +107,19 @@ async function genEntradaCanvas({ url_server, id_organizacion, id_evento, imagen
     const canvas = createCanvas(fondo.width, fondo.height);
     const ctx = canvas.getContext('2d');
 
+    // Verificar si num_listado es numero y mayor que 1, si no, dejar string vacio
+    console.log(`${tag} num_listado: ${num_listado}, typeof: ${typeof num_listado}`);
+    if (typeof num_listado === 'number' && num_listado < 1) {
+      num_listado = '';
+    } else if (typeof num_listado === 'string') {
+      const num = parseInt(num_listado);
+      if (isNaN(num) || num < 1) {
+        num_listado = '';
+      }
+    }
+    console.log(`${tag} num_listado after check: ${num_listado}, typeof: ${typeof num_listado}`);
+
+
     ctx.drawImage(fondo, 0, 0);
 
     const layout = [
@@ -115,7 +128,7 @@ async function genEntradaCanvas({ url_server, id_organizacion, id_evento, imagen
       { id: 'familia', label: 'Familia: ', text: '$familia', x: 15, y: 415, fontSize: 30 },
       { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 15, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
       { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 15, y: 481, fontSize: 30 },
-      { id: 'jornadaDisplay', label: 'Jornada', text: '$jornadaDisplay', x: 15, y: 514, fontSize: 30 },
+      { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 15, y: 514, fontSize: 30 },
       { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
       { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
       { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },

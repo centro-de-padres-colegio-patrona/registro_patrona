@@ -319,6 +319,7 @@ const EventoSchema = new mongoose.Schema({
   entradas_vendidas: { type: Number, default: 0 },
   entradas_usadas: { type: Number, default: 0 },
   precio_entrada: { type: Number, default: 0 },
+  layout: { type: [Object], default: [{}] },
   url_imagen: { type: String },
   url_imagen_ticket: { type: String },
   imagen_png: { type: Buffer },

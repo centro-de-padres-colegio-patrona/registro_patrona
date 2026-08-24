@@ -72,6 +72,11 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   if ( config_env.TEST_API_BORRAR_ENTRADAS && config_env.TEST_API_BORRAR_ENTRADAS === 'true') {
     test_array.push({test_fn: test_api_borrar_entradas, delay: delay_ms, arguments: url_server});
   }
+
+  if ( config_env.TEST_API_SEND_ENTRADAS_FAMILIA && config_env.TEST_API_SEND_ENTRADAS_FAMILIA === 'true') {
+    test_array.push({test_fn: test_send_entradas, delay: delay_ms, arguments: url_server});
+  }
+
   let test_name = ''
 
   try {
@@ -254,7 +259,51 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
       hora_termino: '17:00',
       hora_apertura_puertas: '08:15',
       descripcion: 'Evento de celebración cultural',
-      imagen_ticket_path: `./img/ticket_fiesta_chilena_2026.png`,
+      imagen_ticket_path: `./img/ticket_fiesta_chilena_v2_2026.png`,
+      layout_tickets: {},
+      cursoBloqueMap: {
+        'PKA': {id: 'PKA', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
+        'PKB': {id: 'PKB', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
+        'KA': {id: 'KA', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
+        'KB': {id: 'KB', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
+        '3A': {id: '3A', jornada: 'manana', bloque: 'bloque_02', color: 'ros_m', hash: 'fiesta_chilena_2026_bloque_02', pases_apoderados: 2, pases_invitados: 2},
+        '3B': {id: '3B', jornada: 'manana', bloque: 'bloque_02', color: 'ros_m', hash: 'fiesta_chilena_2026_bloque_02', pases_apoderados: 2, pases_invitados: 2},
+        '4A': {id: '4A', jornada: 'manana', bloque: 'bloque_02', color: 'ros_m', hash: 'fiesta_chilena_2026_bloque_02', pases_apoderados: 2, pases_invitados: 2},
+        '4B': {id: '4B', jornada: 'manana', bloque: 'bloque_02', color: 'ros_m', hash: 'fiesta_chilena_2026_bloque_02', pases_apoderados: 2, pases_invitados: 2},
+        '1MA': {id: '1MA', jornada: 'manana', bloque: 'bloque_03', color: 'ver_m', hash: 'fiesta_chilena_2026_bloque_03', pases_apoderados: 2, pases_invitados: 2},
+        '2MA': {id: '2MA', jornada: 'manana', bloque: 'bloque_03', color: 'ver_m', hash: 'fiesta_chilena_2026_bloque_03', pases_apoderados: 2, pases_invitados: 2},
+        '3MA': {id: '3MA', jornada: 'manana', bloque: 'bloque_03', color: 'ver_m', hash: 'fiesta_chilena_2026_bloque_03', pases_apoderados: 2, pases_invitados: 2},
+        'HI': {id: 'HI', jornada: 'manana', bloque: 'bloque_03', color: 'ver_m', hash: 'fiesta_chilena_2026_bloque_03', pases_apoderados: 2, pases_invitados: 0},
+        'HJ': {id: 'HJ', jornada: 'manana', bloque: 'bloque_03', color: 'ver_m', hash: 'fiesta_chilena_2026_bloque_03', pases_apoderados: 2, pases_invitados: 0},
+        '1A': {id: '1A', jornada: 'manana', bloque: 'bloque_04', color: 'roj_m', hash: 'fiesta_chilena_2026_bloque_04', pases_apoderados: 2, pases_invitados: 2},
+        '1B': {id: '1B', jornada: 'manana', bloque: 'bloque_04', color: 'roj_m', hash: 'fiesta_chilena_2026_bloque_04', pases_apoderados: 2, pases_invitados: 2},
+        '2A': {id: '2A', jornada: 'manana', bloque: 'bloque_04', color: 'roj_m', hash: 'fiesta_chilena_2026_bloque_04', pases_apoderados: 2, pases_invitados: 2},
+        '2B': {id: '2B', jornada: 'manana', bloque: 'bloque_04', color: 'roj_m', hash: 'fiesta_chilena_2026_bloque_04', pases_apoderados: 2, pases_invitados: 2},
+        '1MB': {id: '1MB', jornada: 'tarde', bloque: 'bloque_05', color: 'azu_t', hash: 'fiesta_chilena_2026_bloque_05', pases_apoderados: 2, pases_invitados: 2},
+        '2MB': {id: '2MB', jornada: 'tarde', bloque: 'bloque_05', color: 'azu_t', hash: 'fiesta_chilena_2026_bloque_05', pases_apoderados: 2, pases_invitados: 2},
+        '3MB': {id: '3MB', jornada: 'tarde', bloque: 'bloque_05', color: 'azu_t', hash: 'fiesta_chilena_2026_bloque_05', pases_apoderados: 2, pases_invitados: 2},
+        'HA': {id: 'HA', jornada: 'tarde', bloque: 'bloque_05', color: 'azu_t', hash: 'fiesta_chilena_2026_bloque_05', pases_apoderados: 0, pases_invitados: 0},
+        '7A': {id: '7A', jornada: 'tarde', bloque: 'bloque_06', color: 'nar_t', hash: 'fiesta_chilena_2026_bloque_06', pases_apoderados: 2, pases_invitados: 2},
+        '7B': {id: '7B', jornada: 'tarde', bloque: 'bloque_06', color: 'nar_t', hash: 'fiesta_chilena_2026_bloque_06', pases_apoderados: 2, pases_invitados: 2},
+        '8A': {id: '8A', jornada: 'tarde', bloque: 'bloque_06', color: 'nar_t', hash: 'fiesta_chilena_2026_bloque_06', pases_apoderados: 2, pases_invitados: 2},
+        '8B': {id: '8B', jornada: 'tarde', bloque: 'bloque_06', color: 'nar_t', hash: 'fiesta_chilena_2026_bloque_06', pases_apoderados: 2, pases_invitados: 2},
+        '5A': {id: '5A', jornada: 'tarde', bloque: 'bloque_07', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_07', pases_apoderados: 2, pases_invitados: 2},
+        '5B': {id: '5B', jornada: 'tarde', bloque: 'bloque_07', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_07', pases_apoderados: 2, pases_invitados: 2},
+        '6A': {id: '6A', jornada: 'tarde', bloque: 'bloque_07', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_07', pases_apoderados: 2, pases_invitados: 2},
+        '6B': {id: '6B', jornada: 'tarde', bloque: 'bloque_07', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_07', pases_apoderados: 2, pases_invitados: 2},
+        '4MA': {id: '4MA', jornada: 'tarde', bloque: 'bloque_08', color: 'ros_t', hash: 'fiesta_chilena_2026_bloque_08', pases_apoderados: 2, pases_invitados: 3},
+        '4MB': {id: '4MB', jornada: 'tarde', bloque: 'bloque_08', color: 'ama_t', hash: 'fiesta_chilena_2026_bloque_08', pases_apoderados: 2, pases_invitados: 3}
+      }
+    },
+    'bloque_huilen_2026': {
+      nombre: 'Bloque Conjunto Folclorico Huilen Fiesta a la Chilena 2026',
+      fecha: '2026-09-05',
+      hora_inicio: '12:00',
+      hora_termino: '13:00',
+      hora_apertura_puertas: '08:15',
+      descripcion: 'Evento de celebración cultural',
+      imagen_ticket_path: `./img/ticket_huilen_2026.png`,
+      layout_tickets: {},
       cursoBloqueMap: {
         'PKA': {id: 'PKA', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
         'PKB': {id: 'PKB', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
@@ -386,8 +435,8 @@ async function test_api_pre_generate_entradas(url_server = 'http://localhost:500
 async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
   const tag = 'test /api/entradas/generar/familia';
   const estudiantes = [
-    'gonzalez perez simona elena',
-    'Gonzalez perez mateo ignacio'
+    'avendano fuenzalida isidora ignacia',
+    //'Gonzalez perez mateo ignacio'
     /*'mendiz pozo constantino panagiotis',
     'morales perez antonia margarita',
     'gutierrez zapata agustin antonio',
@@ -401,7 +450,7 @@ async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
   ]
   try {
     const infoOrganizacion = await db_support.infoOrganizacionDB.findOne({id_organizacion: 'cpa_patrona'});
-    const id_organizacion = infoOrganizacion.id_organizacion;
+    const id_organizacion = 'cpa_patrona'; // infoOrganizacion.id_organizacion;
     const id_evento = 'fiesta_chilena_2026';
     //const nombre_completo = 'herrera messina florencia isidora';
 
@@ -440,7 +489,7 @@ async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
         })
       });
       const entradas = await result.json();
-      console.log('Entradas generadas para la familia:', entradas);
+      console.log(`${tag} Entradas generadas para la familia:`, entradas);
     }
     log_result(tag, 'pass');
   } catch (error) {
@@ -607,12 +656,14 @@ async function test_send_entradas(url_server = 'http://localhost:5001') {
     'diaz rodriguez fernando jesus'*/
     //'morales perez' ,
     //'alarcon salazar',
-    'herrera messina'
+    //'herrera messina'
+    'avendano fuenzalida'
   ]
 
   const destinatarios = {
     'morales perez' : { email_destinatario: 'morales.italo@gmail.com', mensajeCorreo: 'Entrada Familia de Italo!'},
-    'herrera messina': { email_destinatario: 'l.herreramena@gmail.com', mensajeCorreo: 'Entrada Familia de Leo!'},
+    'herrera messina': { email_destinatario: 'leo.herrera.mena@gmail.com', mensajeCorreo: 'Test Entrada!'},
+    'avendano fuenzalida': { email_destinatario: 'leo.herrera.mena', mensajeCorreo: 'Test Entrada!'},
     'alarcon salazar': { email_destinatario: 'patricio.alarcon.matus@gmail.com', mensajeCorreo: 'Entrada Familia de Pato!'}
   }
 

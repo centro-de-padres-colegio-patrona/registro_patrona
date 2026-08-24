@@ -424,6 +424,7 @@ ticketEventoSchema.pre('save', async function (next) {
 const FeatureSchema = new mongoose.Schema({
   feature: { type: String, required: true },
   enabled: { type: Boolean, default: false },
+  options: { type: Object, default: {} }
 });
 
 const FrontEndFeaturesSchema = new mongoose.Schema({

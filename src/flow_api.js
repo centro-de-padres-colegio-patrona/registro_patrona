@@ -29,6 +29,7 @@ class FlowApi {
         this.apiKey = apiKey || Config[endpoint].APIKEY;
         this.secretKey = secretKey || Config[endpoint].SECRETKEY;
         this.apiUrl = Config[endpoint].APIURL;
+        console.log(`FlowApi initialized with endpoint: ${endpoint}, apiKey: ${this.apiKey}, secretKey: ${this.secretKey}, apiUrl: ${this.apiUrl}`);
     }
 
     /**

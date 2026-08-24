@@ -295,6 +295,29 @@
       transform: translateY(-1px);
     }
 
+    .branch-banner {
+      display: none; /* Oculto por defecto */
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(231, 76, 60, 0.9); /* Fondo de advertencia/entorno */
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: pre-line; /* Clave para que \n funcione */
+      text-align: center;    /* Centra ambos textos */
+      line-height: 1.4;      /* Mejora el espaciado entre líneas */
+    }
+
+
+
   </style>
 </head>
 <body>
@@ -368,6 +391,8 @@
       </table>
     </div>
     </div><!-- fin pagos-content -->
+  <div id="branchBanner" class="branch-banner"></div>
+
   </div>
 
   <script>
@@ -381,6 +406,8 @@
     };
     let nombres_hijos = [];
     let parentInfo = null;
+    let num_invitaciones_pagadas = 0;
+    let maximo_alcanzado = false;
 
     /**
      * Obtiene el valor de un parametro de la URL por su nombre
@@ -392,7 +419,7 @@
 
     const id_evento = getParametroURL('id_evento');
     const id_organizacion = getParametroURL('id_organizacion');
-    const id_seccion = window.location.pathname.split('/').pop();
+    const id_pagina = window.location.pathname.split('/').pop();
 
     const curso_map = {
       "Prekínder": 'PK',
@@ -414,7 +441,7 @@
     async function aplicarOpcionesFeature() {
       try {
         const features_keys = ['flow', 'mercadopago', 'btn_pagar'];
-        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_seccion=${encodeURIComponent(id_seccion)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default=false`);
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default=false`);
         //const response = await fetch('/api/feature/options');
         if (!response.ok) {
           throw new Error('Error al obtener la configuración de características');
@@ -427,10 +454,10 @@
         //  { feature: 'btn_pagar', enabled: false } // Habilitar botón de Pagar
         // ]
         const features = await response.json();
-        console.log('Features obtenidos:', features);
+        //console.log('Features obtenidos:', features);
         const feature_flow = features.find(f => f.feature === 'flow');
 
-
+        console.log(`[aplicarOpcionesFeature] `, {feature_flow});
         // 1. Control para la pasarela Flow
         const btnFlow = document.getElementById('btn-pasarela-flow');
         if (btnFlow) {
@@ -515,6 +542,12 @@
                 //console.log('Información del padre encontrada (manual):', parentInfo);
               } else {
                 console.log('No se encontraron padres asociados al usuario (manual).');
+              }
+              if (user_email) {
+                obtenerPagosEntradas(user_email).then(({ compromiso_maximo_alcanzado, numero_entradas }) => {
+                  maximo_alcanzado = compromiso_maximo_alcanzado;
+                  num_invitaciones_pagadas = numero_entradas;
+                });
               }
               resolve();
             })
@@ -850,7 +883,7 @@
           <td>${tipo_pago_descripcion}</td>
           <td>${pago.fecha || '—'}</td>
           <td>${montoFormateado}</td>
-          <td>${pago.payment_method || pago.metodo_pago || '—'}</td>
+          <td>${(pago.payment_method && pago.payment_method !== 'unknown' ? pago.payment_method : null) || (pago.metodo_pago && pago.metodo_pago !== 'unknown' ? pago.metodo_pago : null) || 'Desconocido'}</td>
           <td>${pago.commerce_order || '—'}</td>
           <td><span class="status-pill ${pago.estado === 'Pagado' ? 'status-pagado' : 'status-pendiente'}">${pago.estado}</span></td>
         `;
@@ -984,6 +1017,35 @@
         }
       });
       return compromisos_pagados;
+    }
+
+    async function obtenerPagosEntradas(user_email) {
+      let compromiso_maximo_alcanzado = false;
+      let numero_entradas = 0;
+      try {
+        const configRes = await fetch(`/api/config?email=${encodeURIComponent(currentUser.email || user_email || '')}`);
+        const config = await configRes.json();
+
+        const result = await fetch(`/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
+        });
+        if ( result.status === 200 ) {
+          const pago_entradas = await result.json();
+          const tipo_pase = 'pases_invitados';
+          if ( Object.hasOwn(pago_entradas, tipo_pase )) {
+            for (const pago of pago_entradas[tipo_pase]) {
+              if ( compromiso_maximo_alcanzado ) break;
+              compromiso_maximo_alcanzado = pago.compromiso_maximo_alcanzado;
+              numero_entradas += pago.cantidad;
+            }
+          }
+        }
+        //console.log(`Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}`);
+      } catch (err) {
+        console.log('[mis_datos] Error obteniendo pagos entradas:', err);
+      }
+      return { compromiso_maximo_alcanzado, numero_entradas };
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -1132,9 +1194,18 @@
             `;
           }
 
+          /////////////////////////////////////////////////////////////////////////////////////
+          // Se reemplaza **invitadosRegistrados.length**  por   **num_invitaciones_pagadas**
+          // invitadosRegistrados.length se actualiza en mis_datos.html,
+          // por lo que cuando retorna de un pago, no se actualiza sino hasta 
+          // ingresar a mis_datos.html,
+          // num_invitaciones_pagadas se obtiene desde la API de pagos y refleja el 
+          // estado real de invitaciones pagadas.
+          /////////////////////////////////////////////////////////////////////////////////////
           // Verificar si ya pagó invitaciones (sin CPA) y bloquear la tarjeta
-          const invitadosRegistrados = currentUser.invitados || [];
-          if (invitadosRegistrados.length > 0) {
+          //const invitadosRegistrados = currentUser.invitados || [];
+          //if (invitadosRegistrados.length > 0) {
+          if (num_invitaciones_pagadas > 0) {
             // Calcular máximo permitido según curso
             /*let maxInvPermitidos = 2;
             if (currentUser.hijos && currentUser.hijos.length > 0) {
@@ -1166,16 +1237,17 @@
                         unidades_maximas = Math.max(unidades_maximas, limite_max);
                       }
                     }
-                    console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, invitadosRegistrados.length=${invitadosRegistrados.length}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
-                    if (invitadosRegistrados.length >= unidades_maximas) {
+                    //console.log(`Compromiso '${item.nombre}': unidades_maximas=${unidades_maximas}, invitadosRegistrados.length=${invitadosRegistrados.length}, item.limite_maximo_por_cliente: `, item.limite_maximo_por_cliente);
+                    //if (invitadosRegistrados.length >= unidades_maximas) {
+                    if (num_invitaciones_pagadas >= unidades_maximas) {
                       // Alcanzó el máximo - bloquear
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            ✓ Invitaciones pagadas (${invitadosRegistrados.length})
+                            ✓ Invitaciones pagadas (${num_invitaciones_pagadas})
                           </span>
                           <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
-                            ✓ Invitados asignados (${invitadosRegistrados.length}/${unidades_maximas})
+                            ✓ Invitados asignados (${num_invitaciones_pagadas}/${unidades_maximas})
                           </button>
                         </div>
                       `;
@@ -1186,11 +1258,12 @@
                       }
                     } else {
                       // Aún puede comprar más - mostrar cuántas tiene y dejar habilitado
-                      const faltantes = unidades_maximas - invitadosRegistrados.length;
+                      //const faltantes = unidades_maximas - invitadosRegistrados.length;
+                      const faltantes = unidades_maximas - num_invitaciones_pagadas;
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #f39c12; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            Invitaciones pagadas: ${invitadosRegistrados.length}/${unidades_maximas}
+                            Invitaciones pagadas: ${num_invitaciones_pagadas}/${unidades_maximas}
                           </span>
                           <div style="margin-top:4px;">
                             <input type="checkbox" id="check-${item.id}" class="pago-check" data-id="${item.id}" data-monto="${item.monto}" data-monto-base="${item.monto}" onchange="actualizarTotal()">
@@ -1752,6 +1825,34 @@
         // Siempre actualizar el total (esté o no el checkbox marcado)
         actualizarTotal();
     }
+
+    async function verificarBranch() {
+      try {
+        const [resCurrent, resProd, resDatabaseName] = await Promise.all([
+          fetch('/api/branch/current'),
+          fetch('/api/branch/produccion'),
+          fetch('/api/consulta/database/name') 
+        ]);
+
+        if (!resCurrent.ok || !resProd.ok || !resDatabaseName.ok) return;
+
+        const { currentBranch } = await resCurrent.json();
+        const { productionBranch } = await resProd.json();
+        const { currentDatabaseName } = await resDatabaseName.json();
+
+        // Si los branches son válidos y distintos de producción, mostrar el banner
+        if (currentBranch && productionBranch && currentBranch !== productionBranch) {
+          const banner = document.getElementById('branchBanner');
+          banner.textContent = `Entorno de Pruebas: ${currentBranch}\nBase de Datos: ${currentDatabaseName}`;
+          banner.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Error al obtener la información del branch:', err);
+      }
+    }
+
+    // Ejecutar la verificación al cargar la página
+    verificarBranch();  
 
   </script>
 </body>

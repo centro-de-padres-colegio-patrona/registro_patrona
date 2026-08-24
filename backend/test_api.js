@@ -30,6 +30,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_consultar_hijos, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_consultar_apoderados, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_consistencia_users_hijos, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_post_api_correos_tipo, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_delete_user, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_consulta_hijos_registrados, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_activar_entradas, delay: delay_ms, arguments: url_server});
@@ -41,8 +42,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   //test_array.push({test_fn: test_get_api_correos_tipo, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_api_pagos, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_max_invitados, delay: delay_ms, arguments: url_server});
-  //test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_add_pase_rule, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_api_consulta_listas_curso, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_api_branch, delay: delay_ms, arguments: url_server});
 
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
@@ -65,6 +68,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     test_array.push({test_fn: test_api_entradas_familia, delay: delay_ms, arguments: url_server});
   }
 
+  console.log(`config_env.TEST_API_BORRAR_ENTRADAS: ${config_env.TEST_API_BORRAR_ENTRADAS}`);
+  if ( config_env.TEST_API_BORRAR_ENTRADAS && config_env.TEST_API_BORRAR_ENTRADAS === 'true') {
+    test_array.push({test_fn: test_api_borrar_entradas, delay: delay_ms, arguments: url_server});
+  }
   let test_name = ''
 
   try {
@@ -870,7 +877,7 @@ async function test_anular_entradas(url_server = 'http://localhost:5001') {
   const id_evento = 'fiesta_chilena_2026';
   const user_email = 'l.herreramena@gmail.com';
   const familias = [
-    "gonzalez perez"
+    "aldea vargas"
   ];
 
   familias.forEach( async familia => {
@@ -1311,5 +1318,94 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
     log_result(tag, 'fail');
   }
 }
+
+async function test_api_borrar_entradas(url_server = 'http://localhost:5001') {
+  const tag = '[test DELETE /api/entrada/borrar]';
+  const id_organizacion = 'cpa_patrona';
+  const id_evento = 'fiesta_chilena_2026';
+  const folios = [2785, 2786, 2787, 2788, 2789, 2790];
+
+  // Borrando Entradas anteriores
+  const drop_result = await fetch (`${url_server}/api/entradas?id_evento=${encodeURIComponent(id_evento)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+  });
+
+  let test_result = 'pass';
+  try {
+    for (const folio of folios) {
+      const result = await fetch(`${url_server}/api/entrada/borrar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&folio=${encodeURIComponent(folio)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if (result.status !== 200) {
+        console.log(`${tag} Error al borrar la entrada con folio ${folio}. Status: ${result.status}`);
+        test_result = 'fail';
+      } else {
+        const response = await result.json();
+        console.log(`${tag} Entrada con folio ${folio} borrada exitosamente: `, response);
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+    test_result = 'fail';
+  }
+}
+
+
+async function test_api_consulta_listas_curso(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/consulta/listas_curso]';
+  const cursos_under_test = [
+    { curso: '4M', seccion: 'A' },
+    { curso: 'PK', seccion: 'B' }
+  ];
+  const id_organizacion = 'cpa_patrona';
+  const cpaPagado = false; // Cambia esto según tus necesidades
+  const hermanos = false; // Cambia esto según tus necesidades
+
+  for (const { curso, seccion } of cursos_under_test) {
+      const query = new URLSearchParams({
+      id_organizacion: id_organizacion,
+      curso: curso + seccion,
+      cpa_pagado: cpaPagado,
+      hermanos: hermanos
+    });
+
+    try {
+      const res = await fetch(`${url_server}/api/consulta/listas_curso?${query.toString()}`);
+      if (res.ok) {
+        const estudiantesCache = (await res.json()).alumnos || [];
+        console.log(`${tag} Estudiantes obtenidos:`, estudiantesCache);
+      } else {
+        console.log(`${tag} Error al consultar listas de curso. Status: ${res.status}`);
+      }
+    } catch (err) {
+      console.error(`${tag} Error al consultar listas por curso:`, err);
+    }
+  }
+}
+
+
+async function test_api_branch(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/branch]';
+  try {
+    const consultas = ['branch/produccion', 'branch/current', 'consulta/database/name'];
+    for (const consulta of consultas) {
+      const result = await fetch(`${url_server}/api/${consulta}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 ) {
+        const response = await result.json();
+        console.log(`${tag} Nombre Branch de ${consulta}: `, response);
+      } else {
+        console.log(`${tag} Error al consultar branch. Status: ${result.status}`);
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+  }
+}
+
 
 module.exports.lauch_test_api = lauch_test_api;

@@ -546,6 +546,8 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
 
 
 async function hasSupervisorAccessRights(user_email) {
+  if (!user_email)
+    return false;
   const perfil = await db_support.perfilesDB.findOne({email: user_email});
   if (!perfil) return false;
   return await db_support.hasSupervisorAccessRights(perfil.rol);
@@ -904,18 +906,23 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
       // Si user_email no es administrador, entonces Verificar si folio es entrada de la familia de user_email
       const ticket = await db_support.TicketEventoDB.findOne({ id_organizacion, id_evento, folio: parseInt(folio) });
 
+      if (!ticket) {
+        return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
+      }
+
       if (ticket.estado === estado ) {
         const err_msg = `ticket ${folio} ya esta ${estado}`;
         console.log(`${tag} Error: ${err_msg}`);
         return res.status(404).json({ error: err_msg });
       }
 
-      if (!ticket) {
-        return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
-      }
-
-      if (!ticket.usado) {
+      /*if (!ticket.usado) {
         return res.status(409).json({ error: 'Este ticket ya está pendiente' });
+      }*/
+      if (ticket.estado !== 'activa' && !esSupervisor) {
+        const err_msg = `ticket ${folio} no está activo y el usuario no tiene privilegios para desactivarlo`;
+        console.log(`${tag} Error: ${err_msg}`);
+        return res.status(403).json({ error: err_msg });
       }
 
       const result = await db_support.TicketEventoDB.findOneAndUpdate(
@@ -1349,7 +1356,7 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
       id_familia = ticketInfo.familia;
     }
     if (id_familia) {
-      const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 });
+      const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 }).lean();
       if (tickets) {
         console.log(`${tag} folios: ${tickets.map(t => t.folio)}`);
         res.status(200).json(tickets);
@@ -1368,6 +1375,49 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
   }
 });
 
+
+router.delete('/entrada/familia', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entrada/familia]';
+  try {
+    const { id_organizacion, id_evento, user_email } = req.query;
+
+    if (!id_organizacion || !id_evento || !user_email) {
+      return res.status(400).json({ error: 'Faltan parámetros requeridos: id_organizacion, id_evento, user_email' });
+    }
+
+    // Buscar entradas de la familia en la base de datos
+    // 1. Buscar usuario por email
+    const userInfo = await db_support.usersDB.findOne({ email: user_email });
+    if (!userInfo) {
+      return res.status(404).json({ error: `Usuario con email ${user_email} no encontrado` });
+    }
+
+    // 2. Verificar si el usuario tiene hijos y obtener la familia
+    const { hijos } = userInfo;
+    if (!hijos || !hijos.length) {
+      return res.status(404).json({ error: `Usuario con email ${user_email} no tiene hijos enrolados` });
+    }
+
+    // 3. Obtener la familia del primer hijo (asumiendo que todos los hijos pertenecen a la misma familia)
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': hijos[0].nombre }).lean();
+    const familia = familiaInfo ? familiaInfo.nombre_familia : null;
+    if (!familia) {
+      return res.status(404).json({ error: `No se encontró información de familia para el usuario con email ${user_email}` });
+    }
+    
+    // Eliminar entradas de la familia
+    const deleteResult = await db_support.TicketEventoDB.deleteMany({ id_organizacion, id_evento, familia });
+
+    console.log(`${tag} Entradas de la familia ${familia} eliminadas correctamente. Total eliminadas: ${deleteResult.deletedCount}`);
+
+    res.status(200).json({
+      deletedCount: deleteResult.deletedCount
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: `${tag} Error no especifico` });
+  }
+});
 
 
 router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
@@ -1419,7 +1469,7 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
   }
 });
 
-async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, save_file) {
+async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, save_file, user_email) {
   const tag = '[generarEntradaParaFamilia]';
   const lista_entradas = [];
   // Detecta si está en producción según NODE_ENV o si existe URL_SERVER
@@ -1432,9 +1482,10 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
   try {
     //console.log(`Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
     // Buscar la familia en la base de datos usando el nombre completo del estudiante
-    const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': nombre_completo });
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': nombre_completo }).lean();
     const { nombre_familia, hermanos } = familiaInfo || {};
 
+    console.log(`${tag}:1440 hermanos: `, hermanos);
     // Arreglos
     const cursos = new Set();
     const jornadas = new Set();
@@ -1449,6 +1500,7 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
 
     // Buscar Cursos
     for (const nombre_estudiante of hermanos || []) {
+      console.log(`${tag}:1455 nombre estudiante: `, nombre_estudiante)
       const estudianteInfo = await db_support.nombreCursoMapDB.findOne({ 'id': nombre_estudiante });
       const curso = estudianteInfo.value;
       cursos.add(curso);
@@ -1460,9 +1512,11 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
       const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
       const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
       const persona = { ...infoPersona, nombre_completo: nombre_estudiante, curso, num_listado};
+      console.log(`${tag}:1467 adding estudiante: `, persona);
       personas.push(persona);
     }
 
+    console.log(`${tag}:1470 largo hermanos: ${hermanos.length}, max_apoderados: ${max_apoderados}, max_invitados: ${max_invitados}, largo personas: ${personas.length}`);
     const jornada = [...jornadas].join('/');
     const bloque_str = [...bloques].toSorted().join('/').replaceAll('_', ' ');
 
@@ -1483,6 +1537,7 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
     }
 
     for ( const entrada of personas ) {
+      console.log(`${tag}:1490 crear entrada para: `, entrada);
       // Buscar si la entrada ya existe en la base de datos
       const existingEntry = await db_support.TicketEventoDB.findOne({
         id_organizacion: entrada.id_organizacion,
@@ -1493,9 +1548,9 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
       });
 
       if (existingEntry) {
-        if (existingEntry.estado === 'anulada' || existingEntry.estado === 'inactiva') {
+        if ((existingEntry.estado === 'anulada' || existingEntry.estado === 'inactiva') && ( await hasSupervisorAccessRights(user_email))){
           const prev_estado = existingEntry.estado;
-          console.log(`${tag} La entrada para ${entrada.nombre_completo} estaba ${prev_estado}. Se reactivará. Folio: ${existingEntry.folio}`);
+          console.log(`${tag}:1503 La entrada para ${entrada.nombre_completo} estaba ${prev_estado}. Se reactivará. Folio: ${existingEntry.folio}`);
           await db_support.TicketEventoDB.findOneAndUpdate(
             { _id: existingEntry._id },
             { 
@@ -1518,7 +1573,7 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
             }
           );
         } else
-          console.log(`${tag} La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
+          console.log(`${tag}:1526 La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
         if (entrada.tipo === 'estudiante') {
           lista_entradas.push(entrada.nombre_completo);
         }
@@ -1526,6 +1581,7 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
       }
 
       // Si la entrada no existe, crearla mediante la API
+      console.log(`${tag}:1534 Creando la entrada...`);
       const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
@@ -1533,7 +1589,7 @@ async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_tick
       });
       if (result_create.status != 200 ) {
         const errBody = await result_create.json().catch(() => ({ error: 'Error no especificado' }));
-        console.log(`${tag} La entrada para ${entrada.nombre_completo} no se pudo crear. status: ${result_create.status} | error: ${errBody.error}`);
+        console.log(`${tag}:1542 La entrada para ${entrada.nombre_completo} no se pudo crear. status: ${result_create.status} | error: ${errBody.error}`);
         continue;
       }
       if (entrada.tipo === 'estudiante') {
@@ -1555,7 +1611,8 @@ router.post('/entradas/generar/familia', apiKeyAuth, async (req, res) => {
     if (!id_organizacion || !id_evento || !nombre_completo) {
       return res.status(400).json({ error: 'Faltan parámetros: id_organizacion, id_evento y nombre_completo son requeridos' });
     }
-
+    //console.log(`${tag}:1565 curso_bloques: `, curso_bloques);
+    //console.log(`${tag}:1566 curso_bloques: `, JSON.stringify(curso_bloques));
     const nombres_estudiantes = await generarEntradaParaFamilia(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, save_file);
     
     console.log(`${tag} Entradas generadas para la familia del estudiante ${nombre_completo}: ${nombres_estudiantes.join(', ')}`);
@@ -1577,7 +1634,7 @@ router.delete('/entradas', apiKeyAuth, async (req, res) => {
     const filter = id_evento ? { id_evento } : {};
     const drop_result = await db_support.TicketEventoDB.deleteMany(filter);
     // Modificar el numero total de entradas del evento id_evento
-    const eventos = await db_support.EventDB.find({id_evento});
+    const eventos = await db_support.EventDB.find({id_evento}).lean();
     for ( const evento of eventos )
     {
       evento.total_entradas = 0;

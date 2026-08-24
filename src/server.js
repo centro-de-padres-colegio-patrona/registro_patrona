@@ -340,6 +340,7 @@ const apiCorreosTipoDBRouter = require('../backend/api_correos_tipo');
 const apiPagosRouter = require('../backend/api_pagos');
 const apiCorreosRouter = require('../backend/api_correos');
 const apiFeatures = require('../backend/api_feature');
+const apiBranch = require('../backend/api_branch');
 
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
@@ -353,6 +354,7 @@ app.use('/api', apiCorreosTipoDBRouter);
 app.use('/api', apiPagosRouter);
 app.use('/api', apiCorreosRouter);
 app.use('/api', apiFeatures);
+app.use('/api', apiBranch);
 
 
 // Ruta para la página "hello world" (index.html)
@@ -1482,9 +1484,22 @@ app.get('/api/payments/confirm', async (req, res) => {
 async function confirmar_pago_flow(token = '') {
   const tag = '[confirmar_pago_flow]';
 
+  const pagoEnProceso = await db_support.paymentOrdersDB.findOneAndUpdate(
+    { token: token, estado_del_pago: 'esperando_confirmacion' },
+    { $set: { estado_del_pago: 'confirmando' } },
+    { returnDocument: 'after' }
+  );
+  if (!pagoEnProceso) {
+    console.log(`${tag} token: ${token} por confirmar o confirmado.`);
+    return await db_support.paymentOrdersDB.findOne({ token: token });
+    //throw new Error('Pago no encontrado');
+  }
+
   // 1. Consultar el estado real del pago en Flow
   console.log(`${tag} Consultando estado del pago en Flow...`);
   const result = await flow.send("payment/getStatus", { token }, "GET");
+
+  let resultDbUpdate = pagoEnProceso; // Valor por defecto si no se actualiza
 
   // Verificar si Status es 200
   if (result.status === 200) { // Estado 2 es "Pagado" en Flow
@@ -1510,15 +1525,16 @@ async function confirmar_pago_flow(token = '') {
     }
 
     // Guardar el resultado en la base de datos
-    console.log(`${tag} Resultado:`, result);
-    console.log(`${tag} Nombres hijos:`, nombres_hijos);
+    //console.log(`${tag} Resultado:`, result);
+    //console.log(`${tag} Nombres hijos:`, nombres_hijos);
     
-    const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
+    resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
       { commerceOrder: result.commerceOrder },
       { $set: { ...result, estado_del_pago: 'pagado' } },
       { returnDocument: 'after' }
     );
-    console.log(`${tag} Resultado guardado en DB:`, resultDbUpdate);
+    //console.log(`${tag} Resultado guardado en DB:`, resultDbUpdate);
+    console.log(`${tag} payment updated a pagado:`);
 
     //console.log(`${tag} result.optional:`, result.optional);
     //const nombres_hijos = result.optional.nombres_hijos.split(',');
@@ -1544,84 +1560,43 @@ async function confirmar_pago_flow(token = '') {
       cantidades: resultDbUpdate.cantidades || {},
       email_apoderado: result.payer
     }
-    console.log(`${tag} Pago a guardar en DB:`, pago);
+    //console.log(`${tag} Pago a guardar en DB:`, pago);
     const resultPagoCreate = await db_support.pagosDB.create(pago);
-    console.log(`${tag} Pago guardado en DB:`, resultPagoCreate);
+    //console.log(`${tag} Pago guardado en DB:`, resultPagoCreate);
+    console.log(`${tag} Pago guardado en DB:`);
   }
-  return result;
+  return resultDbUpdate;
 }
 
 // Flow enviará un POST a esta ruta con el token del pago
 app.post('/api/payments/confirm', express.urlencoded({ extended: true }), async (req, res) => {
+  const tag = 'POST [/api/payments/confirm]';
   try {
     const { token } = req.body;
-    console.log('[/api/payments/confirm] Recibida confirmación de Flow para el token:', token);
+    console.log(`${tag} Recibida confirmación de Flow para el token:`, token);
 
-    // 1. Consultar el estado real del pago en Flow
-    /*console.log('[/api/payments/confirm] Consultando estado del pago en Flow...');
-    const result = await flow.send("payment/getStatus", { token }, "GET");
-    console.log('[/api/payments/confirm] Resultado:', result);
-    if (result.status === 200) { // Estado 2 es "Pagado" en Flow
-      console.log('[/api/payments/confirm] Pago confirmado exitosamente:', result.commerceOrder);
-      const nombres_hijos = result.optional.nombres_hijos.split(',');
-      const optional = {...result.optional};
-      result.optional = JSON.stringify(optional);
-      // 2. AQUÍ ACTUALIZAS TU BASE DE DATOS
-      //const resultDbCreate = await db_support.paymentOrdersDB.create(result);
-      const resultDbUpdate = await db_support.paymentOrdersDB.findOneAndUpdate(
-        { commerceOrder: result.commerceOrder },
-        { $set: { ...result, estado_del_pago: 'pagado' } },
-        { returnDocument: 'after' }
-      );
-      console.log('[/api/payments/confirm] Resultado guardado en DB:', resultDbUpdate);
-
-      const pago = {
-        id: nombres_hijos[0],
-        num_folio: result.commerceOrder,
-        tipo: 'flow',
-        subtipo: result.subject || '',
-        cuota_cpa: result.subject === 'cuota_cpa' || result.subject === 'Cuota CPA',
-        monto: result.amount,
-        cantidad_agendas: 0,
-        entrega_agendas: 0,
-        fecha: result.requestDate,
-        comentarios: '',
-        entradas_pagadas: 0,
-        payment_method: 'flow',
-        commerce_order: result.commerceOrder,
-      }
-      const resultPagoCreate = await db_support.pagosDB.create(pago);
-      console.log('[/api/payments/confirm] Pago guardado en DB:', resultPagoCreate);*/
-
-      // Ejemplo: buscar al usuario/estudiante y marcar el compromiso como pagado
-      /*const emailPagador = result.payer;
-      const concepto = result.subject; // 'cuota_cpa' por ejemplo
-      
-      await db_support.pagosDB.updateOne(
-        { email: emailPagador, 'pagos.id': concepto },
-        { $set: { 'pagos.$.estado': 'Pagado', 'pagos.$.fecha': new Date().toLocaleDateString() } }
-      );
-    } else {
-      console.error('[/api/payments/confirm] Hubo un problema con el pago: ', result);
-    }*/
+    console.log(`${tag} Confirmando pago en Flow...`);
     await confirmar_pago_flow(token);
 
     // SIEMPRE responder con un 200 para que Flow sepa que recibiste la notificación
+    console.log(`${tag} Confirmación de pago procesada correctamente.`);
     res.status(200).send('OK');
   } catch (error) {
-    console.error('[/api/payments/confirm] Error en confirmación de pago:', error);
+    console.error(`${tag} Error en confirmación de pago:`, error);
     res.status(500).send('Error');
   }
 });
 
 // Flow redirige al usuario aquí mediante POST
 app.post('/api/payments/return', express.urlencoded({ extended: true }), async (req, res) => {
+  const tag = 'POST [/api/payments/return]';
   const url_panel_usuario = path.join(__dirname, '../views', 'pagos_cpa.html');
   try {
     const { token } = req.body;
     
     // Consultamos el estado para mostrar un mensaje personalizado
     // const result = await flow.send("payment/getStatus", { token }, "GET");
+    console.log(`${tag} Recibida redirección de Flow para el token:`, token);
     const result = await confirmar_pago_flow(token);
     
     // Renderizamos una vista con el resultado
@@ -1629,40 +1604,46 @@ app.post('/api/payments/return', express.urlencoded({ extended: true }), async (
     let mensaje = "";
     let exito = false;
 
-    if (result.status === 200) {
-      mensaje = "¡Tu pago ha sido procesado con éxito!";
+    if (result.estado_del_pago === 'pagado') {
+      mensaje = "¡Tu pago ha sido procesado con exito!";
       exito = true;
-    } else if (result.status === 1) {
+    } else if (result.estado_del_pago === 'esperando_confirmacion') {
       mensaje = "Tu pago aún está pendiente de confirmación.";
     } else {
-      mensaje = "El pago no pudo ser procesado o fue cancelado.";
+      mensaje = "Tu pago no pudo ser procesado o fue cancelado.";
     }
 
-    console.log('[/api/payments/return] Resultado del pago:', result);
-    console.log('[/api/payments/return] Mensaje para el usuario:', mensaje);
+    console.log(`${tag} Resultado del pago:`, result);
+    console.log(`${tag} Mensaje para el usuario:`, mensaje);
 
-    if (!req.session.user && result.payer) {
+    const optional = typeof result.optional === 'string' ? JSON.parse(result.optional) : result.optional;
+    const payer = result.email || req.user?.emails?.[0]?.value || '';
+
+    console.log(`${tag} Payer:`, payer);
+    console.log(`${tag} Optional:`, optional);
+
+    if (!req.session.user && payer) {
       // Asumiendo que guardas al usuario en req.session.user o req.session.passport
-      req.session.user = { email: result.payer }; 
+      req.session.user = { email: payer }; 
     }
 
     //const forwarding = `${url_panel_usuario}?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
     const webPath = "/pagos_cpa.html";
-    const params = `?user_email=${encodeURIComponent(result.payer)}&hijos=${encodeURIComponent(result.optional.nombres_hijos)}`;
-    console.log('[/api/payments/return] Redirigiendo al panel de usuario con mensaje...', webPath + params);
+    const params = `?user_email=${encodeURIComponent(payer)}&hijos=${encodeURIComponent(optional.nombres_hijos)}`;
+    console.log(`${tag} Redirigiendo al panel de usuario con mensaje...`, webPath + params);
     // Opción A: Redirigir de vuelta al panel con parámetros
     req.session.save((err) => {
       if (err) {
-        console.error("Error guardando la sesión:", err);
+        console.error(`${tag} Error guardando la sesión:`, err);
       }
-      console.log('[/api/payments/return] Redirigiendo al panel con sesión guardada...');
+      console.log(`${tag} Redirigiendo al panel con sesión guardada...`);
       res.redirect(webPath + params);
     });
     //res.redirect(webPath + params);
     
   } catch (error) {
-    console.error('[/api/payments/return] Error al verificar el estado del pago:', error);
-    res.redirect(`${url_panel_usuario}?status=error&msg=Error al verificar el estado del pago`);
+    console.error(`${tag} Error al verificar el estado del pago:`, error);
+    res.redirect(`${url_panel_usuario}?status=error&msg=${encodeURIComponent('Error al verificar el estado del pago')}`);
   }
 });
 
@@ -1811,7 +1792,7 @@ app.get('/api/mi-perfil', async (req, res) => {
     }
 
     // Determinar el rol principal por jerarquía
-    const jerarquia = ['administrador', 'supervisor', 'presidente', 'validador', 'apoderado'];
+    const jerarquia = ['administrador', 'supervisor', 'presidente', 'validador', 'tester', 'apoderado'];
     const roles = perfiles.filter(p => p.activo !== false).map(p => p.rol);
     const rolPrincipal = jerarquia.find(r => roles.includes(r)) || 'apoderado';
     const perfilPrincipal = perfiles.find(p => p.rol === rolPrincipal) || perfiles[0];
@@ -1850,7 +1831,7 @@ app.post('/api/perfiles', express.json(), async (req, res) => {
     if (!email || !rut || !nombre_completo || !rol) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
     }
-    const rolesValidos = ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente'];
+    const rolesValidos = ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente', 'tester'];
     if (!rolesValidos.includes(rol)) {
       return res.status(400).json({ error: `Rol inválido. Opciones: ${rolesValidos.join(', ')}` });
     }
@@ -1895,9 +1876,8 @@ app.put('/api/perfiles/:email', express.json(), async (req, res) => {
     // Si se está actualizando curso_asignado, buscar específicamente el perfil de presidente
     if (curso_asignado !== undefined) {
       queryFilter.rol = 'presidente';
-    } else if (rol !== undefined) {
-      queryFilter.rol = rol;
     }
+    // Para edición general, no filtrar por rol (permite cambiar el rol del perfil)
 
     console.log('[PUT /api/perfiles] Buscando con filtro:', JSON.stringify({email: emailParam, ...queryFilter}));
 
@@ -2082,6 +2062,40 @@ app.post('/api/actualizar_cuota_cpa', express.json(), async (req, res) => {
     res.json({ status: 'ok' });
   } catch (error) {
     console.error('[/api/actualizar_cuota_cpa] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Actualizar estado CPA por nombre de alumno (sin apoderado registrado)
+app.post('/api/actualizar_cuota_cpa_alumno', express.json(), async (req, res) => {
+  try {
+    const { nombre_alumno, cuota_cpa } = req.body;
+    if (!nombre_alumno) return res.status(400).json({ error: 'Nombre del alumno requerido' });
+
+    if (cuota_cpa) {
+      const pagoExistente = await db_support.pagosDB.findOne({ id: nombre_alumno, tipo: 'cuota_cpa' });
+      if (!pagoExistente) {
+        await db_support.pagosDB.create({
+          id: nombre_alumno,
+          tipo: 'cuota_cpa',
+          cuota_cpa: true,
+          monto: 20000,
+          fecha: new Date().toLocaleDateString('es-CL'),
+          payment_method: 'manual',
+          commerce_order: 'manual'
+        });
+      } else {
+        await db_support.pagosDB.updateOne({ _id: pagoExistente._id }, { $set: { cuota_cpa: true } });
+      }
+    } else {
+      await db_support.pagosDB.deleteMany({ id: nombre_alumno, tipo: 'cuota_cpa' });
+      await db_support.pagosDB.updateMany({ id: nombre_alumno, cuota_cpa: true }, { $set: { cuota_cpa: false } });
+    }
+
+    console.log(`[/api/actualizar_cuota_cpa_alumno] ${nombre_alumno} -> cuota_cpa: ${cuota_cpa}`);
+    res.json({ status: 'ok' });
+  } catch (error) {
+    console.error('[/api/actualizar_cuota_cpa_alumno] Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2512,7 +2526,6 @@ app.post('/api/mp/create', async (req, res) => {
       urlConfirmation: BASEURL + '/api/mp/confirm',
       urlReturn: BASEURL + '/api/mp/return',
       optional: JSON.stringify(optional),
-      status: 'pending',
       payment_method: 'mercadopago'
     };
     await db_support.paymentOrdersDB.create(paymentOrder);
@@ -2563,7 +2576,7 @@ app.post('/api/mp/confirm', express.json(), async (req, res) => {
         if (orderInDB) {
           await db_support.paymentOrdersDB.findOneAndUpdate(
             { commerceOrder },
-            { $set: { status: 'approved', paymentData: payment } },
+            { $set: { estado_del_pago: 'pagado', paymentData: payment } },
             { returnDocument: 'after' }
           );
 

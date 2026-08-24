@@ -163,10 +163,10 @@ const commerceSchema = new mongoose.Schema({
   flowOrder: String,
   pending_info: Object,
   paymentData: Object,
-  status: String,
+  status: { type: Number , default: 0 },
   statusText: String,
   requestDate: String,
-  estado_del_pago: { type: String, required: true, enum: ['esperando_confirmacion', 'pagado', 'rechazado', 'cancelado'], default: 'esperando_confirmacion' },
+  estado_del_pago: { type: String, required: true, enum: ['esperando_confirmacion', 'confirmando', 'pagado', 'rechazado', 'cancelado'], default: 'esperando_confirmacion' },
   pasarela_de_pagos: {type: String, required: true, enum: ['flow', 'transbank', "mercado pago"], default: 'flow'},
   compromisos_de_pago: Array,
   cantidades: Object,
@@ -232,7 +232,7 @@ const perfilSchema = new mongoose.Schema({
   email: { type: String, required: true },
   rut: { type: String, required: true },
   nombre_completo: { type: String, required: true },
-  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente'] },
+  rol: { type: String, required: true, enum: ['administrador', 'apoderado', 'validador', 'supervisor', 'presidente', 'tester'] },
   pagina_inicio: { type: String, default: '' },
   curso_asignado: { type: String, default: '' },
   activo: { type: Boolean, default: true },
@@ -314,7 +314,7 @@ const EventoSchema = new mongoose.Schema({
   hora_inicio: { type: String },
   hora_termino: { type: String },
   hora_apertura_puertas: { type: String },
-  regla_de_negocios_entradas: { type: [Object] },
+  regla_de_negocios_entradas: { type: Object },
   entradas_disponibles: { type: Number, default: 0 },
   entradas_vendidas: { type: Number, default: 0 },
   entradas_usadas: { type: Number, default: 0 },
@@ -429,7 +429,7 @@ const FeatureSchema = new mongoose.Schema({
 const FrontEndFeaturesSchema = new mongoose.Schema({
   id_organizacion: { type: String, required: true },
   //id_evento: { type: String, required: true },
-  id_seccion: { type: String, required: true },
+  id_pagina: { type: String, required: true },
   features: { type: [FeatureSchema], default: [] }
 });
 
@@ -462,7 +462,7 @@ function hasAdministradorAccessRights(rol) {
 
 
 
-
+let current_database_name = '';
 
 async function connectToDB(year = '', url_server = 'http://localhost:5001') {
   //return;
@@ -482,6 +482,7 @@ async function connectToDB(year = '', url_server = 'http://localhost:5001') {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
+    current_database_name = database_name;
     console.log('Conexión exitosa a MongoDB Atlas');
     test_api.lauch_test_api(500, url_server, db_uri);
     run_db_tests();
@@ -587,6 +588,8 @@ module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;
 module.exports.hasAdministradorAccessRights = hasAdministradorAccessRights;
+
+module.exports.current_database_name = current_database_name;
 
 //module.exports.ticketsDB = mongoose.model('tickets', ticketSchema, 'tickets');
 

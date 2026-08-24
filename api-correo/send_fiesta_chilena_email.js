@@ -242,6 +242,7 @@ async function send_email_from_cpa_account(body) {
       attachments
     };
 
+    console.log('Sending email with options:', mailOptions);
     const info = await transporter.sendMail(mailOptions);
     console.log('Correo enviado exitosamente:', info.response);
     return { status: 'ok', message: 'Correo enviado', response: info.response };

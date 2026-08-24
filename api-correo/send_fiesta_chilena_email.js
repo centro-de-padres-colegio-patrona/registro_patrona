@@ -4,6 +4,8 @@ const fs = require('fs');
 
 const { genEntradaCanvas } = require('../src/generateTicket');
 const db_support = require('../backend/db_support');
+const git_branch = require('../backend/git_branch');
+const config_env = require('../src/setup/config/env.js');
 
 
 async function send_fiesta_chilena_email(body) {
@@ -224,16 +226,32 @@ async function send_email_from_cpa_account(body) {
       };
     }
 
-    console.log('Using authConfig:', authConfig);
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: authConfig,
-      tls: {
-        rejectUnauthorized: false
+    //console.log('Using authConfig:', authConfig);
+    const transporterOptions = git_branch.currentBranch === config_env.GIT_BRANCH_PRODUCTION ?
+      {
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: authConfig,
+        tls: {
+          rejectUnauthorized: false
+        }
       }
-    });
+      :
+      {
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // Debe ser false para el puerto 587 (usa STARTTLS)
+        auth: authConfig,
+        connectionTimeout: 10000, // 10 segundos de espera para conectar
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        tls: {
+          rejectUnauthorized: false
+        }
+      };
+
+    const transporter = nodemailer.createTransport(transporterOptions);
 
     const mailOptions = {
       from: `Centro de Padres Patrona <${cpaConfig.user}>`,

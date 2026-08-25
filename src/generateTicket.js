@@ -122,13 +122,26 @@ async function genEntradaCanvas({ url_server, id_organizacion, id_evento, imagen
 
     ctx.drawImage(fondo, 0, 0);
 
-    const layout = [
+    /*const layout = [
       { id: 'font', value: 'PottiSreeramulu'},
       //{ id: 'offset', text: '', x: 40, y: 70 },
       { id: 'familia', label: 'Familia: ', text: '$familia', x: 15, y: 415, fontSize: 30 },
       { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 15, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
       { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 15, y: 481, fontSize: 30 },
       { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 15, y: 514, fontSize: 30 },
+      { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
+      { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
+      { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },
+      { id: 'num_listado', label: 'Nro Lista: ', text: '$num_listado', x: '$canvas.width / 2 + 80 - 40', y: 690, fontSize: 18 },
+      { id: 'qr', label: '', text: '$qrData', x: 45-40, y: 608-70, width: 215, type: 'qr' }
+    ];*/
+    const layout = [
+      { id: 'font', value: 'PottiSreeramulu'},
+      //{ id: 'offset', text: '', x: 40, y: 70 },
+      { id: 'familia', label: 'Familia: ', text: '$familia', x: 25, y: 415, fontSize: 30 },
+      { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 25, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
+      { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 25, y: 481, fontSize: 30 },
+      { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 25, y: 514, fontSize: 30 },
       { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
       { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
       { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },

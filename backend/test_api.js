@@ -260,7 +260,34 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
       hora_apertura_puertas: '08:15',
       descripcion: 'Evento de celebración cultural',
       imagen_ticket_path: `./img/ticket_fiesta_chilena_v2_2026.png`,
-      layout_tickets: {},
+      layout_tickets: {
+        'ticket_fiesta_chilena_2026.png':
+        [
+          { id: 'font', value: 'PottiSreeramulu'},
+          { id: 'familia', label: 'Familia: ', text: '$familia', x: 15, y: 415, fontSize: 30 },
+          { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 15, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
+          { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 15, y: 481, fontSize: 30 },
+          { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 15, y: 514, fontSize: 30 },
+          { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
+          { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
+          { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },
+          { id: 'num_listado', label: 'Nro Lista: ', text: '$num_listado', x: '$canvas.width / 2 + 80 - 40', y: 690, fontSize: 18 },
+          { id: 'qr', label: '', text: '$qrData', x: 45-40, y: 608-70, width: 215, type: 'qr' }
+        ],
+        'ticket_fiesta_chilena_v2_2026.png':
+        [
+          { id: 'font', value: 'PottiSreeramulu'},
+          { id: 'familia', label: 'Familia: ', text: '$familia', x: 15, y: 415, fontSize: 30 },
+          { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 15, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
+          { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 15, y: 481, fontSize: 30 },
+          { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 15, y: 514, fontSize: 30 },
+          { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
+          { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
+          { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },
+          { id: 'num_listado', label: 'Nro Lista: ', text: '$num_listado', x: '$canvas.width / 2 + 80 - 40', y: 690, fontSize: 18 },
+          { id: 'qr', label: '', text: '$qrData', x: 45-40, y: 608-70, width: 215, type: 'qr' }
+        ]
+      },
       cursoBloqueMap: {
         'PKA': {id: 'PKA', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
         'PKB': {id: 'PKB', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
@@ -303,7 +330,21 @@ async function test_api_eventos(url_server = 'http://localhost:5001') {
       hora_apertura_puertas: '08:15',
       descripcion: 'Evento de celebración cultural',
       imagen_ticket_path: `./img/ticket_huilen_2026.png`,
-      layout_tickets: {},
+      layout_tickets: {
+        'ticket_fiesta_chilena_v2_2026.png':
+        [
+          { id: 'font', value: 'PottiSreeramulu'},
+          { id: 'familia', label: 'Familia: ', text: '$familia', x: 15, y: 415, fontSize: 30 },
+          { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 15, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
+          { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 15, y: 481, fontSize: 30 },
+          { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 15, y: 514, fontSize: 30 },
+          { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
+          { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
+          { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },
+          { id: 'num_listado', label: 'Nro Lista: ', text: '$num_listado', x: '$canvas.width / 2 + 80 - 40', y: 690, fontSize: 18 },
+          { id: 'qr', label: '', text: '$qrData', x: 45-40, y: 608-70, width: 215, type: 'qr' }
+        ]
+      },
       cursoBloqueMap: {
         'PKA': {id: 'PKA', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},
         'PKB': {id: 'PKB', jornada: 'manana', bloque: 'bloque_01', color: 'ama_m', hash: 'fiesta_chilena_2026_bloque_01', pases_apoderados: 2, pases_invitados: 2},

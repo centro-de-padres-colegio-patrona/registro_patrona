@@ -59,7 +59,126 @@ async function genQrEntradaCanvas({ url_server, id_organizacion, id_evento, fami
 }
 
 
+function fillTextFit(ctx, canvas, layout ) {
+  const {label, text, x, y, fontSize, maxPxWidth, fillStyle, textAlign, textAdjusted = false, fontFace = 'PottiSreeramulu' } = layout;
+  if (!text) return;
+  if (!fontFace) fontFace = 'PottiSreeramulu';
+  if (fillStyle) ctx.fillStyle = fillStyle;
+  if (textAlign) ctx.textAlign = textAlign;
+  if (fontSize) ctx.font = `${fontSize}px ${fontFace}`;
+  let _x = x;
+  let _y = y;
+  if (typeof x === 'string') {
+    const xEval = eval(x.replace('$canvas', 'canvas'));
+    _x = xEval;
+  }
+  if (typeof y === 'string') {
+    const yEval = eval(y.replace('$canvas', 'canvas'));
+    _y = yEval;
+  }
+  const labelText = label ? `${label}${text}` : text;
+  if (textAdjusted) {
+    const textWidth = ctx.measureText(labelText).width;
+    if (textWidth > maxPxWidth) {
+      const scale = maxPxWidth / textWidth;
+      //ctx.save();
+      ctx.translate(_x, _y);
+      ctx.scale(scale, 1);
+      ctx.fillText(labelText, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.fillText(labelText, _x, _y);
+    }
+  } else {
+    ctx.fillText(labelText, _x, _y);
+  }
+}
+
+//async function genEntradaCanvas_v2({ url_server, id_organizacion, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
 async function genEntradaCanvas({ url_server, id_organizacion, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
+  const tag = '[genEntradaCanvas]';
+  try {
+    const serial = String(folio).padStart(4, '0');
+    const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
+    const jornadaDisplay = jornadaMap[jornada] || jornada;
+    const qrData = `${url_server}/api/entrada/consultar?organizacion=${encodeURIComponent(id_organizacion)}&evento=${encodeURIComponent(id_evento)}&familia=${encodeURIComponent(familia)}&jornada=${jornada}&tipo=${tipo}&folio=${folio}&nombre=${encodeURIComponent(nombre_completo)}&curso=${encodeURIComponent(curso)}&bloques=${encodeURIComponent(bloques)}&num_listado=${num_listado}`;
+
+    const fondo = await loadImage(path.join(__dirname, '../', imagen_ticket_path));
+    const canvas = createCanvas(fondo.width, fondo.height);
+    const ctx = canvas.getContext('2d');
+
+    // Verificar si num_listado es numero y mayor que 1, si no, dejar string vacio
+    console.log(`${tag} num_listado: ${num_listado}, typeof: ${typeof num_listado}`);
+    if (typeof num_listado === 'number' && num_listado < 1) {
+      num_listado = '';
+    } else if (typeof num_listado === 'string') {
+      const num = parseInt(num_listado);
+      if (isNaN(num) || num < 1) {
+        num_listado = '';
+      }
+    }
+    console.log(`${tag} num_listado after check: ${num_listado}, typeof: ${typeof num_listado}`);
+
+
+    ctx.drawImage(fondo, 0, 0);
+
+    /*const layout = [
+      { id: 'font', value: 'PottiSreeramulu'},
+      //{ id: 'offset', text: '', x: 40, y: 70 },
+      { id: 'familia', label: 'Familia: ', text: '$familia', x: 15, y: 415, fontSize: 30 },
+      { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 15, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
+      { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 15, y: 481, fontSize: 30 },
+      { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 15, y: 514, fontSize: 30 },
+      { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
+      { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
+      { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },
+      { id: 'num_listado', label: 'Nro Lista: ', text: '$num_listado', x: '$canvas.width / 2 + 80 - 40', y: 690, fontSize: 18 },
+      { id: 'qr', label: '', text: '$qrData', x: 45-40, y: 608-70, width: 215, type: 'qr' }
+    ];*/
+    const layout = [
+      { id: 'font', value: 'PottiSreeramulu'},
+      //{ id: 'offset', text: '', x: 40, y: 70 },
+      { id: 'familia', label: 'Familia: ', text: '$familia', x: 25, y: 415, fontSize: 30 },
+      { id: 'nombre_completo', label: '', text: '$nombre_completo', x: 25, y: 448, fontSize: 30, maxPxWidth: 480, textAdjusted: true },
+      { id: 'bloques', label: 'Bloques: ', text: '$bloques', x: 25, y: 481, fontSize: 30 },
+      { id: 'jornadaDisplay', label: 'Jornada: ', text: '$jornadaDisplay', x: 25, y: 514, fontSize: 30 },
+      { id: 'tipo', label: '', text: '$tipo', x: '$canvas.width / 2 + 80 - 40', y: 690-30-70, fontSize: 40, fillStyle: 'black', textAlign: 'left' },
+      { id: 'serial', label: 'Folio: ', text: '$serial', x: '$canvas.width / 2 + 80 - 40', y: 700-70, fontSize: 32 },
+      { id: 'curso', label: 'Curso: ', text: '$curso', x: '$canvas.width / 2 + 80 - 40', y: 660, fontSize: 18 },
+      { id: 'num_listado', label: 'Nro Lista: ', text: '$num_listado', x: '$canvas.width / 2 + 80 - 40', y: 690, fontSize: 18 },
+      { id: 'qr', label: '', text: '$qrData', x: 45-40, y: 608-70, width: 215, type: 'qr' }
+    ];
+
+    const fontItem = layout.find(item => item.id === 'font');
+    const fontFace = fontItem ? fontItem.value : 'PottiSreeramulu';
+    await Promise.all(layout.map(async (item) => {
+      if (item.type && item.type === 'qr') {
+        // QR
+        const qrBuffer = await QRCode.toBuffer(qrData, { width: item.width });
+        const qrImage = await loadImage(qrBuffer);
+        ctx.drawImage(qrImage, item.x, item.y);
+      } else {
+        if (item.text) {
+          const textValue = eval(item.text.replace('$serial', `'${serial}'`).replace('$familia', `'${familia}'`)
+            .replace('$nombre_completo', `'${nombre_completo}'`)
+            .replace('$bloques', `'${bloques}'`)
+            .replace('$jornadaDisplay', `'${jornadaDisplay}'`)
+            .replace('$curso', `'${curso}'`)
+            .replace('$num_listado', `'${num_listado}'`)
+            .replace('$tipo', `'${tipo}'`));
+          fillTextFit(ctx, canvas, { ...item, text: textValue, fontFace });
+        }
+      }
+    }));
+    return [canvas.toBuffer('image/png'), qrData];
+  } catch (err) {
+    console.log(`[genEntradaCanvas]: Error: `, err.stack || err.message || err);
+    return null;
+  }
+}
+
+//async function genEntradaCanvas({ url_server, id_organizacion, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
+async function genEntradaCanvas_v1({ url_server, id_organizacion, id_evento, imagen_ticket_path, familia, nombre_completo, folio, num_listado, curso, jornada, tipo, bloques }) {
   const tag = '[genEntradaCanvas]';
   try {
     const serial = String(folio).padStart(4, '0');

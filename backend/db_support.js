@@ -454,7 +454,7 @@ const ReportIssueSchema = new mongoose.Schema({
 
 const UserReportIssueSchema = new mongoose.Schema({
   id_organizacion: { type: String, required: true },
-  user_mail: { type: String, required: true },
+  user_email: { type: String, required: true },
   reports: { type: [ReportIssueSchema], required: true },
 });
 
@@ -606,6 +606,7 @@ module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;
 module.exports.dbUri = dbUri;
 module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
+module.exports.UserReportIssueDB = UserReportIssueDB;
 
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;

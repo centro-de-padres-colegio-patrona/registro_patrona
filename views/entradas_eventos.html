@@ -403,6 +403,7 @@
 
     async function validar_hermanos(hijos) {
       const apiKey = await getApiKey();
+      console.log('Api Key obtenida: ', apiKey);
       const estudiantes = hijos.map(hijo => hijo.nombre);
 
       //console.log(`Validando relación de estudiantes para la organización ${id_organizacion} y los hijos: `, estudiantes);
@@ -411,6 +412,7 @@
         id_organizacion: id_organizacion,
         estudiantes: JSON.stringify(estudiantes)
       });
+      console.log(`Consultando relación de estudiantes para la organización ${id_organizacion} y los hijos: `, estudiantes);
       const result = await fetch(`/api/consulta/estudiantes/relacion?${query.toString()}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
@@ -446,9 +448,11 @@
       }
 
       if (await validar_hermanos(nombres_hijos) === false) {
+        const apiKey = await getApiKey();
+        console.log(`User email: ${userEmail}, id_organizacion: ${id_organizacion}, id_evento: ${id_evento}`);
           fetch('/api/report/problem', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
             body: JSON.stringify({
               id_organizacion,
               user_email: userEmail,

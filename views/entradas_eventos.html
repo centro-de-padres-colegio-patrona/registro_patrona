@@ -401,6 +401,37 @@
     const id_evento = getParametroURL('id_evento');
     const id_organizacion = getParametroURL('id_organizacion');
 
+    async function validar_hermanos(hijos) {
+      const apiKey = await getApiKey();
+      const estudiantes = hijos.map(hijo => hijo.nombre);
+
+      //console.log(`Validando relación de estudiantes para la organización ${id_organizacion} y los hijos: `, estudiantes);
+
+      const query = new URLSearchParams({
+        id_organizacion: id_organizacion,
+        estudiantes: JSON.stringify(estudiantes)
+      });
+      const result = await fetch(`/api/consulta/estudiantes/relacion?${query.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+      });
+      if ( result.status === 200 ) {
+        const response = await result.json();
+        //console.log(`Relación de estudiantes ${JSON.stringify(estudiantes)}: `, response);
+        if (response.length > 1) {
+          console.warn(`Hubo un problema. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.`);
+          return false; // Hay duplicado
+        } else {
+          return true;
+        }
+      } else {
+        const error_msg = await result.json();
+        console.log(`Error al consultar relación de estudiantes. Status: ${result.status}, Error: ${JSON.stringify(error_msg)}`);
+      }
+      console.warn(`Hubo un problema. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.`);
+      return false;
+    }
+
     async function cargarEntradasUsuario() {
       // Ejecutar inicializacion al cargar el script
       await init();
@@ -411,6 +442,13 @@
       if (!nombres_hijos || !nombres_hijos.length ) {
           contenedor.className = 'mensaje-info';
           contenedor.innerHTML = '<p>No se encontraron entradas disponibles para esta actividad.</p>';
+          return;
+      }
+
+      if (await validar_hermanos(nombres_hijos) === false) {
+          contenedor.className = 'mensaje-info';
+          contenedor.innerHTML = '<p>Se produjo un problema leyendo las entradas. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.</p>';
+          alert('Se produjo un problema leyendo las entradas. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.');
           return;
       }
 

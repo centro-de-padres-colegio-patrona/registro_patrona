@@ -451,5 +451,68 @@ router.get('/consulta/database/name', async (req, res) => {
   }
 });
 
+// Consultar informacion si una lista de estudiantes son hermanos o no, y si tienen apoderado registrado
+router.get('/consulta/estudiantes/relacion', async (req, res) => {
+  const tag = '[GET /api/consulta/estudiantes/relacion]';
+  try {
+    let { estudiantes = '' } = req.query;
+
+    //console.log(`${tag} estudiantes: `, estudiantes);
+    //console.log(`${tag} req.query: `, req.query);
+
+    estudiantes = JSON.parse(estudiantes);
+
+    if (!Array.isArray(estudiantes) || estudiantes.length === 0) {
+      return res.status(400).json({ error: 'Parámetro "estudiantes" debe ser un array no vacío' });
+    }
+
+    const result_relacion = [];
+    const excluir_estudiantes = new Set();
+
+    for (const estudiante of estudiantes) {
+      if (typeof estudiante !== 'string' || estudiante.trim() === '') {
+        return res.status(400).json({ error: 'Todos los elementos en "estudiantes" deben ser strings no vacíos' });
+      }
+      //console.log(`${tag} Procesando estudiante: ${estudiante}`);
+      if (excluir_estudiantes.has(estudiante)) {
+        //console.log(`${tag} Estudiante ${estudiante} ya fue procesado como hermano de otro estudiante, se omite.`);
+        continue; // Omitir estudiantes ya procesados como hermanos
+      }
+      const hermanosInfo = await db_support.hermanosMapDB.findOne({ id: estudiante });
+      if (!hermanosInfo || !hermanosInfo.hermanos || hermanosInfo.hermanos.length === 0) {
+        // No tiene hermanos registrados
+        return res.status(404).json({ error: `No se encontró información de hermanos para el estudiante: ${estudiante}` });
+      }
+      //console.log(`${tag} Información de hermanos para ${estudiante}: `, hermanosInfo);
+      const apoderadoEmail = hermanosInfo.apoderado_email;
+      const hermanos = hermanosInfo.hermanos;
+
+      // Verificar si todos los estudiantes proporcionados son hermanos entre sí
+      const sonHermanos = estudiantes.every(est => hermanos.includes(est));
+      //console.log(`${tag} Verificando si todos los estudiantes son hermanos entre sí: ${sonHermanos}`);
+      if (sonHermanos) {
+        //console.log(`${tag} Los estudiantes ${estudiantes.join(', ')} son hermanos entre sí.`);
+        return res.json([{ estudiante, nombre_familia: hermanosInfo.nombre_familia , apoderadoEmail, hermanos }]);
+      }
+
+      hermanos.forEach(h => excluir_estudiantes.add(h));
+
+      // No son todos hermanos
+      result_relacion.push({
+        estudiante,
+        nombre_familia: hermanosInfo.nombre_familia,
+        apoderadoEmail,
+        hermanos
+      });
+    }
+    res.json(result_relacion);
+    // Aquí iría la lógica para consultar la relación entre estudiantes
+    // res.json({ message: 'Consulta de relación de estudiantes no implementada aún' });
+  } catch (error) {
+    console.error(`${tag} Error: `, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;
 

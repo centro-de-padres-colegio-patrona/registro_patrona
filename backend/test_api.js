@@ -46,6 +46,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_get_estado_pago_entradas, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_listas_curso, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_branch, delay: delay_ms, arguments: url_server});
+  test_array.push({test_fn: test_api_consulta_estudiantes_relacion, delay: delay_ms, arguments: url_server});
 
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
@@ -1499,5 +1500,35 @@ async function test_api_branch(url_server = 'http://localhost:5001') {
   }
 }
 
+
+async function test_api_consulta_estudiantes_relacion(url_server = 'http://localhost:5001') {
+  const tag = '[test GET /api/consulta/estudiantes/relacion]';
+  const id_organizacion = 'cpa_patrona';
+  const estudiantes_under_test = [
+    ['herrera messina florencia isidora', 'herrera messina cristobal nicolas'],
+    ['vargas silva maximiliano alonso', 'arenas silva mateo sebastian'],
+  ];
+  try {
+    for (const estudiantes of estudiantes_under_test) {
+      const query = new URLSearchParams({
+        id_organizacion: id_organizacion,
+        estudiantes: JSON.stringify(estudiantes)
+      });
+      const result = await fetch(`${url_server}/api/consulta/estudiantes/relacion?${query.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 ) {
+        const response = await result.json();
+        console.log(`${tag} Relación de estudiantes ${JSON.stringify(estudiantes)}: `, response);
+      } else {
+        const error_msg = await result.json();
+        console.log(`${tag} Error al consultar relación de estudiantes. Status: ${result.status}, Error: ${JSON.stringify(error_msg)}`);
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
+  }
+}
 
 module.exports.lauch_test_api = lauch_test_api;

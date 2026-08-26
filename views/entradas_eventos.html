@@ -446,6 +446,16 @@
       }
 
       if (await validar_hermanos(nombres_hijos) === false) {
+          fetch('/api/report/problem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id_organizacion,
+              user_email: userEmail,
+              issue_type: 'familias_sin_mergear',
+              problemDescription: `Se requiere mergear las familias y eliminar las entradas extras para invitados.`
+            })
+          });
           contenedor.className = 'mensaje-info';
           contenedor.innerHTML = '<p>Se produjo un problema leyendo las entradas. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.</p>';
           alert('Se produjo un problema leyendo las entradas. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.');

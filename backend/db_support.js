@@ -440,6 +440,26 @@ const infoOrganizacionDB = mongoose.model('organizacion', InfoOrganizacionSchema
 const FrontEndFeaturesDB = mongoose.model('FrontEndFeatures', FrontEndFeaturesSchema, 'front_end_features');
 
 
+const ReportIssueSchema = new mongoose.Schema({
+  fecha_reporte: { type: Date, default: Date.now },
+  descripcion: { type: String, required: true },
+  issue_type: { type: String, required: true },
+  estado: {
+    type: String,
+    enum: ['pendiente', 'en_proceso', 'resuelto', 'cerrado'],
+    default: 'pendiente' 
+  },
+  comentarios: { type: [String], default: [] }
+});
+
+const UserReportIssueSchema = new mongoose.Schema({
+  id_organizacion: { type: String, required: true },
+  user_email: { type: String, required: true },
+  reports: { type: [ReportIssueSchema], required: true },
+});
+
+const UserReportIssueDB = mongoose.model('UserReportIssue', UserReportIssueSchema, 'user_report_issues');
+
 
 /////////////////////////////////////////////////
 /// Access Right Helpers
@@ -586,6 +606,7 @@ module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;
 module.exports.dbUri = dbUri;
 module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
+module.exports.UserReportIssueDB = UserReportIssueDB;
 
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;

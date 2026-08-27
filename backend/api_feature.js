@@ -21,14 +21,22 @@ const { BASEURL } = require('../backend/git_branch');
 router.get('/feature/options', async (req, res) => {
   const id_organizacion = req.query.id_organizacion;
   //const id_evento = req.query.id_evento;
-  const id_pagina = req.query.id_pagina
+  const id_pagina = req.query.id_pagina;
   const feature = req.query.feature;
-  const defaultValue = req.query.default === 'true'; // Convert to boolean, default is false
+  const key = req.query.key;
+  const defaultValue = req.query.default;
   const features = req.query.features ? JSON.parse(req.query.features) : null;
 
   if (!feature && (!features || features.length === 0)) {
     return res.status(400).json({ error: 'Missing feature parameter' });
   }
+
+  const options = {};
+  if (key && defaultValue) {
+    options[key] = defaultValue;
+  }
+
+  console.log('Opciones recibidas: ', options);
 
   try {
     console.log(`Fetching feature option for id_organizacion: ${id_organizacion}, id_pagina: ${id_pagina}, feature: ${feature}`);
@@ -38,15 +46,15 @@ router.get('/feature/options', async (req, res) => {
       if (feature) {
         const result = await db_support.FrontEndFeaturesDB.updateOne(
           { id_organizacion, id_pagina },
-          { $push: { features: { feature, enabled: defaultValue } } },
+          { $push: { features: { feature, enabled: defaultValue === 'true', options } } },
           { upsert: true }
         );
       
         console.log('Feature options document created with default value:', result);
-        console.log(`Returning default value for feature: ${feature}, enabled: ${defaultValue}`);
-        return res.json({ feature, enabled: defaultValue });
+        console.log(`Returning default value for feature: ${feature}, enabled: ${defaultValue === 'true'}`);
+        return res.json({ feature, enabled: defaultValue === 'true' });
       } else if (features) {
-        const featureOptions = features.map(f => ({ feature: f, enabled: defaultValue }));
+        const featureOptions = features.map(f => ({ feature: f, enabled: defaultValue === 'true', options }));
         const result = await db_support.FrontEndFeaturesDB.updateOne(
           { id_organizacion, id_pagina },
           { $push: { features: { $each: featureOptions } } },
@@ -66,18 +74,18 @@ router.get('/feature/options', async (req, res) => {
           // Add the feature option to the database with the default value
           const result = await db_support.FrontEndFeaturesDB.updateOne(
             { id_organizacion, id_pagina },
-            { $push: { features: { feature, enabled: defaultValue } } },
+            { $push: { features: { feature, enabled: defaultValue === 'true', options } } },
             { upsert: true }
           );
 
           console.log('Feature option added with default value:', result);
-          console.log(`Returning default value for feature: ${feature}, enabled: ${defaultValue}`);
-          return res.json({ feature, enabled: defaultValue });
+          console.log(`Returning default value for feature: ${feature}, enabled: ${defaultValue === 'true'}`);
+          return res.json({ feature, enabled: defaultValue === 'true' });
       }
       console.log(`Returning feature option for feature: ${feature}, enabled: ${featureOption.enabled}`);
       res.json({ feature, enabled: featureOption.enabled });
     } else if (features) {
-      console.log(`Fetching feature options retrieved from DB: `, value.features);
+      console.log(`Fetching feature options retrieved from DB: `, features);
       const featureOptions = features.map(f => {
         const featureOption = value.features.find(opt => opt.feature === f);
         console.log(`Feature option for ${f}: ${featureOption ? JSON.stringify(featureOption) : 'not found'}`);
@@ -86,17 +94,17 @@ router.get('/feature/options', async (req, res) => {
           // Add the feature option to the database with the default value
           db_support.FrontEndFeaturesDB.updateOne(
             { id_organizacion, id_pagina },
-            { $push: { features: { feature: f, enabled: defaultValue } } },
+            { $push: { features: { feature: f, enabled: defaultValue === 'true', options } } },
             { upsert: true }
           ).then(result => {
             console.log('Feature option added with default value:', result);
-            console.log(`Saved data: ${JSON.stringify({ feature: f, enabled: defaultValue })}`);
+            console.log(`Saved data: ${JSON.stringify({ feature: f, enabled: defaultValue === 'true' })}`);
           }).catch(err => {
             console.error('Error adding feature option:', err);
           });
-          return { feature: f, enabled: defaultValue };
+          return { feature: f, enabled: defaultValue === 'true', options };
         }
-        return { feature: f, enabled: featureOption.enabled };
+        return { feature: f, enabled: featureOption.enabled, options: featureOption.options || {} };
       });
       console.log(`Returning feature options for features: ${features}, featureOptions: ${JSON.stringify(featureOptions)}`);
       res.json(featureOptions);

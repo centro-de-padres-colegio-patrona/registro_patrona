@@ -319,6 +319,7 @@ const EventoSchema = new mongoose.Schema({
   entradas_vendidas: { type: Number, default: 0 },
   entradas_usadas: { type: Number, default: 0 },
   precio_entrada: { type: Number, default: 0 },
+  layout_tickets: { type: Object, default: [{}] },
   url_imagen: { type: String },
   url_imagen_ticket: { type: String },
   imagen_png: { type: Buffer },
@@ -424,6 +425,7 @@ ticketEventoSchema.pre('save', async function (next) {
 const FeatureSchema = new mongoose.Schema({
   feature: { type: String, required: true },
   enabled: { type: Boolean, default: false },
+  options: { type: Object, default: {} }
 });
 
 const FrontEndFeaturesSchema = new mongoose.Schema({
@@ -437,6 +439,26 @@ const TicketEventoDB = mongoose.model('TicketEvento', ticketEventoSchema, 'ticke
 const infoOrganizacionDB = mongoose.model('organizacion', InfoOrganizacionSchema, 'info_organizacion');
 const FrontEndFeaturesDB = mongoose.model('FrontEndFeatures', FrontEndFeaturesSchema, 'front_end_features');
 
+
+const ReportIssueSchema = new mongoose.Schema({
+  fecha_reporte: { type: Date, default: Date.now },
+  descripcion: { type: String, required: true },
+  issue_type: { type: String, required: true },
+  estado: {
+    type: String,
+    enum: ['pendiente', 'en_proceso', 'resuelto', 'cerrado'],
+    default: 'pendiente' 
+  },
+  comentarios: { type: [String], default: [] }
+});
+
+const UserReportIssueSchema = new mongoose.Schema({
+  id_organizacion: { type: String, required: true },
+  user_email: { type: String, required: true },
+  reports: { type: [ReportIssueSchema], required: true },
+});
+
+const UserReportIssueDB = mongoose.model('UserReportIssue', UserReportIssueSchema, 'user_report_issues');
 
 
 /////////////////////////////////////////////////
@@ -584,6 +606,7 @@ module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;
 module.exports.dbUri = dbUri;
 module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
+module.exports.UserReportIssueDB = UserReportIssueDB;
 
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;

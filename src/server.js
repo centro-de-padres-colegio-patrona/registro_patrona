@@ -11,14 +11,8 @@ const git_branch = require('../backend/git_branch');
 
 //const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
 //const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
-const flow_api_key = config_env.FLOW_API_KEY;
-const flow_secret_key = config_env.FLOW_SECRET_KEY;
-
-const FlowApi = require('./flow_api');
-const flow = new FlowApi();
-
-const MercadoPagoApi = require('./mercado_pago_api');
-const mp = new MercadoPagoApi('sandbox');
+//const flow_api_key = config_env.FLOW_API_KEY;
+//const flow_secret_key = config_env.FLOW_SECRET_KEY;
 
 const { genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
@@ -49,6 +43,36 @@ db_support.connectToDB(database_year_name, url_api);
 
 const path = require('path'); 
 const fs = require('fs');
+
+/// Pasarelas de Pago
+const FlowApi = require('./flow_api');
+const MercadoPagoApi = require('./mercado_pago_api');
+
+let pasarela_endpoint = 'sandbox'; // 'sandbox' o 'production';
+let flow = null;
+let mp = null;
+{
+  // Obtener el nombre del archivo actual (server.js) y la rama de git
+  const filename = path.basename(__filename);
+  const nombre = 'pasarelas_pago';
+  const features_keys = ['flow', 'mercadopago'];
+  const key_option = 'endpoint';
+  fetch(`${url_api}/api/feature/options?id_organizacion=${encodeURIComponent(filename)}&id_pagina=${encodeURIComponent(nombre)}&key=${encodeURIComponent(key_option)}&features=${encodeURIComponent(JSON.stringify(features_keys))}&default=${encodeURIComponent(pasarela_endpoint)}`)
+  .then(response => response.json())
+  .then(features => {
+    const feature_flow = features.find(f => f.feature === 'flow');
+    if (feature_flow && feature_flow.options && feature_flow.options.endpoint)
+      pasarela_endpoint = feature_flow.options.endpoint;
+    flow = new FlowApi(null, null, pasarela_endpoint);
+    console.log(`Flow API initialized with endpoint: ${pasarela_endpoint}`);
+    const feature_mp = features.find(f => f.feature === 'mercadopago');
+    if (feature_mp && feature_mp.options && feature_mp.options.endpoint)
+      pasarela_endpoint = feature_mp.options.endpoint;
+    mp = new MercadoPagoApi(pasarela_endpoint);
+    console.log(`Mercado Pago API initialized with endpoint: ${pasarela_endpoint}`);
+  });
+}
+/// Fin Pasarelas de Pago
 
 // Import the axios library, to make HTTP requests
 const axios = require('axios')
@@ -341,6 +365,7 @@ const apiPagosRouter = require('../backend/api_pagos');
 const apiCorreosRouter = require('../backend/api_correos');
 const apiFeatures = require('../backend/api_feature');
 const apiBranch = require('../backend/api_branch');
+const apiReportIssue = require('../backend/api_report_problem');
 
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
@@ -355,6 +380,7 @@ app.use('/api', apiPagosRouter);
 app.use('/api', apiCorreosRouter);
 app.use('/api', apiFeatures);
 app.use('/api', apiBranch);
+app.use('/api', apiReportIssue);
 
 
 // Ruta para la página "hello world" (index.html)

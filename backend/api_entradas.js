@@ -114,7 +114,7 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
       //imagen_ticket: null,
       historial: [{accion: 'creacion', descripcion: ''}]
     });
-    const folio = ticket.folio || 0;
+    const folio = ticket.folio || '';
     //console.log(`[/api/entrada/create] Ticket ${folio} guardado en BD`);
 
     const ticketInfo = {...req.body, folio, url_server };
@@ -1305,7 +1305,7 @@ router.post('/entrada/imagen', async (req, res) => {
       familia,
       nombre_completo,
       folio: parseInt(folio),
-      num_listado: parseInt(num_listado) || 0,
+      num_listado: parseInt(num_listado) || '',
       curso,
       jornada,
       tipo,

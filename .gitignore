@@ -51,4 +51,4 @@ tickets_png/ticket.png
 tickets_png/
 logs/
 tickets_pdf/
-tests/respuestas_consultas/
+# tests/respuestas_consultas/

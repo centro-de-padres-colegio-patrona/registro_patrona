@@ -461,6 +461,15 @@ const UserReportIssueSchema = new mongoose.Schema({
 const UserReportIssueDB = mongoose.model('UserReportIssue', UserReportIssueSchema, 'user_report_issues');
 
 
+
+const HuilenMapSchema = new mongoose.Schema({
+  id_organizacion: { type: String },
+  id: { type: String, required: true },
+  value: { type: String, required: true }
+});
+
+const HuilenMapDB = mongoose.model('nombreHuilenMap', HuilenMapSchema, 'nombreHuilenMap');
+
 /////////////////////////////////////////////////
 /// Access Right Helpers
 /////////////////////////////////////////////////

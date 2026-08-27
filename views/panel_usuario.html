@@ -580,6 +580,19 @@
         if (primerMenu) paginaCarga = primerMenu.url;
       }
 
+      // En panel_usuario.html -> dentro de inicializarPanel() / post-inicialización:
+      /*const params = new URLSearchParams(window.location.search);
+      const targetTab = params.get('tab') || 'pagos_cpa.html'; // Pestaña a cargar
+
+      // Buscar y hacer clic en el botón correspondiente del menú lateral para activar el estilo y el visor
+      const btnPagos = document.querySelector(`#menu-container button[data-url*="${targetTab}"]`);
+      if (btnPagos) {
+        btnPagos.click();
+      } else {
+        // Carga por defecto si no encuentra el botón en el menú
+        cargarContenido(`${targetTab}${query}`);
+      }*/
+
       if (paginaCarga) {
         // Agregar user_email al iframe (del URL param o del correo obtenido del usuario)
         const emailFromUrl = new URLSearchParams(window.location.search).get('user_email');

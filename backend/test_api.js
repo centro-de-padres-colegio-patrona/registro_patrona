@@ -1328,7 +1328,7 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
 async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
   const tag = '[test POST /api/enviarCorreo]';
-  const filename = 'respuestas_consultas_2026_08_26';
+  const filename = 'respuestas_consultas_2026_08_26_v2';
   const file_correos = path.resolve(__dirname,`../tests/respuestas_consultas/${filename}.json`);
   const file_leidos = path.resolve(__dirname, '../tests/respuestas_consultas/archivos_leidos.json');
   try {

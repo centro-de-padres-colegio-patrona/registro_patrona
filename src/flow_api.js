@@ -12,6 +12,7 @@ const querystring = require('querystring');
 };*/
 
 const Config = {
+    'l.herreramena@gmail.com': {
         'production': {
             APIKEY: '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD',
             SECRETKEY: 'aefc24bed6613e40db09df328849568a220085ca',
@@ -22,13 +23,26 @@ const Config = {
             SECRETKEY: '3217d34ab37f4b3a328a3b8009f44dec50b0cca4',
             APIURL: 'https://sandbox.flow.cl/api'
         }
+    },
+    'centrodepadres@colegiopatrona.cl': {
+        'production': {
+            APIKEY: '23FF46EC-CCFD-4531-9214-1L64EE8BDA0D',
+            SECRETKEY: '893e61fa466ef23db2910fb2c148f6911045874f',
+            APIURL: 'https://www.flow.cl/api' // O la URL que corresponda
+        },
+        'sandbox': {
+            APIKEY: '50820F32-D480-4CDB-9B04-4330L4590A18',
+            SECRETKEY: '3217d34ab37f4b3a328a3b8009f44dec50b0cca4',
+            APIURL: 'https://sandbox.flow.cl/api'
+        }
+    }
 };
 
 class FlowApi {
-    constructor(apiKey = null, secretKey = null, endpoint = 'sandbox') {
-        this.apiKey = apiKey || Config[endpoint].APIKEY;
-        this.secretKey = secretKey || Config[endpoint].SECRETKEY;
-        this.apiUrl = Config[endpoint].APIURL;
+    constructor(apiKey = null, secretKey = null, endpoint = 'sandbox', userEmail = 'centrodepadres@colegiopatrona.cl') {
+        this.apiKey = apiKey || Config[userEmail][endpoint].APIKEY;
+        this.secretKey = secretKey || Config[userEmail][endpoint].SECRETKEY;
+        this.apiUrl = Config[userEmail][endpoint].APIURL;
         console.log(`FlowApi initialized with endpoint: ${endpoint}, apiKey: ${this.apiKey}, secretKey: ${this.secretKey}, apiUrl: ${this.apiUrl}`);
     }
 

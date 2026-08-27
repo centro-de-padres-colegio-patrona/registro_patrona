@@ -63,8 +63,9 @@ let mp = null;
     const feature_flow = features.find(f => f.feature === 'flow');
     if (feature_flow && feature_flow.options && feature_flow.options.endpoint)
       pasarela_endpoint = feature_flow.options.endpoint;
-    flow = new FlowApi(null, null, pasarela_endpoint);
-    console.log(`Flow API initialized with endpoint: ${pasarela_endpoint}`);
+      pasarela_user_email = feature_flow.options.user_email || 'centrodepadres@colegiopatrona.cl';
+    flow = new FlowApi(null, null, pasarela_endpoint, pasarela_user_email);
+    console.log(`Flow API initialized with endpoint: ${pasarela_endpoint}, userEmail: ${pasarela_user_email}`);
     const feature_mp = features.find(f => f.feature === 'mercadopago');
     if (feature_mp && feature_mp.options && feature_mp.options.endpoint)
       pasarela_endpoint = feature_mp.options.endpoint;

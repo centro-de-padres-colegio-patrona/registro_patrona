@@ -601,6 +601,7 @@
     async function controlarBotonPagos() {
       try {
         const feature = 'ir_a_pagos';
+        verifyParameter({id_organizacion}, 'cpa_patrona');
         const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
         if (!response.ok) {
           console.log({response});
@@ -1704,6 +1705,7 @@
       .catch(err => alert('Error de conexión'));
 
       // Desactivar la entrada de invitado correspondiente si existe
+      
       fetch(`/api/entrada/familia?id_organizacion=${id_organizacion}&id_evento=${id_evento}&nombre_completo=${encodeURIComponent(currentUser.hijos[0].nombre || '')}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
@@ -2457,7 +2459,58 @@
   }
 
   // Ejecutar la verificación al cargar la página
-  verificarBranch();  
+  verificarBranch();
+
+  function obtenerUbicacionError() {
+    try {
+        throw new Error();
+    } catch (e) {
+        const lineas = e.stack.split('\n');
+        // La línea [3] suele ser la que llamó a la función validadora
+        const lineaLlamada = lineas[3] || lineas[2] || "";
+        const coincidencia = lineaLlamada.match(/(http.*|\/.*):(\d+):(\d+)/);
+        
+        return coincidencia ? {
+            archivo: coincidencia[1],
+            linea: coincidencia[2]
+        } : { archivo: "Desconocido", linea: "Desconocida" };
+    }
+  }
+
+  async function verifyParameter(name, value, expected_value) {
+    try {
+      if ( value === undefined || !value || value === '' || (expected_value && value !== expected_value)) {
+        console.warn(`Parámetro "${name}" no tiene un valor definido. Se esperaba: "${expected_value}".`);
+        const info = obtenerUbicacionError();
+        const {archivo, linea} = info;
+        await post_issue_to_db(currentUser.email, `${archivo}:${name} parámetro indefinido`, `Line: ${linea}, Valor recibido: "${value}", Valor esperado: "${expected_value}"`);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error al verificar el parámetro:', error);
+      return false;
+    }
+  }
+
+  async function post_issue_to_db(user_email, issue_type, problemDescription, info) {
+    try {
+      const apiKey = await getApiKey();
+
+      await fetch('/api/report/problem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+        body: JSON.stringify({
+          id_organizacion,
+          user_email: user_email,
+          issue_type: issue_type,
+          problemDescription: problemDescription
+        })
+      });
+    } catch (error) {
+      console.error('Error al reportar el problema a la base de datos:', error);
+    }
+  }
 
 </script>
 

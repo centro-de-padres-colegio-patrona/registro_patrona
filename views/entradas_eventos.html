@@ -434,6 +434,24 @@
       return false;
     }
 
+    async function post_issue_to_db(user_email, issue_type, problemDescription) {
+      try {
+        const apiKey = await getApiKey();
+        //console.log(`User email: ${user_email}, id_organizacion: ${id_organizacion}, id_evento: ${id_evento}`);
+        fetch('/api/report/problem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({
+            id_organizacion,
+            user_email: user_email,
+            issue_type: issue_type,
+            problemDescription: problemDescription
+          })
+        });
+      } catch (error) {
+        console.error('Error al reportar el problema a la base de datos:', error);
+      }
+    }
     async function cargarEntradasUsuario() {
       // Ejecutar inicializacion al cargar el script
       await init();
@@ -722,6 +740,8 @@
         //console.log('Información del evento obtenida:', eventoInfo);
         //console.log('Nombre completo para generar entradas:', nombre_completo);
 
+        //Reporting la generacion de entradas para la familia
+        post_issue_to_db(userEmail, 'generacion_entradas', `Se generaron entradas para la familia del usuario ${userEmail} con hijo de nombre completo: ${nombre_completo}`);
         // Generando entradas para la familia
         const result = await fetch('/api/entradas/generar/familia', {
           method: 'POST',

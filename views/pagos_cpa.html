@@ -1050,6 +1050,15 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
+        // Detectar si la página se cargó en la ventana superior (fuera del iframe del panel)
+        if (window.self === window.top) {
+          const currentParams = new URLSearchParams(window.location.search);
+          const email = currentParams.get('user_email') || user_email || '';
+          
+          // Redirigir a panel_usuario.html manteniendo los parámetros necesarios
+          window.location.replace(`/panel_usuario.html?user_email=${encodeURIComponent(email)}`);
+        }
+
         await aplicarOpcionesFeature();
         
         await init();

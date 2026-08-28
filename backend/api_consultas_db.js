@@ -514,5 +514,38 @@ router.get('/consulta/estudiantes/relacion', async (req, res) => {
   }
 });
 
+// Consultar si los hijos pertenecen a otros subgrupos como talleres, deportes, etc, para habilitar opciones relacionadas con esa pertenencia
+router.get('/consulta/estudiantes/subpertenencia', async (req, res) => {
+  const tag = '[GET /api/consulta/estudiantes/subpertenencia]';
+  try {
+    let { estudiantes = '', id_organizacion = '' } = req.query;
+    
+    estudiantes = JSON.parse(estudiantes);
+
+    if (!Array.isArray(estudiantes) || estudiantes.length === 0) {
+      return res.status(400).json({ error: 'Parámetro "estudiantes" debe ser un array no vacío' });
+    }
+
+    // Aquí iría la lógica para consultar los subgrupos a los que pertenecen los estudiantes
+
+    const subpertenencia = {};
+
+    const perteneceHuilen = await db_support.HuilenMapDB.find({ id: { $in: estudiantes } }).lean();
+
+    if (perteneceHuilen && perteneceHuilen.length > 0) {
+      for (const estudiante of perteneceHuilen) {
+        if (!subpertenencia[estudiante.id]) subpertenencia[estudiante.id] = [];
+        subpertenencia[estudiante.id].push(estudiante.value);
+      }
+    }
+
+    res.json(subpertenencia);
+  } catch (error) {
+    console.error(`${tag} Error: `, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 module.exports = router;
 

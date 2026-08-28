@@ -218,8 +218,8 @@
 
   <!-- Seccion del boton al final de la pagina -->
   <div class="acciones-footer">
-    <button id="btn-enviar-correo" class="btn-enviar-correo" onclick="enviarEntradasCorreo()">
-      Enviar entradas al correo
+    <button id="btn-enviar-correo" class="btn-enviar-correo" onclick="enviarEntradasCorreo()" disabled>
+      Cargando entradas...
     </button>
     <div id="mensaje-envio" class="mensaje-respuesta"></div>
   </div>
@@ -452,6 +452,11 @@
         console.error('Error al reportar el problema a la base de datos:', error);
       }
     }
+    function ocultarBotonCorreo() {
+      const btnCorreo = document.getElementById('btn-enviar-correo');
+      if (btnCorreo) btnCorreo.style.display = 'none';
+    }
+
     async function cargarEntradasUsuario() {
       // Ejecutar inicializacion al cargar el script
       await init();
@@ -462,6 +467,7 @@
       if (!nombres_hijos || !nombres_hijos.length ) {
           contenedor.className = 'mensaje-info';
           contenedor.innerHTML = '<p>No se encontraron entradas disponibles para esta actividad.</p>';
+          ocultarBotonCorreo();
           return;
       }
 
@@ -481,6 +487,7 @@
           contenedor.className = 'mensaje-info';
           contenedor.innerHTML = '<p>Se produjo un problema leyendo las entradas. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.</p>';
           alert('Se produjo un problema leyendo las entradas. Intentelo mas tarde. Si el problema persiste, por favor, contacte al administrador.');
+          ocultarBotonCorreo();
           return;
       }
 
@@ -571,6 +578,13 @@
         console.error('Error al cargar entradas:', error);
         contenedor.className = 'mensaje-info';
         contenedor.innerHTML = '<p>Ocurrio un error al cargar las entradas de la actividad.</p>';
+      } finally {
+        // Habilitar el botón de enviar correo una vez terminada la carga de entradas
+        const btnCorreo = document.getElementById('btn-enviar-correo');
+        if (btnCorreo) {
+          btnCorreo.disabled = false;
+          btnCorreo.textContent = 'Enviar entradas al correo';
+        }
       }
     }
 
@@ -580,6 +594,18 @@
     async function enviarEntradasCorreo() {
       const btn = document.getElementById('btn-enviar-correo');
       const mensajeDiv = document.getElementById('mensaje-envio');
+
+      // No enviar si las entradas aún se están cargando
+      if (btn && btn.disabled) {
+        return;
+      }
+
+      // No enviar si no hay entradas cargadas
+      if (!Array.isArray(entradas) || entradas.length === 0) {
+        mensajeDiv.className = 'mensaje-respuesta mensaje-error';
+        mensajeDiv.textContent = 'No hay entradas disponibles para enviar.';
+        return;
+      }
 
       await init();
 

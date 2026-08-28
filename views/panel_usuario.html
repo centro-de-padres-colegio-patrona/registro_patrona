@@ -196,6 +196,24 @@
 
   <script>
     function cargarContenido(url, botonPresionado) {
+      // Verificar si hay cambios sin guardar en Mis Datos antes de cambiar de menú
+      try {
+        const visorActual = document.getElementById('visor') || document.getElementById('mobile-visor');
+        if (visorActual && visorActual.contentWindow) {
+          const srcActual = visorActual.src || '';
+          if (srcActual.includes('mis_datos.html') && !url.includes('mis_datos.html')) {
+            const docIframe = visorActual.contentWindow.document;
+            const statusLabel = docIframe.getElementById('statusLabel');
+            if (statusLabel && statusLabel.textContent.includes('cambios sin guardar')) {
+              alert('Tiene cambios que no ha guardado, presione ENVIAR.');
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // Error cross-origin o iframe no disponible: continuar normalmente
+      }
+
       // Agregar user_email al URL (del URL param o del correo del usuario en sidebar)
       const urlParams = new URLSearchParams(window.location.search);
       const emailFromUrl = urlParams.get('user_email');
@@ -232,6 +250,15 @@
       // Close mobile menu after selection
       closeMobileMenu();
     }
+
+    // Llamada desde mis_datos.html cuando el usuario guarda sus datos:
+    // marca al usuario como registrado y reconstruye el menú para mostrar "Mis Pagos al CPA".
+    window.habilitarMisPagos = function() {
+      window._usuarioRegistrado = true;
+      if (window._rolActual) {
+        construirMenu(window._rolActual, window._rolesActual);
+      }
+    };
 
     function toggleMobileMenu() {
       const panel = document.getElementById('mobile-menu-panel');
@@ -394,6 +421,12 @@
     function construirMenu(rol, roles) {
       // Combinar menús de todos los roles del usuario (sin duplicar items)
       let menus = [...(menusPorRol[rol] || menusPorRol['apoderado'])];
+
+      // Si el usuario NO está registrado (sin hijos/padres), ocultar "Mis Pagos al CPA"
+      // Se habilita nuevamente una vez que registra sus datos en Mis Datos.
+      if (!window._usuarioRegistrado) {
+        menus = menus.filter(m => !(m.url && m.url.split('?')[0] === 'pagos_cpa.html'));
+      }
       if (roles && roles.length > 1) {
         const urlsYaIncluidas = new Set(menus.filter(m => m.url).map(m => m.url));
         for (const r of roles) {
@@ -494,9 +527,17 @@
     async function inicializarPanel() {
       let correo = '';
       let nombreCompleto = '';
+      // Determinar si el usuario está registrado (tiene hijos y padres con datos)
+      window._usuarioRegistrado = false;
 
       const urlParams = new URLSearchParams(window.location.search);
       const emailFromUrl = urlParams.get('user_email');
+
+      const estaRegistrado = (user) => {
+        const tieneHijos = user?.hijos && user.hijos.length > 0 && user.hijos.some(h => h.nombre && h.nombre.trim() !== '');
+        const tienePadres = user?.padres && user.padres.length > 0 && user.padres.some(p => p.nombre && p.nombre.trim() !== '');
+        return tieneHijos && tienePadres;
+      };
 
       try {
         const resUser = await fetch('/api/user');
@@ -512,6 +553,7 @@
             }
           }
           if (!nombreCompleto) nombreCompleto = data.req?.displayName || user?.displayName || '';
+          window._usuarioRegistrado = estaRegistrado(user);
         }
       } catch (err) {
         console.log('Usuario no autenticado por Google, usando URL param');
@@ -530,6 +572,7 @@
               nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
             }
             if (!nombreCompleto) nombreCompleto = user?.displayName || '';
+            window._usuarioRegistrado = estaRegistrado(user);
           }
         } catch (err) {
           console.error('Error obteniendo usuario manual:', err);
@@ -566,6 +609,10 @@
       document.getElementById('usuario-rol').textContent = rolDisplay;
       document.getElementById('mobile-rol').textContent = rolDisplay;
       
+      // Guardar rol/roles globalmente para poder reconstruir el menú tras registro
+      window._rolActual = rol;
+      window._rolesActual = roles;
+
       // SIEMPRE construir menú al final (combinando menús si tiene múltiples roles)
       //console.log('Construyendo menú para rol:', rol, 'roles:', roles);
       construirMenu(rol, roles);

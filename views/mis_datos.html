@@ -2356,6 +2356,12 @@
         setEstadoBotonEnviar(false);
         // Mostrar sección de invitados ya que guardó hijos y padres
         mostrarSeccionInvitados();
+        // Habilitar el menú "Mis Pagos al CPA" en el panel (ahora el usuario está registrado)
+        try {
+          if (window.parent && typeof window.parent.habilitarMisPagos === 'function') {
+            window.parent.habilitarMisPagos();
+          }
+        } catch (e) { /* ignorar cross-origin */ }
       }
     })
     .catch(error => {

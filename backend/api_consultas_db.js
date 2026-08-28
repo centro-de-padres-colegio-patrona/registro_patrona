@@ -530,18 +530,15 @@ router.get('/consulta/estudiantes/subpertenencia', async (req, res) => {
 
     const subpertenencia = {};
 
-    for (const estudiante of estudiantes) {
-      if (typeof estudiante !== 'string' || estudiante.trim() === '') {
-        return res.status(400).json({ error: 'Todos los elementos en "estudiantes" deben ser strings no vacíos' });
-      }
-      // Verificar Pertenencia a Huilen
-      const perteneceHuilen = await db_support.HuilenMapDB.findOne({ id: estudiante, id_organizacion: id_organizacion });
-      if (perteneceHuilen) {
-        if (!subpertenencia[estudiante]) subpertenencia[estudiante] = [];
-        subpertenencia[estudiante].push(perteneceHuilen.value);
+    const perteneceHuilen = await db_support.HuilenMapDB.find({ id: { $in: estudiantes } }).lean();
+
+    if (perteneceHuilen && perteneceHuilen.length > 0) {
+      for (const estudiante of perteneceHuilen) {
+        if (!subpertenencia[estudiante.id]) subpertenencia[estudiante.id] = [];
+        subpertenencia[estudiante.id].push(estudiante.value);
       }
     }
-    
+
     res.json(subpertenencia);
   } catch (error) {
     console.error(`${tag} Error: `, error);

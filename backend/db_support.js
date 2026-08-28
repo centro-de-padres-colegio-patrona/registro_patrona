@@ -616,6 +616,7 @@ module.exports.TicketEventoDB = TicketEventoDB;
 module.exports.dbUri = dbUri;
 module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
 module.exports.UserReportIssueDB = UserReportIssueDB;
+module.exports.HuilenMapDB = HuilenMapDB;
 
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;

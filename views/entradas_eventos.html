@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/styles.css">
-  <title>Registro CPA: Mis Entradas</title>
+  <title>Registro CGPA: Mis Entradas</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -256,14 +256,51 @@
         return null;
     }
 
+    // Pobla nombres_hijos a partir del correo de un apoderado.
+    // Se usa cuando el user_email llega por la URL (no por la sesion),
+    // ya que /api/user solo entrega los hijos del usuario autenticado.
+    async function cargarNombresHijosPorEmail(user_email) {
+      try {
+        const apiKey = await getApiKey();
+        const resp = await fetch(`/api/consulta/hijos?user_email=${encodeURIComponent(user_email)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+        });
+        if (!resp.ok) {
+          console.warn(`No se pudieron obtener los hijos para ${user_email}. Status: ${resp.status}`);
+          return;
+        }
+        const familias = await resp.json();
+        // familias: documentos de hermanosMap con { id, hermanos, nombre_familia, ... }
+        // Aplanamos los nombres de estudiantes y los mapeamos al formato { nombre }.
+        const nombres = (Array.isArray(familias) ? familias : [])
+          .flatMap(fam => Array.isArray(fam.hermanos) && fam.hermanos.length
+            ? fam.hermanos
+            : (fam.id ? [fam.id] : []));
+        const nombresUnicos = [...new Set(nombres.filter(Boolean))];
+        if (nombresUnicos.length) {
+          nombres_hijos = nombresUnicos.map(nombre => ({ nombre }));
+        }
+        //console.log(`nombres_hijos poblados desde email ${user_email}: `, nombres_hijos);
+      } catch (err) {
+        console.error('Error al cargar hijos por email: ', err);
+      }
+    }
+
     async function getUserEmail() {
         try {
           // 1. Intentar obtener de los parametros de la URL
-          const urlParams = new URLSearchParams(window.parent.location.search);
+          let parentSearch = '';
+          try { parentSearch = window.parent.location.search; } catch(e) { parentSearch = window.location.search || ''; }
+          const urlParams = new URLSearchParams(parentSearch);
           let user_email = urlParams.get('user_email');
 
-          // Si viene en la URL y no esta vacio, lo retornamos inmediatamente
+          // Si viene en la URL y no esta vacio, lo usamos como identidad.
+          // IMPORTANTE: en este caso /api/user (sesion) puede corresponder a otro
+          // usuario o no traer los hijos del correo indicado, por lo que debemos
+          // poblar nombres_hijos consultando la familia asociada a este correo.
           if (user_email && user_email.trim() !== '') {
+              await cargarNombresHijosPorEmail(user_email.trim());
               return user_email;
           }
 
@@ -283,6 +320,15 @@
               : null;
               if (currentUser) {
                   nombres_hijos = currentUser.hijos;
+              }
+              // Fallback: el documento de sesion (users) puede no tener hijos
+              // propios aunque el usuario SI sea apoderado de una familia
+              // (registrada por el representante en hermanosMap). En ese caso
+              // poblamos nombres_hijos consultando la familia por email, igual
+              // que en la rama de user_email por URL. Sin esto, un apoderado no
+              // representante veia "No se encontraron entradas" en Actividades.
+              if ((!nombres_hijos || !nombres_hijos.length) && user_email) {
+                  await cargarNombresHijosPorEmail(user_email);
               }
               //console.log(`[/api/user] correo: ${user_email}, nombres_hijos: `, nombres_hijos);
               return user_email;
@@ -323,7 +369,18 @@
     }
 
     function getTextoBloques(bloques) {
-      return  'Por Confirmar';
+      // Normalizar: el campo puede venir como string ("bloque 03") o array.
+      let valor = bloques;
+      if (Array.isArray(valor)) valor = valor.join(', ');
+      valor = (valor == null ? '' : String(valor)).trim();
+
+      // Sin bloque asignado todavia -> pendiente de confirmacion
+      if (!valor) return 'Por Confirmar';
+
+      // Presentacion: "bloque_03" / "bloque 03" -> "Bloque 03"
+      return valor
+        .replace(/_/g, ' ')
+        .replace(/\bbloque\b/gi, 'Bloque');
     }
     /**
      * Renderiza una tabla de entradas para un estado especifico
@@ -463,6 +520,10 @@
 
       const contenedor = document.getElementById('contenedor-entradas');
       const tituloHeader = document.getElementById('titulo-evento');
+
+      // Se habilita el envio por correo SOLO si hay entradas activas. Se define
+      // aqui para poder respetar el estado del boton en el bloque finally.
+      let hayEntradasActivas = false;
       
       if (!nombres_hijos || !nombres_hijos.length ) {
           contenedor.className = 'mensaje-info';
@@ -542,7 +603,10 @@
           }
         });
 
-        if (grupos.activa.length > 0) {
+        // Solo se pueden enviar por correo si hay entradas ACTIVAS. Las
+        // inactivas se muestran pero no habilitan el envio.
+        hayEntradasActivas = grupos.activa.length > 0;
+        if (hayEntradasActivas) {
           controlarBotonEnviarCorreo(true); // Habilitar boton si hay entradas activas
         } else {
           controlarBotonEnviarCorreo(false); // Deshabilitar boton si no hay entradas activas
@@ -562,7 +626,7 @@
         const renderizar = {
           activa: true,
           usada: true,
-          inactiva: false,
+          inactiva: true,
           anulada: false
         };
         ['activa', 'usada', 'inactiva', 'anulada'].forEach(estado => {
@@ -579,11 +643,23 @@
         contenedor.className = 'mensaje-info';
         contenedor.innerHTML = '<p>Ocurrio un error al cargar las entradas de la actividad.</p>';
       } finally {
-        // Habilitar el botón de enviar correo una vez terminada la carga de entradas
+        // Terminada la carga, restaurar el texto del boton. Solo se HABILITA si
+        // hay entradas activas; si solo hay inactivas/usadas queda deshabilitado
+        // (respetando lo definido por controlarBotonEnviarCorreo).
         const btnCorreo = document.getElementById('btn-enviar-correo');
         if (btnCorreo) {
-          btnCorreo.disabled = false;
           btnCorreo.textContent = 'Enviar entradas al correo';
+          if (hayEntradasActivas) {
+            btnCorreo.disabled = false;
+            btnCorreo.style.opacity = '1';
+            btnCorreo.style.cursor = 'pointer';
+            btnCorreo.title = '';
+          } else {
+            btnCorreo.disabled = true;
+            btnCorreo.style.opacity = '0.5';
+            btnCorreo.style.cursor = 'not-allowed';
+            btnCorreo.title = 'Solo puede enviar entradas activas';
+          }
         }
       }
     }

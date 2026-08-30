@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estado CPA por Curso</title>
+  <title>Estado CGPA por Curso</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -132,7 +132,7 @@
 </head>
 <body>
 
-<h2>Estado Cuota CPA por Curso</h2>
+<h2>Estado Cuota CGPA por Curso</h2>
 
 <div class="filtros" id="filtros-container" style="display:none;">
   <div class="filtro-grupo">
@@ -158,11 +158,11 @@
   </div>
   <div class="resumen-card pagado">
     <div class="valor" id="total-pagados">0</div>
-    <div class="etiqueta">CPA Pagado</div>
+    <div class="etiqueta">CGPA Pagado</div>
   </div>
   <div class="resumen-card pendiente">
     <div class="valor" id="total-pendientes">0</div>
-    <div class="etiqueta">CPA Pendiente</div>
+    <div class="etiqueta">CGPA Pendiente</div>
   </div>
 </div>
 
@@ -176,7 +176,7 @@
         <th>Alumno</th>
         <th>Curso</th>
         <th>Apoderado</th>
-        <th>Estado CPA</th>
+        <th>Estado CGPA</th>
         <th id="th-accion" style="display:none;">Acción</th>
       </tr>
     </thead>
@@ -186,7 +186,7 @@
 </div>
 
 <div id="mensaje-vacio" style="display:none; text-align:center; padding:40px; color:#888;">
-  Selecciona un curso para ver el estado de pagos CPA.
+  Selecciona un curso para ver el estado de pagos CGPA.
 </div>
 
 <script>
@@ -244,7 +244,7 @@
         }
 
         if (cursoAsignado) {
-          document.querySelector('h2').textContent = `Estado Cuota CPA — ${cursoAsignado} ${seccionAsignada}`;
+          document.querySelector('h2').textContent = `Estado Cuota CGPA — ${cursoAsignado} ${seccionAsignada}`;
           document.getElementById('filtro-curso').value = cursoAsignado;
           document.getElementById('filtro-seccion').value = seccionAsignada;
           cargarEstadoCPA();
@@ -286,7 +286,7 @@
 
     if (!curso || !seccion) {
       document.getElementById('mensaje-vacio').style.display = 'block';
-      document.getElementById('mensaje-vacio').textContent = 'Selecciona un curso y sección para ver el estado de pagos CPA.';
+      document.getElementById('mensaje-vacio').textContent = 'Selecciona un curso y sección para ver el estado de pagos CGPA.';
       document.getElementById('tabla-container').style.display = 'none';
       document.getElementById('resumen-container').style.display = 'none';
       return;
@@ -364,8 +364,8 @@
 
   async function toggleEstadoCPA(apoderadoEmail, nuevoCpaPagado, btn, nombreAlumno) {
     const mensaje = nuevoCpaPagado 
-      ? '¿Está seguro que desea marcar como pagado el CPA?' 
-      : '¿Está seguro que desea marcar como pendiente el CPA?';
+      ? '¿Está seguro que desea marcar como pagado el CGPA?' 
+      : '¿Está seguro que desea marcar como pendiente el CGPA?';
     if (!confirm(mensaje)) return;
 
     btn.disabled = true;

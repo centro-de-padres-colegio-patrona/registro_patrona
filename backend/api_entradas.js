@@ -1749,6 +1749,22 @@ router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
     const send_email_result = await send_email_from_cpa_account(email_body);
 
     if (send_email_result.status === 'ok') {
+      // Registrar en el usuario que sus entradas ya fueron enviadas por correo,
+      // para que el mantenedor de Apoderados refleje el estado correcto.
+      // Se busca por email de forma case-insensitive (mismo criterio que /api/reenviar_entradas).
+      try {
+        const emailRegex = new RegExp('^' + email_destinatario.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+        const updateResult = await db_support.usersDB.updateOne(
+          { email: { $regex: emailRegex } },
+          { $set: { entradas_enviadas: true, fecha_envio_entradas: new Date() } }
+        );
+        if (updateResult.matchedCount === 0) {
+          console.log(`${tag} Envio OK pero no se encontro usuario con email ${email_destinatario} para marcar entradas_enviadas`);
+        }
+      } catch (e) {
+        // No se debe fallar el envio por un problema al actualizar el estado
+        console.log(`${tag} Envio OK pero fallo al marcar entradas_enviadas: `, e.message || e);
+      }
       res.status(200).json(send_email_result);
     } else {
       res.status(400).json(send_email_result);
@@ -1760,7 +1776,5 @@ router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
   }
 });
 
-
-router.post('')
 
 module.exports = router;

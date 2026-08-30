@@ -683,6 +683,8 @@
       console.log(`Inicializando página ${id_pagina}...`);
       init();
 
+      actualizarLabelCompletitud();
+    });
       // Filtrar campos RUT: solo permitir números y K/k, máximo 9 dígitos
       // Cuando el RUT es válido, se muestra formateado (con puntos y guión)
 
@@ -943,11 +945,7 @@
           }
         }
       });
-      actualizarLabelCompletitud();
-    });
-  </script>
 
-  <script>
     /// ----------------------- Verificar Máximo Entradas
     async function obtenerMaxInvitados() {
       try {

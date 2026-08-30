@@ -28,7 +28,7 @@ class MercadoPagoApi {
     const body = {
       items: [
         {
-          title: title || 'Pago CPA Colegio Patrona',
+          title: title || 'Pago CGPA Colegio Patrona',
           quantity: 1,
           unit_price: parseInt(amount),
           currency_id: 'CLP'
@@ -43,7 +43,7 @@ class MercadoPagoApi {
         failure: backUrls.failure,
         pending: backUrls.pending
       },
-      statement_descriptor: 'CPA Patrona'
+      statement_descriptor: 'CGPA Patrona'
     };
 
     console.log('[MercadoPagoApi] Creando preferencia:', JSON.stringify(body));

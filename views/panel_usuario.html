@@ -195,6 +195,10 @@
   </div>
 
   <script>
+
+    const id_pagina = window.location.pathname.split('/').pop();
+    const id_organizacion = 'cpa_patrona';
+
     function cargarContenido(url, botonPresionado) {
       // Verificar si hay cambios sin guardar en Mis Datos antes de cambiar de menú
       try {
@@ -219,7 +223,8 @@
       const emailFromUrl = urlParams.get('user_email');
       const emailUsuario = emailFromUrl || document.getElementById('usuario-correo').textContent;
       let fullUrl = url;
-      if (emailUsuario && !url.includes('user_email')) {
+      console.log('cargarContenido: url=', url, 'emailUsuario=', emailUsuario);
+      if (emailUsuario && url && !url.includes('user_email')) {
         fullUrl = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailUsuario);
       }
 
@@ -311,6 +316,7 @@
           alert('No se pudo desvincular los datos del usuario. Revise la consola para más detalles.');
           return;
         }
+        console.log('Desvinculando datos del usuario con correo:', document.getElementById('usuario-correo').textContent);
         fetch(`/api/update/user/apoderado_email?user_email=${encodeURIComponent(document.getElementById('usuario-correo').textContent)}`, {
           method: 'DELETE',
           headers: {
@@ -330,6 +336,11 @@
           console.log('Datos desvinculados correctamente:', data);
           // Mostrar mensaje de éxito al usuario
           alert('Los datos del usuario han sido desvinculados correctamente.');
+        })
+        .catch(err => {
+          console.error('Error al desvincular los datos del usuario:', err);
+          // Mostrar mensaje de error al usuario
+          //alert('No se pudo desvincular los datos del usuario. Revise la consola para más detalles.');
         });
       })
       .catch(err => {
@@ -438,6 +449,9 @@
         const ocultarSinRegistro = ['pagos_cpa.html', 'entradas_eventos.html'+query, 'entradas_eventos.html'+queryHuilen];
         menus = menus.filter(m => !(m.url && ocultarSinRegistro.includes(m.url.split('?')[0])));
       }
+      if (!window._tieneEntradasHuilen) {
+        menus = menus.filter(m => !(m.url && m.url.startsWith('entradas_eventos.html'+queryHuilen)));
+      }
       if (roles && roles.length > 1) {
         const urlsYaIncluidas = new Set(menus.filter(m => m.url).map(m => m.url));
         for (const r of roles) {
@@ -538,31 +552,60 @@
       }
     }
 
-    async function subpertenencia(hijos) {
-      if (!hijos || hijos.length === 0) return null;
-
-      const query = new URLSearchParams({
-        id_organizacion: id_organizacion,
-        estudiantes: JSON.stringify(hijos)
-      });
-
-      const result = await fetch(`${url_server}/api/consulta/estudiantes/subpertenencia?${query.toString()}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
-      });
-
-      if ( result.status === 200 ) {
-        const response = await result.json();
-        //console.log(`${tag} Subpertenencia de estudiantes ${JSON.stringify(hijos)}: `, response);
-      } else {
-        const error_msg = await result.json();
-        console.log(`${tag} Error al consultar subpertenencia de estudiantes. Status: ${result.status}, Error: ${JSON.stringify(error_msg)}`);
+    async function obtener_feature(feature) {
+      try {
+        //verifyParameter({id_organizacion}, 'cpa_patrona');
+        
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+        if (!response.ok) {
+          console.log({response});
+          throw new Error('Error al consultar /api/feature/options');
+        }
+        
+        // Formato JSON esperado, por ejemplo:
+        // { feature: "ir_a_pagos", enabled: false }
+        const features = await response.json();
+        return features;
+      } catch (err) {
+        console.error(`Error al obtener feature ${feature}:`, err);
+        return { feature, enabled: false};
       }
+    }
 
-      const subpertenencias = hijos.map(h => h.subpertenencia).filter(sp => sp && sp.trim() !== '');
-      if (subpertenencias.length === 0) return null;
-      // Retornar el primer subpertenencia encontrada
-      return subpertenencias[0];
+    async function subpertenencia(hijos) {
+      const tag = '[subpertenencia] ';
+      try {
+        console.log(`${tag} Consultando subpertenencia de estudiantes: `, hijos);
+        if (!hijos || hijos.length === 0) return null;
+
+        const query = new URLSearchParams({
+          id_organizacion: id_organizacion,
+          estudiantes: JSON.stringify(hijos)
+        });
+
+        const apiKey = await getApiKey();
+
+        const result = await fetch(`/api/consulta/estudiantes/subpertenencia?${query.toString()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+        });
+
+        if ( result.status === 200 ) {
+          const response = await result.json();
+          //console.log(`${tag} Subpertenencia de estudiantes ${JSON.stringify(hijos)}: `, response);
+        } else {
+          const error_msg = await result.json();
+          console.log(`${tag} Error al consultar subpertenencia de estudiantes. Status: ${result.status}, Error: ${JSON.stringify(error_msg)}`);
+        }
+
+        const subpertenencias = hijos.map(h => h.subpertenencia).filter(sp => sp && sp.trim() !== '');
+        if (subpertenencias.length === 0) return null;
+        // Retornar el primer subpertenencia encontrada
+        return subpertenencias;
+      } catch (err) {
+        console.error(`${tag} Error inesperado al consultar subpertenencia de estudiantes:`, err);
+        return null;
+      }
     }
 
     // Inicialización: obtener usuario y su perfil
@@ -597,9 +640,27 @@
           }
           if (!nombreCompleto) nombreCompleto = data.req?.displayName || user?.displayName || '';
           window._usuarioRegistrado = estaRegistrado(user);
-          if (!window._usuarioRegistrado) {
-            console.log('Usuario no registrado (sin hijos/padres con datos). Ocultando "Mis Pagos al CGPA" y "Actividades y Eventos".');
-            window._tieneEntradasHuilen = false;
+          if (window._usuarioRegistrado) {
+            //console.log('Usuario no registrado (sin hijos/padres con datos). Ocultando "Mis Pagos al CGPA" y "Actividades y Eventos".');
+            //window._tieneEntradasHuilen = false;
+            const feature = await obtener_feature('entradas_huilen');
+            console.log('Feature entradas_huilen:', feature);
+            if (feature && feature.enabled) {
+              //console.log('Feature entradas_huilen habilitado, verificando si tiene entradas Huilen...');
+              console.log('Usuario tiene hijos:', user.hijos, 'and numero hijos:', user.hijos.length);
+              if (user?.hijos && user.hijos.length > 0) {
+                const nombre_hijos = user.hijos.map(h => h.nombre);
+                console.log('Verificando subpertenencia de hijos:', nombre_hijos);
+                const subpertenenciaHuilen = await subpertenencia(nombre_hijos);
+                console.log('Subpertenencia de hijos:', subpertenenciaHuilen);
+                if (subpertenenciaHuilen) {
+                  window._tieneEntradasHuilen = true;
+                  //console.log('Usuario tiene hijos con subpertenencia Huilen. Mostrando menú de entradas Huilen.');
+                } else {
+                  //console.log('Usuario NO tiene hijos con subpertenencia Huilen. Ocultando menú de entradas Huilen.');
+                }
+              }
+            }
           }
         }
       } catch (err) {

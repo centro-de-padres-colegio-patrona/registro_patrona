@@ -588,8 +588,67 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
   }
 });
 
+  async function obtenerPagosEntradas(id_organizacion, id_evento, user_email) {
+    let compromiso_maximo_alcanzado = false;
+    let numero_entradas = 0;
+    const url_server = config_env.URL_SERVER || BASEURL;
+    try {
+      const configRes = await fetch(`${url_server}/api/config?email=${encodeURIComponent(user_email)}`);
+      const config = await configRes.json();
+
+      const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      if ( result.status === 200 ) {
+        const pago_entradas = await result.json();
+        const tipo_pase = 'pases_invitados';
+        if ( Object.hasOwn(pago_entradas, tipo_pase )) {
+          for (const pago of pago_entradas[tipo_pase]) {
+            if ( compromiso_maximo_alcanzado ) break;
+            compromiso_maximo_alcanzado = pago.compromiso_maximo_alcanzado;
+            numero_entradas += pago.cantidad;
+          }
+        }
+      }
+      //console.log(`Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}`);
+    } catch (err) {
+      console.log('[mis_datos] Error obteniendo pagos entradas:', err);
+    }
+    return { compromiso_maximo_alcanzado, numero_entradas };
+  }
 
 
+async function consolidarEntradasInvitados(id_organizacion, id_evento, user_email) {
+  const tag = '[consolidarEntradasInvitados]';
+  try {
+    if (!user_email) {
+      console.log(`${tag} user_email is required`);
+      return;
+    }
+
+    const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
+    console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+
+    const userInfo = await db_support.usersDB.findOne({email: user_email});
+    if (!userInfo) {
+      return res.status(404).json({ error: 'usuario no encontrado' });
+    }
+    const { hijos, padres, invitados } = userInfo;
+    if ( !hijos || !hijos.length) {
+      return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
+    }
+
+    if (compromiso_maximo_alcanzado) {
+    } else {
+      if (numero_entradas > 0) {
+    }
+    
+    const userInfo = await db_support.usersDB.findOne({email: user_email});
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+  }
+}
 
 // Activar entradas:
 // Se activan las entradas de la familia del user_email
@@ -634,6 +693,10 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       console.log(`${tag} ${err_msg} `);
       res.status(400).json({ error: err_msg });
       return;
+    }
+
+    if (user_mail) {
+      await consolidarEntradasInvitados(user_email);
     }
 
     if (folio && esSupervisor) {

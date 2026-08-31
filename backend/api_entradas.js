@@ -619,8 +619,10 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
   }
 
 async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
+  const tag = '[obtenerMaxInvitados]';
+
   try {
-    //console.log("Calculando máximo invitados...");
+    console.log(`${tag} Calculando máximo invitados...`);
     const url_server = config_env.URL_SERVER || BASEURL;
     const cursos = [];
     for (const hijo of hijos) {
@@ -628,6 +630,8 @@ async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
       if (curso && curso.value)
         cursos.push(curso.value);
     }
+
+    console.log(`${tag} id_organizacion=${id_organizacion}, id_evento=${id_evento}, hijos=${JSON.stringify(hijos)}, cursos=${JSON.stringify(cursos)}`); 
 
     const result = await fetch(`${url_server}/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
       method: 'GET',
@@ -644,12 +648,32 @@ async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
   return 0;
 }
 
+router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entrada/consolidar]';
+  try {
+    const { id_organizacion, id_evento, user_email } = req.body;
+    let result = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+    if (result > 0) {
+      res.status(200).json({ message: 'Entradas consolidadas correctamente' });
+    } else if (result === 0) {
+      res.status(200).json({ message: 'No se requieren cambios en las entradas' });
+    } else if (result === -1) {
+      res.status(400).json({ error: 'Error consolidando entradas: datos insuficientes' });
+    } else {
+      res.status(500).json({ error: 'Error consolidando entradas' });
+    }
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error consolidando entradas' });
+  }
+});
+
 async function consolidarEntradasInvitados(id_organizacion, id_evento, user_email) {
   const tag = '[consolidarEntradasInvitados]';
   try {
     if (!user_email) {
       console.log(`${tag} user_email is required`);
-      return;
+      return -1;
     }
 
     const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
@@ -657,11 +681,11 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
 
     const userInfo = await db_support.usersDB.findOne({email: user_email});
     if (!userInfo) {
-      return;
+      return -1;
     }
     const { hijos, padres, invitados } = userInfo;
     if ( !hijos || !hijos.length) {
-      return;
+      return -1;
     }
 
     let num_invitados = 0
@@ -679,9 +703,12 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
         { email: user_email },
         { $set: { 'invitados': Array(num_invitados).fill({}) } }
       );
+      return num_invitados;
     }
+    return 0;
   } catch (error) {
     console.error(`${tag} Error:`, error);
+    return -1;
   }
 }
 

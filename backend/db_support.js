@@ -55,6 +55,15 @@ const familiaSchema = new mongoose.Schema({
   fechaRegistro: { type: Date, default: Date.now }
 });
 
+const userHistorialSchema = new mongoose.Schema({
+  fecha: { type: Date, default: Date.now },
+  id_pagina: { type: String, required: true },
+  id_evento: { type: String, required: true },
+  id_organizacion: { type: String, required: true },
+  accion: { type: String, required: true },
+  detalles: { type: Object, required: true }
+});
+
 const userSchema = new mongoose.Schema({
   googleId: String,
   displayName: String,
@@ -77,6 +86,16 @@ const userSchema = new mongoose.Schema({
   intentosFallidos: Number,
   bloqueadoHasta: Date,
   passwordHash: String,
+  historial: [userHistorialSchema],
+});
+
+const testRunHistorialSchema = new mongoose.Schema({
+  fecha: { type: Date, default: Date.now },
+  id_pagina: { type: String, required: true },
+  id_evento: { type: String, required: true },
+  id_organizacion: { type: String, required: true },
+  accion: { type: String, required: true },
+  detalles: { type: Object, required: true }
 });
 
   const nombreCursoSchema = new mongoose.Schema({

@@ -618,6 +618,31 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
     return { compromiso_maximo_alcanzado, numero_entradas };
   }
 
+async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
+  try {
+    //console.log("Calculando máximo invitados...");
+    const url_server = config_env.URL_SERVER || BASEURL;
+    const cursos = [];
+    for (const hijo of hijos) {
+      const curso = await db_support.nombreCursoMapDB.findOne({id: hijo});
+      if (curso && curso.value)
+        cursos.push(curso.value);
+    }
+
+    const result = await fetch(`${url_server}/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if (!result.ok) throw new Error(`Error al obtener max_invitados: ${result.statusText}`);
+    const data = await result.json();
+    const max = data.max_invitados;
+    //console.log("Maximo Invitados:", max);
+    return max;
+  } catch (error) {
+    console.error('Error al calcular máximo invitados:', error);
+  }
+  return 0;
+}
 
 async function consolidarEntradasInvitados(id_organizacion, id_evento, user_email) {
   const tag = '[consolidarEntradasInvitados]';
@@ -632,19 +657,29 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
 
     const userInfo = await db_support.usersDB.findOne({email: user_email});
     if (!userInfo) {
-      return res.status(404).json({ error: 'usuario no encontrado' });
+      return;
     }
     const { hijos, padres, invitados } = userInfo;
     if ( !hijos || !hijos.length) {
-      return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
+      return;
     }
 
+    let num_invitados = 0
     if (compromiso_maximo_alcanzado) {
+      console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
+      const nombre_hijos = hijos.map(hijo => hijo.nombre);
+      num_invitados = await obtenerMaxInvitados(id_organizacion, id_evento, nombre_hijos);
     } else {
-      if (numero_entradas > 0) {
+      num_invitados = numero_entradas;
     }
-    
-    const userInfo = await db_support.usersDB.findOne({email: user_email});
+    if (num_invitados > 0 && invitados && invitados.length < num_invitados) {
+      console.log(`${tag} numero_entradas=${numero_entradas}, invitados.length=${invitados.length}`);
+      // Actualizar la cantidad de invitados en la base de datos
+      await db_support.usersDB.updateOne(
+        { email: user_email },
+        { $set: { 'invitados': Array(num_invitados).fill({}) } }
+      );
+    }
   } catch (error) {
     console.error(`${tag} Error:`, error);
   }
@@ -695,8 +730,8 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       return;
     }
 
-    if (user_mail) {
-      await consolidarEntradasInvitados(user_email);
+    if (user_email) {
+      await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
     }
 
     if (folio && esSupervisor) {

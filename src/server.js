@@ -731,7 +731,11 @@ app.get('/api/manualUser', async (req, res) => {
     return res.json({ user: { email: email.toLowerCase(), correo_validado: true, padres: [{ nombre: 'Validador', apellido: 'Test', correo: email.toLowerCase(), es_usuario_cuenta: true }], hijos: [] } });
   }
 
-  let user = await db_support.usersDB.findOne({ email: email });
+  // Busqueda case-insensitive: el email guardado puede diferir en mayus/minus
+  // respecto al user_email que llega por la URL (p.ej. guardado en minusculas
+  // pero en hermanosMap como MAYUSCULAS).
+  const emailRegex = new RegExp('^' + String(email || '').toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+  let user = await db_support.usersDB.findOne({ email: emailRegex });
   if (user === undefined) {
     console.log('User undefined');
   }
@@ -742,9 +746,10 @@ app.get('/api/manualUser', async (req, res) => {
 
   // Si el usuario no tiene hijos, buscar en otros registros donde su correo esté como padre/apoderado
   if (!user.hijos || user.hijos.length === 0) {
+    const emailNorm = String(email || '').toLowerCase().trim();
     const todos = await db_support.usersDB.find({});
     const relacionado = todos.find(u => 
-      u.email !== email && u.padres && u.padres.some(p => p.correo === email)
+      (u.email || '').toLowerCase().trim() !== emailNorm && u.padres && u.padres.some(p => (p.correo || '').toLowerCase().trim() === emailNorm)
     );
     if (relacionado) {
       user.hijos = relacionado.hijos;
@@ -921,6 +926,30 @@ app.post('/api/registro', express.json(), async (req, res) => {
       filtro = { email: registro.email };
     } else {
       return res.status(400).json({ error: 'No se pudo identificar al usuario (sin _id ni email)' });
+    }
+
+    // Validar que se designe EXACTAMENTE un representante de la familia.
+    // Obliga a marcar un representante al registrarse por primera vez (y en
+    // modificaciones). Es la defensa de backend equivalente a la validacion del
+    // formulario, por si la peticion no pasa por el frontend actualizado.
+    const padresRegistro = Array.isArray(registro.padres) ? registro.padres : [];
+    if (padresRegistro.length > 0) {
+      const representantesMarcados = padresRegistro.filter(p => p && p.es_usuario_cuenta === true);
+      if (representantesMarcados.length === 0) {
+        return res.status(400).json({ error: 'Debe designar un Representante de la familia.' });
+      }
+      if (representantesMarcados.length > 1) {
+        return res.status(400).json({ error: 'Solo puede haber un Representante de la familia.' });
+      }
+
+      // Los correos de los apoderados deben ser distintos entre si. Dos
+      // apoderados con el mismo correo rompen la asociacion de entradas.
+      const correosApoderados = padresRegistro
+        .map(p => (p && p.correo ? String(p.correo) : '').toLowerCase().trim())
+        .filter(c => c !== '');
+      if (new Set(correosApoderados).size !== correosApoderados.length) {
+        return res.status(400).json({ error: 'Cada apoderado debe tener un correo distinto.' });
+      }
     }
 
     // Validar que el usuario que envía es el representante de la familia
@@ -1311,12 +1340,20 @@ app.get('/authenticated', async (req, res) => {
   //console.log(JSON.stringify(req))
   //res.render('dashboard', { user: req.user });
   // Send the dashboard.html file as a response
-  if (typeof user.correo_validado === 'undefined' || !user.correo_validado) {
+  // En ambiente LOCAL se omite la validacion de correo para facilitar pruebas.
+  // (Solo aplica cuando el server corre en el puerto local; en produccion no cambia.)
+  const esLocal = (PORT == LOCAL_PORT);
+
+  if (!esLocal && (typeof user.correo_validado === 'undefined' || !user.correo_validado)) {
     console.log('Validando correo');
     const validarCorreoPath = path.join(__dirname, '../views', 'validar_correo.html');
     res.sendFile(validarCorreoPath);
   } else {
-    console.log('Correo validado');
+    if (esLocal && (typeof user.correo_validado === 'undefined' || !user.correo_validado)) {
+      console.log('[LOCAL] Validacion de correo OMITIDA para', user.email);
+    } else {
+      console.log('Correo validado');
+    }
     const entradasBingoPath = path.join(__dirname, '../views', 'panel_usuario.html');
     res.sendFile(entradasBingoPath);
   }
@@ -1391,7 +1428,7 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     const params = await params_post.json();*/
     // Generar subject legible
     const subjectMap = {
-      'cuota_cpa': 'Cuota CPA',
+      'cuota_cpa': 'Cuota CGPA',
       'invitaciones_fiesta_chilena': null // se define dinámicamente según cantidad
     };
     const subjectParts = keys.map(key => {
@@ -1574,7 +1611,7 @@ async function confirmar_pago_flow(token = '') {
       num_folio: parseInt(result.commerceOrder) || 0,
       tipo: '',
       subtipo: result.subject || '',
-      cuota_cpa: result.subject === 'cuota_cpa' || result.subject === 'Cuota CPA',
+      cuota_cpa: result.subject === 'cuota_cpa' || result.subject === 'Cuota CPA' || result.subject === 'Cuota CGPA',
       monto: result.amount,
       cantidad_agendas: 0,
       entrega_agendas: 0,
@@ -2127,6 +2164,99 @@ app.post('/api/actualizar_cuota_cpa_alumno', express.json(), async (req, res) =>
   }
 });
 
+// Consultar estado de envío de entradas por correo de un apoderado
+app.get('/api/estado_envio_entradas', async (req, res) => {
+  const tag = '[GET /api/estado_envio_entradas]';
+  try {
+    const { user_email } = req.query;
+    if (!user_email) return res.status(400).json({ error: 'Falta user_email' });
+
+    const emailRegex = new RegExp('^' + user_email.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    const user = await db_support.usersDB.findOne({ email: { $regex: emailRegex } });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    res.json({
+      entradas_enviadas: user.entradas_enviadas === true,
+      fecha_envio_entradas: user.fecha_envio_entradas || null
+    });
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error al consultar estado de envío' });
+  }
+});
+
+// Reenviar entradas por correo a un apoderado (usado desde el mantenedor de Apoderados)
+app.post('/api/reenviar_entradas', express.json(), async (req, res) => {
+  const tag = '[POST /api/reenviar_entradas]';
+  try {
+    const { user_email } = req.body;
+    if (!user_email) return res.status(400).json({ error: 'Falta user_email' });
+
+    const id_organizacion = 'cpa_patrona';
+    const id_evento = 'fiesta_chilena_2026';
+    const apiKey = config_env.API_KEY || '123456';
+    const baseUrl = (PORT == LOCAL_PORT) ? `http://localhost:${LOCAL_PORT}` : (BASEURL || config_env.URL_SERVER);
+
+    // 1. Buscar el usuario y su primer hijo para determinar la familia
+    const emailRegex = new RegExp('^' + user_email.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    const user = await db_support.usersDB.findOne({ email: { $regex: emailRegex } });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user.hijos || user.hijos.length === 0) return res.status(400).json({ error: 'El usuario no tiene hijos registrados' });
+
+    const nombreHijo = user.hijos[0].nombre;
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ id: nombreHijo });
+    if (!familiaInfo || !familiaInfo.nombre_familia) return res.status(404).json({ error: 'No se encontró la familia del usuario' });
+    const familia = familiaInfo.nombre_familia;
+
+    // 2. Obtener las entradas de la familia
+    const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia }).sort({ folio: 1 }).lean();
+    const ticketsActivos = (tickets || []).filter(t => t.estado === 'activa');
+    if (ticketsActivos.length === 0) return res.status(400).json({ error: 'No hay entradas activas para enviar' });
+
+    // 3. Obtener el asunto/mensaje/tipo de correo configurado para el evento
+    let asuntoCorreo = 'Tus entradas para la actividad';
+    let mensajeCorreo = 'Adjuntamos tus entradas.';
+    let tipo_attachment = 'pdf';
+    try {
+      const respCorreo = await fetch(`${baseUrl}/api/correo_tipo?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+      });
+      if (respCorreo.ok) {
+        const cfg = await respCorreo.json();
+        asuntoCorreo = cfg.asuntoCorreo || asuntoCorreo;
+        mensajeCorreo = cfg.mensajeCorreo || mensajeCorreo;
+        tipo_attachment = cfg.tipo_attachment || tipo_attachment;
+      }
+    } catch (e) { /* usar valores por defecto */ }
+
+    // 4. Enviar el correo con las entradas
+    const respEnvio = await fetch(`${baseUrl}/api/entradas/send_email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+      body: JSON.stringify({ email_destinatario: user_email, asuntoCorreo, mensajeCorreo, tickets: ticketsActivos, save_file: false, tipo_attachment })
+    });
+    const dataEnvio = await respEnvio.json();
+
+    if (!respEnvio.ok) {
+      console.error(`${tag} Error del envío:`, dataEnvio);
+      return res.status(500).json({ error: dataEnvio.message || dataEnvio.error || 'Error al enviar el correo' });
+    }
+
+    // 5. Marcar como enviadas en el registro del usuario
+    await db_support.usersDB.updateOne(
+      { _id: user._id },
+      { $set: { entradas_enviadas: true, fecha_envio_entradas: new Date() } }
+    );
+
+    console.log(`${tag} Entradas reenviadas a ${user_email} (familia: ${familia}, ${ticketsActivos.length} entradas)`);
+    res.json({ status: 'ok', enviadas: ticketsActivos.length });
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error al reenviar las entradas' });
+  }
+});
+
 // Eliminar apoderado (borrar datos de padres e hijos)
 app.post('/api/eliminar_apoderado', express.json(), async (req, res) => {
   try {
@@ -2522,7 +2652,7 @@ app.post('/api/mp/create', async (req, res) => {
 
     // Mapa de códigos a glosas legibles
     const glosaMap = {
-      'cuota_cpa': 'Cuota CPA',
+      'cuota_cpa': 'Cuota CGPA',
       'invitaciones_fiesta_chilena': null,
       'fiesta_chilena': null,
       'entradas_fiesta': 'Entradas Fiesta'

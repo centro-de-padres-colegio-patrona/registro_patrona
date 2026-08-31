@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro CPA: Panel de Usuario</title>
+  <title>Registro CGPA: Panel de Usuario</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
@@ -252,7 +252,8 @@
     }
 
     // Llamada desde mis_datos.html cuando el usuario guarda sus datos:
-    // marca al usuario como registrado y reconstruye el menú para mostrar "Mis Pagos al CPA".
+    // marca al usuario como registrado y reconstruye el menú para mostrar de
+    // nuevo "Mis Pagos al CGPA" y "Actividades y Eventos".
     window.habilitarMisPagos = function() {
       window._usuarioRegistrado = true;
       if (window._rolActual) {
@@ -343,8 +344,8 @@
     const menusPorRol = {
       administrador: [
         { label: '📋 Mis datos', url: 'mis_datos.html' + query },
-        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' + query },
-        { label: '📊 Estado CPA Curso', url: 'estado_cpa_curso.html' + query },
+        { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
+        { label: '📊 Estado CGPA Curso', url: 'estado_cpa_curso.html' + query },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
         { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
@@ -365,7 +366,7 @@
       ],
       apoderado: [
         { label: '📋 Mis datos', url: 'mis_datos.html' + query },
-        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' + query },
+        { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
         { label: '---', url: '' },
@@ -384,8 +385,8 @@
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Mis datos', url: 'mis_datos.html' },
-        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' + query },
-        { label: '📊 Estado CPA Curso', url: 'estado_cpa_curso.html' + query },
+        { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
+        { label: '📊 Estado CGPA Curso', url: 'estado_cpa_curso.html' + query },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
         { label: '---', url: '' },
         { label: '::Mantenedores', url: '' },
@@ -396,8 +397,8 @@
       ],
       presidente: [
         { label: '📋 Mis datos', url: 'mis_datos.html' + query },
-        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' + query },
-        { label: '📊 Estado CPA Curso', url: 'estado_cpa_curso.html' + query },
+        { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
+        { label: '📊 Estado CGPA Curso', url: 'estado_cpa_curso.html' + query },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
@@ -405,7 +406,7 @@
       ],
       tester: [
         { label: '📋 Mis datos', url: 'mis_datos.html' + query },
-        { label: '💰 Mis Pagos al CPA', url: 'pagos_cpa.html' + query },
+        { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
         { label: '---', url: '' },
@@ -422,10 +423,12 @@
       // Combinar menús de todos los roles del usuario (sin duplicar items)
       let menus = [...(menusPorRol[rol] || menusPorRol['apoderado'])];
 
-      // Si el usuario NO está registrado (sin hijos/padres), ocultar "Mis Pagos al CPA"
-      // Se habilita nuevamente una vez que registra sus datos en Mis Datos.
+      // Si el usuario NO está registrado (sin hijos/padres), ocultar "Mis Pagos
+      // al CGPA" y "Actividades y Eventos". Ambos requieren tener hijos enrolados.
+      // Se habilitan nuevamente una vez que registra sus datos en Mis Datos.
       if (!window._usuarioRegistrado) {
-        menus = menus.filter(m => !(m.url && m.url.split('?')[0] === 'pagos_cpa.html'));
+        const ocultarSinRegistro = ['pagos_cpa.html', 'entradas_eventos.html'];
+        menus = menus.filter(m => !(m.url && ocultarSinRegistro.includes(m.url.split('?')[0])));
       }
       if (roles && roles.length > 1) {
         const urlsYaIncluidas = new Set(menus.filter(m => m.url).map(m => m.url));

@@ -676,13 +676,22 @@
 
     document.addEventListener('DOMContentLoaded', () => {
 
-      if (paginaInicializada(`${id_pagina}_1`)) {
-        //console.log('Carga ya procesada previamente en este iframe, omitiendo duplicado.');
+      // Idempotencia por-documento (no por window.top): mis_datos.html corre en
+      // un iframe (#visor). El guard antiguo usaba window.top[id_pagina], por lo
+      // que si el iframe se recargaba con el flag ya puesto en el top, este
+      // bloque se saltaba COMPLETO y los listeners 'change' de curso/seccion
+      // nunca se registraban -> el select de Nombre no se poblaba (bug movil).
+      // Al usar una bandera en el propio document, el setup corre una vez por
+      // carga real del iframe y no se duplica dentro de la misma carga.
+      if (document.__misDatosInicializado_1) {
         return;
       }
+      document.__misDatosInicializado_1 = true;
       console.log(`Inicializando página ${id_pagina}...`);
       init();
 
+      actualizarLabelCompletitud();
+    });
       // Filtrar campos RUT: solo permitir números y K/k, máximo 9 dígitos
       // Cuando el RUT es válido, se muestra formateado (con puntos y guión)
 
@@ -722,30 +731,7 @@
           const nombreActual = nombreSelect.value;
           
           if (curso && seccion) {
-            //console.log(`#1 fetch(/api/alumnos?curso=`);
-            fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
-              .then(res => res.json())
-              .then(alumnos => {
-                fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
-                  method: 'GET',
-                  headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
-                })
-                .then(res => res.json())
-                .then( alumnos_ya_registrados => {
-                nombreSelect.innerHTML = '<option value="">Seleccione</option>';
-                alumnos.forEach(nombre => {
-                  const option = document.createElement('option');
-                  option.value = nombre;
-                  option.textContent = nombre;
-                  //console.log(`alumno ${nombre}, registrado: alumnos_ya_registrados.includes(nombre)`);
-                  if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
-                  nombreSelect.appendChild(option);
-                });
-                nombreSelect.value = nombreActual;
-                })
-                .catch(err => console.error('Error al generar listado alumnos ya registrados:', err));
-              })
-              .catch(err => console.error('Error al cargar nombres:', err));
+            poblarNombresAlumnos(nombreSelect, curso, seccion, nombreActual);
           }
           
           e.target.style.display = 'none';
@@ -903,29 +889,7 @@
           const rutInput = childForm.querySelector("input[name='childRut[]']");
 
           if (curso && seccion) {
-            //console.log(`#2 fetch(/api/alumnos?curso=`);
-            fetch(`/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`)
-              .then(res => res.json())
-              .then(async alumnos => {
-                fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
-                  method: 'GET',
-                  headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
-                })
-                .then(res => res.json())
-                .then( alumnos_ya_registrados => {
-                nombreSelect.innerHTML = '<option value="">Seleccione</option>';
-                alumnos.forEach(nombre => {
-                  const option = document.createElement('option');
-                  option.value = nombre;
-                  option.textContent = nombre;
-                  ////console.log(`alumnos_ya_registrados: `, alumnos_ya_registrados);
-                  if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
-                  nombreSelect.appendChild(option);
-                });
-                })
-                .catch(err => console.error('Error al generar listado alumnos ya registrados:', err));
-              })
-              .catch(err => console.error('Error al obtener nombres:', err));
+            poblarNombresAlumnos(nombreSelect, curso, seccion);
           }
         } else if (target.name === 'childName[]') {
           try {
@@ -943,11 +907,7 @@
           }
         }
       });
-      actualizarLabelCompletitud();
-    });
-  </script>
 
-  <script>
     /// ----------------------- Verificar Máximo Entradas
     async function obtenerMaxInvitados() {
       try {
@@ -1025,6 +985,118 @@
         } else {
             label.style.display = 'block';
         }
+    }
+
+    // Pobla el select de nombres con los alumnos del curso/seccion.
+    // IMPORTANTE: la lista de "ya registrados" (que deshabilita opciones) es
+    // un complemento OPCIONAL: si su consulta falla, igual se muestran los
+    // nombres. Antes, el poblado dependia de ese segundo fetch (con x-api-key),
+    // por lo que si fallaba el select quedaba totalmente vacio (bug en movil).
+    // Parametros:
+    //  - nombreSelect: el <select name="childName[]">
+    //  - curso, seccion: valores de los selects
+    //  - nombreSeleccionado (opcional): valor a preseleccionar tras poblar
+    async function poblarNombresAlumnos(nombreSelect, curso, seccion, nombreSeleccionado = null) {
+      if (!nombreSelect || !curso || !seccion) return;
+
+      // 1. Obtener los alumnos del curso/seccion (sin depender de apiKey).
+      //    Se captura el detalle del fallo para poder mostrarlo EN PANTALLA
+      //    (util en movil, donde no hay consola a la vista).
+      let alumnos = [];
+      let errorCarga = null;
+      try {
+        const urlAlumnos = `/api/alumnos?curso=${encodeURIComponent(curso)}&seccion=${encodeURIComponent(seccion)}`;
+        const res = await fetch(urlAlumnos);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            alumnos = data;
+          } else {
+            errorCarga = 'Respuesta no es lista (' + (data && data.error ? data.error : typeof data) + ')';
+          }
+        } else {
+          errorCarga = 'HTTP ' + res.status;
+          console.error('Error al obtener nombres. Status:', res.status);
+        }
+      } catch (err) {
+        errorCarga = 'Red: ' + (err && err.message ? err.message : err);
+        console.error('Error al obtener nombres:', err);
+      }
+
+      // 2. Poblar el select SIEMPRE, aunque falle la consulta de registrados.
+      nombreSelect.innerHTML = '<option value="">Seleccione</option>';
+      alumnos.forEach(nombre => {
+        const option = document.createElement('option');
+        option.value = nombre;
+        option.textContent = nombre;
+        nombreSelect.appendChild(option);
+      });
+
+      // 2b. Diagnostico visible: si no se cargo ningun alumno, mostrar el motivo
+      //     como una opcion (deshabilitada) para verlo directamente en movil.
+      if (alumnos.length === 0) {
+        const optDiag = document.createElement('option');
+        optDiag.value = '';
+        optDiag.disabled = true;
+        optDiag.textContent = errorCarga
+          ? ('Sin nombres — ' + errorCarga)
+          : 'Sin alumnos para este curso/sección';
+        nombreSelect.appendChild(optDiag);
+      }
+
+      // 3. Preseleccion (si corresponde). La coincidencia es tolerante a
+      //    mayusculas y espacios extra: el nombre guardado puede diferir en
+      //    capitalizacion/espacios del que viene en el listado del curso, y una
+      //    comparacion exacta dejaba el select sin seleccionar (o duplicaba la
+      //    opcion) aunque el alumno SI estuviera en la lista.
+      if (nombreSeleccionado) {
+        const normNombre = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const objetivo = normNombre(nombreSeleccionado);
+        const opcionMatch = Array.from(nombreSelect.options)
+          .find(o => normNombre(o.value) === objetivo);
+        if (opcionMatch) {
+          // Usar el value real de la opcion existente (respeta el <select>).
+          nombreSelect.value = opcionMatch.value;
+        } else {
+          // No esta en la lista: se agrega para no perder el dato ya guardado.
+          const opt = document.createElement('option');
+          opt.value = nombreSeleccionado;
+          opt.textContent = nombreSeleccionado;
+          nombreSelect.appendChild(opt);
+          nombreSelect.value = nombreSeleccionado;
+        }
+      }
+
+      // 4. Complemento OPCIONAL: marcar como deshabilitados los ya registrados.
+      try {
+        const res2 = await fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+        });
+        if (res2.ok) {
+          const yaRegistrados = await res2.json();
+          if (Array.isArray(yaRegistrados)) {
+            // Comparacion tolerante a mayusculas y espacios extra: los nombres
+            // vienen con capitalizacion inconsistente ("Espinoza..." vs resto en
+            // minuscula) y a veces con espacios dobles. Una comparacion exacta
+            // deshabilitaba el propio hijo (quedaba bloqueado) o no deshabilitaba
+            // a otros ya registrados.
+            const normNombre = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+            const registradosSet = new Set(yaRegistrados.map(normNombre));
+            const seleccionadoNorm = normNombre(nombreSeleccionado);
+            Array.from(nombreSelect.options).forEach(opt => {
+              if (!opt.value) return;
+              const optNorm = normNombre(opt.value);
+              // No deshabilitar el que esta preseleccionado (el hijo actual).
+              if (optNorm !== seleccionadoNorm && registradosSet.has(optNorm)) {
+                opt.disabled = true;
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error al generar listado alumnos ya registrados:', err);
+      }
     }
 
     function addChild() {
@@ -1272,49 +1344,10 @@
         }
         rut_status[hijo.nombre] = {rut, is_valid};
 
-        // Simula llamada a API para cargar nombres válidos
-        if (cursoLargo && hijo.seccion) {
-          //console.log(`#4 fetch(/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`);
-          /*if (!apiKey) {
-            await init();
-          }*/
-          fetch(`/api/alumnos?curso=${encodeURIComponent(cursoLargo)}&seccion=${encodeURIComponent(hijo.seccion)}`)
-            .then(res => res.json())
-            .then(alumnos => {
-              fetch(`/api/consulta/hijos_registrados?output=${encodeURIComponent('listado')}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
-              })
-              .then(res => res.json())
-              .then( alumnos_ya_registrados => {
-              const nombreSelect = form.querySelector("select[name='childName[]']");
-              nombreSelect.innerHTML = '<option value="">Seleccione</option>';
-              //console.log('Alumnos ya registrados:', alumnos_ya_registrados);
-              // Si el hijo tiene nombre y no está en la lista, agregarlo primero
-              if (hijo.nombre && !alumnos.includes(hijo.nombre)) {
-                const optActual = document.createElement('option');
-                optActual.value = hijo.nombre;
-                optActual.textContent = hijo.nombre;
-                nombreSelect.appendChild(optActual);
-              }
-              alumnos.forEach(nombre => {
-                const option = document.createElement('option');
-                option.value = nombre;
-                option.textContent = nombre;
-                if (alumnos_ya_registrados.includes(nombre)) option.disabled = true;
-                nombreSelect.appendChild(option);
-              });
-
-              // Selecciona el nombre del hijo
-              if (hijo.nombre) {
-                nombreSelect.value = hijo.nombre;
-              }
-              })
-              .catch(err => console.error('Error al generar listado alumnos ya registrados:', err));
-            })
-            .catch(err => console.error('Error al cargar nombres:', err));
-        }
         const nombreSelect = form.querySelector("select[name='childName[]']");
+
+        // Poblado inmediato (sincrono) para que el select NUNCA quede vacio,
+        // aunque el fetch demore o falle: se muestra "Seleccione" + el hijo actual.
         nombreSelect.innerHTML = '<option value="">Seleccione</option>';
         if (hijo.nombre) {
           const option = document.createElement('option');
@@ -1322,6 +1355,12 @@
           option.textContent = hijo.nombre;
           nombreSelect.appendChild(option);
           nombreSelect.value = hijo.nombre;
+        }
+
+        // Cargar la lista completa de alumnos (robusto: no depende de que la
+        // consulta de "ya registrados" funcione). Preselecciona al hijo actual.
+        if (cursoLargo && hijo.seccion) {
+          poblarNombresAlumnos(nombreSelect, cursoLargo, hijo.seccion, hijo.nombre);
         }
 
         if (hijo.nombre && cursoLargo && hijo.seccion) {
@@ -1559,8 +1598,8 @@
         // Cuota CPA pendiente
         html += `
           <div style="display:flex; flex-direction:column; gap:8px;">
-            <span style="color:#e74c3c; font-weight:700; font-size:0.9rem;">❌ Cuota CPA Pendiente</span>
-            <p style="color:#888; font-size:0.85rem; margin:0;">Debes pagar la Cuota del Centro de Padres para poder solicitar invitados.</p>
+            <span style="color:#e74c3c; font-weight:700; font-size:0.9rem;">❌ Cuota CGPA Pendiente</span>
+            <p style="color:#888; font-size:0.85rem; margin:0;">Debes pagar la(s) entrada(s) de los invitado(s).</p>
           </div>
         `;
         container.innerHTML = html;
@@ -1611,7 +1650,7 @@
 
       // Validar si tiene cuota CPA pagada
       if (!window._cuotaCpaPagada) {
-        if (confirm('Debes tener la Cuota CPA pagada para solicitar invitados.\n\n¿Ir a Mis Pagos?')) {
+        if (confirm('Debes tener la Cuota CGPA pagada para solicitar invitados.\n\n¿Ir a Mis Pagos?')) {
           const url = 'pagos_cpa.html';
           if (window.parent && window.parent.document.getElementById('visor')) {
             window.parent.document.getElementById('visor').src = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(currentUser.email || '');
@@ -1852,7 +1891,10 @@
 
     // Detectar cambios en el formulario para reactivar el botón Enviar
     document.addEventListener('DOMContentLoaded', () => {
-      if (paginaInicializada(`${id_pagina}_2`)) return;
+      // Idempotencia por-documento (ver nota en el bloque _1): evita que este
+      // setup se salte cuando el iframe recarga con el flag antiguo en window.top.
+      if (document.__misDatosInicializado_2) return;
+      document.__misDatosInicializado_2 = true;
       console.log('DOM fully loaded and parsed. Setting up form change detection.');
       const form = document.getElementById('registro-form');
       if (form) {
@@ -1915,6 +1957,31 @@
         es_usuario_cuenta: parent.querySelector("input[name='account_owner[]']") ? parent.querySelector("input[name='account_owner[]']").checked : false,
         rut: parent.querySelector("input[name='parentRut[]']").value
       }));
+
+      // Validacion: debe haber EXACTAMENTE un representante de la familia marcado.
+      const representantes = padres.filter(p => p.es_usuario_cuenta === true);
+      if (representantes.length === 0) {
+        mostrarEstado('⚠️ Debe seleccionar un Representante de la familia antes de guardar.', 1);
+        alert('Debe seleccionar un "Representante de la familia".\n\nMarque la casilla "Representante de la familia" en uno de los apoderados antes de guardar.');
+        return;
+      }
+      if (representantes.length > 1) {
+        mostrarEstado('⚠️ Solo puede haber un Representante de la familia.', 1);
+        alert('Solo puede marcar a UN "Representante de la familia".\n\nDesmarque los demás y deje solo uno.');
+        return;
+      }
+
+      // Validacion: los correos de los apoderados deben ser DISTINTOS entre si.
+      // (Dos apoderados con el mismo correo rompen la asociacion de entradas.)
+      const correosApoderados = padres
+        .map(p => (p.correo || '').toLowerCase().trim())
+        .filter(c => c !== '');
+      const correosUnicos = new Set(correosApoderados);
+      if (correosUnicos.size !== correosApoderados.length) {
+        mostrarEstado('⚠️ Cada apoderado debe tener un correo distinto.', 1);
+        alert('Los apoderados no pueden compartir el mismo correo.\n\nIngrese un correo distinto para cada apoderado.');
+        return;
+      }
 
       if (compareArrays(hijos, currentUser.hijos) && compareArrays(padres, currentUser.padres)) {
         return;

@@ -24,12 +24,15 @@ router.get('/consulta/hijos', apiKeyAuth, async (req, res) => {
             return res.status(400).json({ error: 'Faltan parámetros: user_email es requerido' });
         }
 
-        const hijos = await db_support.hermanosMapDB.find({$and:[{apoderado_email:{$exists:true}},{apoderado_email:user_email}]});
+        // Comparacion case-insensitive: el correo del login puede diferir en
+        // mayus/minus respecto al apoderado_email guardado en la BD.
+        const emailRegex = new RegExp('^' + user_email.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+        const hijos = await db_support.hermanosMapDB.find({$and:[{apoderado_email:{$exists:true}},{apoderado_email: emailRegex}]});
         console.log(`${tag} hijos con apoderado ${user_email}: `, hijos.length);
 
         res.json(hijos);
     } catch (err) {
-        console.log(`${tag} Unexpected error: `, error);
+        console.log(`${tag} Unexpected error: `, err);
         return res.status(500).json({ ok: false, error: 'Unexpected error' });
   }
 });
@@ -466,6 +469,11 @@ router.get('/consulta/estudiantes/relacion', async (req, res) => {
       return res.status(400).json({ error: 'Parámetro "estudiantes" debe ser un array no vacío' });
     }
 
+    // Normalizador: ignora espacios extra al inicio/fin y espacios internos
+    // duplicados. Evita que un nombre con espacio accidental (ej. "vicente ")
+    // rompa la deteccion de hermanos y dispare el falso error de "familias sin mergear".
+    const normNombre = (s) => (s || '').trim().replace(/\s+/g, ' ');
+
     const result_relacion = [];
     const excluir_estudiantes = new Set();
 
@@ -474,11 +482,16 @@ router.get('/consulta/estudiantes/relacion', async (req, res) => {
         return res.status(400).json({ error: 'Todos los elementos en "estudiantes" deben ser strings no vacíos' });
       }
       //console.log(`${tag} Procesando estudiante: ${estudiante}`);
-      if (excluir_estudiantes.has(estudiante)) {
+      if (excluir_estudiantes.has(normNombre(estudiante))) {
         //console.log(`${tag} Estudiante ${estudiante} ya fue procesado como hermano de otro estudiante, se omite.`);
         continue; // Omitir estudiantes ya procesados como hermanos
       }
-      const hermanosInfo = await db_support.hermanosMapDB.findOne({ id: estudiante });
+      // Buscar por coincidencia exacta y, si falla, por nombre normalizado (tolerante a espacios)
+      let hermanosInfo = await db_support.hermanosMapDB.findOne({ id: estudiante });
+      if (!hermanosInfo) {
+        const rxNombre = new RegExp('^\\s*' + normNombre(estudiante).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+') + '\\s*$', 'i');
+        hermanosInfo = await db_support.hermanosMapDB.findOne({ id: rxNombre });
+      }
       if (!hermanosInfo || !hermanosInfo.hermanos || hermanosInfo.hermanos.length === 0) {
         // No tiene hermanos registrados
         return res.status(404).json({ error: `No se encontró información de hermanos para el estudiante: ${estudiante}` });
@@ -488,14 +501,16 @@ router.get('/consulta/estudiantes/relacion', async (req, res) => {
       const hermanos = hermanosInfo.hermanos;
 
       // Verificar si todos los estudiantes proporcionados son hermanos entre sí
-      const sonHermanos = estudiantes.every(est => hermanos.includes(est));
+      // (comparacion normalizada, tolerante a espacios extra en cualquiera de los lados)
+      const hermanosNorm = hermanos.map(normNombre);
+      const sonHermanos = estudiantes.every(est => hermanosNorm.includes(normNombre(est)));
       //console.log(`${tag} Verificando si todos los estudiantes son hermanos entre sí: ${sonHermanos}`);
       if (sonHermanos) {
         //console.log(`${tag} Los estudiantes ${estudiantes.join(', ')} son hermanos entre sí.`);
         return res.json([{ estudiante, nombre_familia: hermanosInfo.nombre_familia , apoderadoEmail, hermanos }]);
       }
 
-      hermanos.forEach(h => excluir_estudiantes.add(h));
+      hermanos.forEach(h => excluir_estudiantes.add(normNombre(h)));
 
       // No son todos hermanos
       result_relacion.push({

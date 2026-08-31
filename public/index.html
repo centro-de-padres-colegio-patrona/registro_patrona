@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Registro CPA</title>
+  <title>Registro CGPA</title>
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
   <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
@@ -301,7 +301,7 @@
 
     <!-- Right: Login Card -->
     <div class="login-card">
-      <img src="img/logo.png" alt="Logo CPA" class="logo">
+      <img src="img/logo.png" alt="Logo CGPA" class="logo">
       <h2>Registro 2026</h2>
 
       <!-- Google button -->
@@ -311,14 +311,14 @@
       </button>
 
       <!-- Divider -->
-      <div class="divider" style="display:none;">
+      <div class="divider">
         <hr>
         <span>o</span>
         <hr>
       </div>
 
       <!-- Email form -->
-      <form action="/login" method="post" id="formularioLogin" style="display:none;">
+      <form action="/login" method="post" id="formularioLogin">
         <input
           type="email"
           name="correoManual"
@@ -356,6 +356,9 @@
   const botonIngresar = document.getElementById('botonIngresar');
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+  // En ambiente LOCAL se omite la validacion de correo para facilitar pruebas.
+  const esLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+
   async function update_controles() {
     const correo = correoManual.value.trim().toLowerCase();
     try {
@@ -366,12 +369,13 @@
         deshabilitarPasswordInput();
         return;
       }
-      if (correo.endsWith('@gmail.com')) {
-        advertencia.style.display = 'block';
-        deshabilitarBotonIngresar();
-        deshabilitarPasswordInput();
-        return;
-      }
+      // Validación gmail deshabilitada para pruebas locales
+      // if (correo.endsWith('@gmail.com')) {
+      //   advertencia.style.display = 'block';
+      //   deshabilitarBotonIngresar();
+      //   deshabilitarPasswordInput();
+      //   return;
+      // }
     } catch (err) {
         deshabilitarBotonIngresar();
         deshabilitarPasswordInput();
@@ -416,15 +420,15 @@
           })
           .then(data => {
             const user = data.user;
-            const esGmail = correo.toLowerCase().endsWith("@gmail.com");
-            const usaGoogleAuth = user.googleId || esGmail;
+            const esGmail = false; // Validación gmail deshabilitada para pruebas locales
+            const usaGoogleAuth = false; // Validación gmail deshabilitada para pruebas locales
 
             if (usaGoogleAuth) {
               advertencia.style.display = "block";
               passwordInput.disabled = true;
               deshabilitarBotonIngresar();
             } else if (!user.passwordHash) {
-              if (user.correo_validado) {
+              if (user.correo_validado || esLocal) {
                 sessionStorage.setItem('correoManual', correo);
                 window.location.href = `/panel_usuario.html?user_email=${encodeURIComponent(correo)}`;
               } else {
@@ -461,7 +465,7 @@
             fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)
               .then(r => r.ok ? r.json() : null)
               .then(data => {
-                if (data && data.user && data.user.correo_validado) {
+                if ((data && data.user && data.user.correo_validado) || esLocal) {
                   sessionStorage.setItem('correoManual', correo);
                   window.location.href = `/panel_usuario.html?user_email=${encodeURIComponent(correo)}`;
                 } else {
@@ -472,6 +476,11 @@
                 }
               })
               .catch(() => {
+                if (esLocal) {
+                  sessionStorage.setItem('correoManual', correo);
+                  window.location.href = `/panel_usuario.html?user_email=${encodeURIComponent(correo)}`;
+                  return;
+                }
                 fetch('/logout', { method: 'GET', credentials: 'include' }).then(() => {
                   sessionStorage.setItem('correoManual', correo);
                   window.location.href = "/validar_correo.html";
@@ -505,10 +514,11 @@
         passwordInput.disabled = true;
         return;
       }
-      if (correo.endsWith('@gmail.com')) {
-        advertencia.style.display = 'block';
-        return;
-      }
+      // Validación gmail deshabilitada para pruebas locales
+      // if (correo.endsWith('@gmail.com')) {
+      //   advertencia.style.display = 'block';
+      //   return;
+      // }
     } catch (err) {}
     try {
       const res = await fetch(`/manualUser?email=${encodeURIComponent(correo)}`);

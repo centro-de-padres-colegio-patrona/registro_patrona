@@ -852,7 +852,23 @@
       let pendienteAcumulado = 0;
       let lastPagoFecha = null;
 
-      pagos.forEach(pago => {
+      // Ordenar por fecha mas reciente primero. Los pagos SIN fecha (o con fecha
+      // invalida) quedan como segunda prioridad, al final de la lista.
+      const getTiempoPago = (p) => {
+        if (!p || !p.fecha) return null;
+        const t = new Date(p.fecha).getTime();
+        return isNaN(t) ? null : t;
+      };
+      const pagosOrdenados = [...pagos].sort((a, b) => {
+        const ta = getTiempoPago(a);
+        const tb = getTiempoPago(b);
+        if (ta === null && tb === null) return 0;   // ambos sin fecha: mantener orden
+        if (ta === null) return 1;                  // a sin fecha -> despues
+        if (tb === null) return -1;                 // b sin fecha -> despues
+        return tb - ta;                             // mas reciente primero
+      });
+
+      pagosOrdenados.forEach(pago => {
         ////console.log('Procesando pago: ', pago);
         const row = document.createElement('tr');
         pago['estado'] = 'Pagado';
@@ -876,7 +892,21 @@
         ////console.log('Compromisos:', compromisos);
         const compromiso_asociado = compromisos.find(c => c.nombre === pago.tipo);
         ////console.log(`Buscando descripción para tipo de pago '${pago.tipo}' en compromisos...`, compromiso_asociado);
-        tipo_pago_descripcion = compromiso_asociado ? compromiso_asociado.descripcion : pago.tipo;
+        // Concepto por prioridad: descripcion del compromiso -> tipo -> subtipo.
+        // Algunos pagos (ej. flow reconciliados) traen `tipo` vacio pero la
+        // descripcion real en `subtipo` ("Invitaciones adicionales (2)"), por lo
+        // que sin este fallback el Concepto salia en blanco.
+        tipo_pago_descripcion = compromiso_asociado
+          ? compromiso_asociado.descripcion
+          : ((pago.tipo && pago.tipo.trim()) || (pago.subtipo && pago.subtipo.trim()) || '—');
+        // Glosa visible para identificadores crudos de `tipo` (el valor en BD se
+        // conserva; solo se traduce lo que ve el usuario). Extensible a futuro.
+        const GLOSAS_CONCEPTO = {
+          'pago_agenda_sin_cpa': 'Pago Agenda'
+        };
+        if (GLOSAS_CONCEPTO[tipo_pago_descripcion]) {
+          tipo_pago_descripcion = GLOSAS_CONCEPTO[tipo_pago_descripcion];
+        }
         ////console.log(`Pago tipo: ${pago.tipo}, descripción encontrada: ${tipo_pago_descripcion}`);
 
         row.innerHTML = `
@@ -1109,7 +1139,7 @@
           const estadoCuotaEl = document.getElementById('estado-cuota-cpa');
           if (estadoCuotaEl) {
             estadoCuotaEl.innerHTML = `
-              <span style="color: #2ecc71; font-weight: bold; font-size: 0.95rem;">✅ Cuota CPA Pagada</span>
+              <span style="color: #2ecc71; font-weight: bold; font-size: 0.95rem;">✅ Cuota CGPA Pagada</span>
             `;
           }
 
@@ -1152,7 +1182,7 @@
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            ✓ Incluido con Cuota CPA
+                            ✓ Incluido con Cuota CGPA
                           </span>
                           <button type="button" class="btn-solicitar-invitados" disabled style="opacity:0.6; cursor:not-allowed;">
                             ✓ Invitados solicitados (${numInvitados}/${maxInvPermitidos})
@@ -1164,7 +1194,7 @@
                       contenedorCheck.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                           <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                            ✓ Incluido con Cuota CPA
+                            ✓ Incluido con Cuota CGPA
                           </span>
                           <button type="button" class="btn-solicitar-invitados" onclick="solicitarInvitados()">
                             Invitados solicitados (${numInvitados}/${maxInvPermitidos}) — Solicitar más
@@ -1177,7 +1207,7 @@
                     contenedorCheck.innerHTML = `
                       <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                         <span style="color: #2ecc71; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
-                          ✓ Incluido con Cuota CPA
+                          ✓ Incluido con Cuota CGPA
                         </span>
                         <button type="button" class="btn-solicitar-invitados" onclick="solicitarInvitados()">
                           Solicitar Invitados
@@ -1199,7 +1229,7 @@
           const estadoCuotaEl = document.getElementById('estado-cuota-cpa');
           if (estadoCuotaEl) {
             estadoCuotaEl.innerHTML = `
-              <span style="color: #e74c3c; font-weight: bold; font-size: 0.95rem;">❌ Cuota CPA Pendiente</span>
+              <span style="color: #e74c3c; font-weight: bold; font-size: 0.95rem;">❌ Cuota CGPA Pendiente</span>
             `;
           }
 

@@ -311,14 +311,14 @@
       </button>
 
       <!-- Divider -->
-      <div class="divider">
+      <div class="divider" style="display:none;">
         <hr>
         <span>o</span>
         <hr>
       </div>
 
       <!-- Email form -->
-      <form action="/login" method="post" id="formularioLogin">
+      <form action="/login" method="post" id="formularioLogin" style="display:none;">
         <input
           type="email"
           name="correoManual"
@@ -403,14 +403,6 @@
 
   function validarYEnviar() {
       const correo = correoManual.value.trim();
-
-      // Bypass para correo de prueba (validador)
-      const correosPrueba = ['val@correo.cl'];
-      if (correosPrueba.includes(correo.toLowerCase())) {
-        sessionStorage.setItem('correoManual', correo);
-        window.location.href = `/panel_usuario.html?user_email=${encodeURIComponent(correo)}`;
-        return;
-      }
 
       if (regex.test(correo) && correo === correo.match(regex)[0]) {
         fetch(`/api/manualUser?email=${encodeURIComponent(correo)}`)

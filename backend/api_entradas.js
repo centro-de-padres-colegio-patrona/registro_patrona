@@ -20,6 +20,8 @@ const SECRET_API_KEY = config_env.API_KEY;
 // Mapeo auxiliar de jornadas
 const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
+const current_server = config_env.LOCAL_PORT === 5001 ? `http://localhost:${config_env.LOCAL_PORT}` : config_env.URL_SERVER || BASEURL;
+console.log(`[api_entradas.js] current_server: ${current_server}, BASEURL: ${BASEURL}, config_env.URL_SERVER: ${config_env.URL_SERVER}, config_env.LOCAL_PORT: ${config_env.LOCAL_PORT}`);
 
 async function append_qr_data(qr_str, filename = 'qr_data.txt') {
   try {
@@ -591,15 +593,19 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
   async function obtenerPagosEntradas(id_organizacion, id_evento, user_email) {
     let compromiso_maximo_alcanzado = false;
     let numero_entradas = 0;
-    const url_server = config_env.URL_SERVER || BASEURL;
+    const tag = '[obtenerPagosEntradas]';
+    console.log(`${tag} Obteniendo pagos de entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    const url_server = current_server;
+    const local_port = config_env.LOCAL_PORT;
+    console.log(`${tag} current_server:`, url_server, 'local_port:', local_port);
     try {
-      const configRes = await fetch(`${url_server}/api/config?email=${encodeURIComponent(user_email)}`);
-      const config = await configRes.json();
-
+      
+      console.log(`${tag} Llamando a ${url_server}/api/evento/estado_de_pago`);
       const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
+      console.log(`${tag} Resultado de /api/evento/estado_de_pago: status=${result.status}`);
       if ( result.status === 200 ) {
         const pago_entradas = await result.json();
         const tipo_pase = 'pases_invitados';
@@ -611,9 +617,9 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
           }
         }
       }
-      //console.log(`Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}`);
+      console.log(`${tag} Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
     } catch (err) {
-      console.log('[mis_datos] Error obteniendo pagos entradas:', err);
+      console.log(`${tag} Error obteniendo pagos entradas:`, err);
     }
     return { compromiso_maximo_alcanzado, numero_entradas };
   }
@@ -623,7 +629,7 @@ async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
 
   try {
     console.log(`${tag} Calculando máximo invitados...`);
-    const url_server = config_env.URL_SERVER || BASEURL;
+    const url_server = current_server;
     const cursos = [];
     for (const hijo of hijos) {
       const curso = await db_support.nombreCursoMapDB.findOne({id: hijo});
@@ -676,6 +682,7 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
       return -1;
     }
 
+    console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
     const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
     console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
 

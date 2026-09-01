@@ -367,6 +367,7 @@ const apiCorreosRouter = require('../backend/api_correos');
 const apiFeatures = require('../backend/api_feature');
 const apiBranch = require('../backend/api_branch');
 const apiReportIssue = require('../backend/api_report_problem');
+const apiFamiliasRouter = require('../backend/api_familias');
 
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
@@ -382,6 +383,7 @@ app.use('/api', apiCorreosRouter);
 app.use('/api', apiFeatures);
 app.use('/api', apiBranch);
 app.use('/api', apiReportIssue);
+app.use('/api', apiFamiliasRouter);
 
 
 // Ruta para la página "hello world" (index.html)
@@ -952,10 +954,16 @@ app.post('/api/registro', express.json(), async (req, res) => {
       }
     }
 
+    // Modo admin (Ver Acceso): un usuario con sesion activa (administrador)
+    // puede modificar los datos de cualquier familia sin ser el representante.
+    // Se exige sesion autenticada para que la bandera no pueda usarse sin login.
+    const esAdminView = registro.admin_view === true
+      && req.isAuthenticated && req.isAuthenticated();
+
     // Validar que el usuario que envía es el representante de la familia
     // Si hay padres con es_usuario_cuenta, solo ese correo puede realizar modificaciones
     const userExistente = await db_support.usersDB.findOne(filtro);
-    if (userExistente && userExistente.padres && userExistente.padres.length > 0) {
+    if (!esAdminView && userExistente && userExistente.padres && userExistente.padres.length > 0) {
       const representante = userExistente.padres.find(p => p.es_usuario_cuenta === true);
       if (representante) {
         const correoRepresentante = (representante.correo || '').toLowerCase().trim();
@@ -965,6 +973,9 @@ app.post('/api/registro', express.json(), async (req, res) => {
           return res.status(403).json({ error: 'Solo el representante de la familia puede modificar los datos' });
         }
       }
+    }
+    if (esAdminView) {
+      console.log(`[/api/registro] Modificación en modo admin_view por sesión: ${req.user?.emails?.[0]?.value || req.user?.email || 'desconocido'} sobre ${registro.email || registro._id}`);
     }
 
     const userActualizado = await db_support.usersDB.findOneAndUpdate(
@@ -1836,7 +1847,12 @@ app.post('/api/enviarCodigo', express.json(), async (req, res) => {
 app.get('/api/mi-perfil', async (req, res) => {
   try {
     let email = null;
-    if (req.isAuthenticated && req.isAuthenticated()) {
+    // forzar_email permite consultar el perfil de un correo especifico aunque
+    // haya una sesion activa (modo "Ver Acceso": un admin visualiza el panel de
+    // un apoderado sin usar su propia sesion).
+    if (req.query.forzar_email) {
+      email = req.query.forzar_email;
+    } else if (req.isAuthenticated && req.isAuthenticated()) {
       email = req.user.emails?.[0]?.value || req.user.email;
     } else {
       email = req.query.email;

@@ -115,6 +115,20 @@
     .estado-inactiva { background: #f5f5f5; color: #616161; }
     .estado-anulada { background: #fff3e0; color: #e65100; }
 
+    .btn-activar-entrada {
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-activar-entrada:hover:not(:disabled) { background: #256628; }
+    .btn-activar-entrada:disabled { opacity: 0.5; cursor: not-allowed; }
+
     .mensaje-info {
       text-align: center;
       padding: 40px;
@@ -230,6 +244,11 @@
     let userEmail = null;
     let nombres_hijos = null;
     let entradas = null;
+
+    // Modo "Ver Acceso" del administrador: cuando la URL incluye admin_view=1
+    // se muestran acciones extra (activar entradas inactivas). El acceso normal
+    // del usuario nunca incluye este parametro.
+    const esAdminView = new URLSearchParams(window.location.search).get('admin_view') === '1';
 
     const id_pagina = window.location.pathname.split('/').pop();
 
@@ -410,11 +429,20 @@
         return nombreA.localeCompare(nombreB);
       });
 
+      // Solo en modo admin (Ver Acceso) se agrega una columna de accion para
+      // activar entradas que estan inactivas.
+      const mostrarColumnaAccion = esAdminView && estado === 'inactiva';
+
       let filas = entradasEstado.map(entrada => {
         const tipo = (entrada.tipo || 'invitado').toLowerCase();
         const badgeClass = `badge-${tipo}`;
         const estadoDisplay = getEstadoEntrada(entrada);
         const texto_bloques = getTextoBloques(entrada.bloques);
+        const folioNum = parseInt(entrada.folio) || 0;
+
+        const celdaAccion = mostrarColumnaAccion
+          ? `<td><button class="btn-activar-entrada" data-folio="${folioNum}" onclick="activarEntrada(${folioNum}, this)">Activar</button></td>`
+          : '';
 
         return `
           <tr>
@@ -425,6 +453,7 @@
             <td>${entrada.curso || '—'}</td>
             <td><span class="folio-tag">#${String(entrada.folio || 0).padStart(4, '0')}</span></td>
             <td><span class="estado-tag estado-${estadoDisplay}">${estadoDisplay}</span></td>
+            ${celdaAccion}
           </tr>
         `;
       }).join('');
@@ -445,6 +474,7 @@
                 <th>Curso</th>
                 <th>Folio</th>
                 <th>Estado</th>
+                ${mostrarColumnaAccion ? '<th>Acción</th>' : ''}
               </tr>
             </thead>
             <tbody>
@@ -457,6 +487,170 @@
 
     const id_evento = getParametroURL('id_evento');
     const id_organizacion = getParametroURL('id_organizacion');
+
+    /**
+     * Consulta el estado de pago del apoderado y calcula cuantos "pases de
+     * invitado" estan cubiertos por pagos. No existe una relacion directa
+     * folio->pago en el sistema; la cobertura se infiere por cantidad: las
+     * primeras N entradas de invitado (ordenadas por folio) se consideran
+     * cubiertas por las N invitaciones pagadas. Si la cuota CGPA esta pagada,
+     * se consideran cubiertos todos los pases permitidos.
+     *
+     * Devuelve: { cpaPagada: bool, invitacionesPagadas: number }
+     */
+    async function consultarCoberturaInvitados(email) {
+      const apiKey = await getApiKey();
+
+      // Materializar pagos pendientes de reconciliar (fire-and-forget con await
+      // para asegurar que /estado_pago_cpa vea los pagos recien creados).
+      try {
+        await fetch('/api/reconciliar_pagos?user_email=' + encodeURIComponent(email));
+      } catch (e) { /* no bloquear por esto */ }
+
+      let cpaPagada = false;
+      let invitacionesPagadas = 0;
+
+      // 1) Estado de pago del evento: pases_invitados / compromiso_maximo.
+      try {
+        const resEvento = await fetch(`/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(email)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+        });
+        if (resEvento.status === 200) {
+          const pagoEntradas = await resEvento.json();
+          const lista = pagoEntradas && pagoEntradas['pases_invitados'];
+          if (Array.isArray(lista)) {
+            for (const pago of lista) {
+              if (pago.compromiso_maximo_alcanzado) {
+                cpaPagada = true;
+              }
+              // Cantidad de pases cubiertos por este pago.
+              const cantidad = Number(pago.cantidad) || 0;
+              const porCompromiso = Number(pago.pases_por_compromiso) || 1;
+              invitacionesPagadas += Math.max(0, Math.floor(cantidad * porCompromiso));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('No se pudo consultar estado_de_pago del evento:', e);
+      }
+
+      // 2) Estado de pago CPA/heuristica de invitaciones sueltas (monto 5000).
+      try {
+        const resCpa = await fetch('/api/estado_pago_cpa?user_email=' + encodeURIComponent(email));
+        const pagos = await resCpa.json();
+        if (Array.isArray(pagos)) {
+          if (pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa')) {
+            cpaPagada = true;
+          }
+          if (!cpaPagada) {
+            pagos.forEach(p => {
+              const tipo = (p.tipo || '').toLowerCase();
+              const subtipo = (p.subtipo || '').toLowerCase();
+              const esInvitacion = tipo.includes('invitacion') || tipo.includes('fiesta') ||
+                subtipo.includes('invitacion') || subtipo.includes('fiesta') || subtipo.includes('adicional');
+              const esPagoInvitacionPorMonto = (p.payment_method === 'flow' || p.payment_method === 'mercadopago')
+                && p.monto === 5000 && !p.cuota_cpa;
+              if (esInvitacion || esPagoInvitacionPorMonto) {
+                invitacionesPagadas += 1;
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('No se pudo consultar estado_pago_cpa:', e);
+      }
+
+      return { cpaPagada, invitacionesPagadas };
+    }
+
+    /**
+     * Determina si el folio (entrada de tipo invitado) esta cubierto por pago.
+     * Si la cuota CGPA esta pagada, todos los invitados estan cubiertos. En caso
+     * contrario, se cubren los primeros N invitados por orden de folio, donde
+     * N = invitacionesPagadas.
+     */
+    function entradaInvitadoEstaPagada(folio, cobertura) {
+      if (cobertura.cpaPagada) return true;
+      const invitados = (Array.isArray(entradas) ? entradas : [])
+        .filter(e => (e.tipo || '').toLowerCase() === 'invitado')
+        .sort((a, b) => (parseInt(a.folio) || 0) - (parseInt(b.folio) || 0));
+      const idx = invitados.findIndex(e => (parseInt(e.folio) || 0) === (parseInt(folio) || 0));
+      if (idx === -1) return false;
+      return idx < (cobertura.invitacionesPagadas || 0);
+    }
+
+    /**
+     * Activa una entrada inactiva por su folio. Solo disponible en modo admin
+     * (Ver Acceso, admin_view=1). Antes de activar consulta si la entrada esta
+     * pagada y lo informa en la confirmacion. El admin puede activar de todos
+     * modos. La autorizacion real la valida el backend contra la sesion del
+     * administrador.
+     */
+    async function activarEntrada(folio, btn) {
+      if (!esAdminView) return;
+      if (!folio) {
+        alert('Folio inválido para activar la entrada.');
+        return;
+      }
+
+      const textoOriginal = btn ? btn.textContent : 'Activar';
+      if (btn) { btn.disabled = true; btn.textContent = 'Verificando pago...'; }
+
+      // Determinar el tipo de la entrada a activar.
+      const entradaActual = (Array.isArray(entradas) ? entradas : [])
+        .find(e => (parseInt(e.folio) || 0) === (parseInt(folio) || 0));
+      const tipoEntrada = (entradaActual?.tipo || '').toLowerCase();
+
+      try {
+        await init(); // asegura que userEmail este cargado (correo del apoderado)
+
+        // Verificar estado de pago. La cobertura por pago aplica a invitados;
+        // para estudiantes/apoderados no hay cobro de invitacion, se informa asi.
+        let mensajePago = '';
+        if (tipoEntrada === 'invitado') {
+          const cobertura = await consultarCoberturaInvitados(userEmail);
+          const pagada = entradaInvitadoEstaPagada(folio, cobertura);
+          mensajePago = pagada
+            ? '\n\n✅ Esta invitación figura como PAGADA.'
+            : '\n\n⚠️ Esta invitación NO figura como pagada. Si continúa, se activará de todos modos.';
+        }
+
+        if (btn) { btn.disabled = false; btn.textContent = textoOriginal; }
+
+        if (!confirm(`¿Activar la entrada con folio #${String(folio).padStart(4, '0')}?${mensajePago}`)) {
+          return;
+        }
+
+        if (btn) { btn.disabled = true; btn.textContent = 'Activando...'; }
+        const apiKey = await getApiKey();
+
+        const resp = await fetch('/api/entrada/activar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({
+            id_organizacion,
+            id_evento,
+            folio,
+            user_email: userEmail,
+            admin_view: true
+          })
+        });
+
+        const data = await resp.json();
+        if (resp.ok && (data.status === 'updated' || data.status === 'ok')) {
+          // Recargar la lista para reflejar el nuevo estado.
+          cargarEntradasUsuario();
+        } else {
+          alert('No se pudo activar la entrada: ' + (data.error || 'error desconocido'));
+          if (btn) { btn.disabled = false; btn.textContent = textoOriginal; }
+        }
+      } catch (err) {
+        console.error('Error al activar entrada:', err);
+        alert('Error de conexión al activar la entrada.');
+        if (btn) { btn.disabled = false; btn.textContent = textoOriginal; }
+      }
+    }
 
     async function validar_hermanos(hijos) {
       const apiKey = await getApiKey();
@@ -626,7 +820,7 @@
         const renderizar = {
           activa: true,
           usada: true,
-          inactiva: true,
+          inactiva: false,
           anulada: false
         };
         ['activa', 'usada', 'inactiva', 'anulada'].forEach(estado => {
@@ -783,7 +977,12 @@
 
     async function getFeatureOptions(feature) {
       try {
-        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+        let response = null;
+        if (Array.isArray(feature)) {
+          response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&features=${encodeURIComponent(feature.join(','))}&default=false`);
+        } else {
+          response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+        }
         if (!response.ok) {
           throw new Error('Error al consultar /api/feature/options');
         }

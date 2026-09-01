@@ -263,17 +263,65 @@
     }
 
     async function init() {
-      fetch(`/api/config?email=${encodeURIComponent(currentUser.email || '')}`)
+      return fetch(`/api/config?email=${encodeURIComponent(currentUser.email || '')}`)
         .then(res => res.json())
         .then(config => {
           apiKey = config.apiKey;
           //console.log(`ApiKey: ${apiKey}`);
+        })
+        .catch(err => {
+          console.error('[mis_datos] Error en init/api/config:', err);
         });
     }
 
     let apiKey = ''
 
+    // Carga los datos de un apoderado especifico por su correo (modo "Ver
+    // Acceso"): se usa cuando el panel se abrio con user_email en la URL, para
+    // no heredar la sesion activa (p. ej. la del administrador).
+    function cargarDatosPorEmail(userEmailParam) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('registro-form').style.display = 'block';
+      return fetch('/api/manualUser?email=' + encodeURIComponent(userEmailParam))
+        .then(res => { if (!res.ok) throw new Error('No encontrado'); return res.json(); })
+        .then(data => {
+          currentUser = data.user;
+          document.title = 'Cargado: ' + currentUser.email;
+          fillUserInfo(currentUser);
+          mostrarEstado("Datos obtenidos desde la base de datos", 0);
+          setEstadoBotonEnviar(false);
+          addBrothers();
+          ocultarInvitadosSiNoHayRegistro();
+          const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
+          if (tieneHijos) {
+            document.getElementById('completitudLabel').style.display = 'none';
+            window._ocultarCompletitud = true;
+          }
+          aplicarRestriccionNoRepresentante();
+        })
+        .catch(err2 => {
+          console.error('[mis_datos] Error cargando manual user:', err2);
+          mostrarEstado("Error al cargar datos del usuario", 1);
+          setEstadoBotonEnviar(false);
+        });
+    }
+
+    // Modo "Ver Acceso" para administrador: si la URL trae admin_view=1, el
+    // admin puede editar los datos del apoderado como si fuera el representante
+    // (se omiten las restricciones de "solo el representante puede modificar").
+    // El acceso normal del usuario nunca incluye este parametro, por lo que su
+    // flujo no se ve afectado.
+    window._adminView = new URLSearchParams(window.location.search).get('admin_view') === '1';
+
     init().then(() => {
+    // Si viene user_email en la URL (modo "Ver Acceso"), priorizar ese usuario
+    // y NO consultar /api/user (que devolveria la sesion del administrador).
+    const _paramsInit = new URLSearchParams(window.location.search);
+    const _userEmailInit = _paramsInit.get('user_email');
+    if (_userEmailInit) {
+      cargarDatosPorEmail(_userEmailInit);
+      return;
+    }
     fetch('/api/user')
       .then(response => {
         //console.log('Respuesta del servidor:', response);
@@ -334,33 +382,7 @@
 
         // Si tiene user_email en el URL, intentar cargar datos manualmente
         if (userEmailParam) {
-          fetch('/api/manualUser?email=' + encodeURIComponent(userEmailParam))
-            .then(res => { if (!res.ok) throw new Error('No encontrado'); return res.json(); })
-            .then(data => {
-              currentUser = data.user;
-              //console.log('[mis_datos] Datos cargados vía user_email param:', currentUser.email);
-              //console.log('[mis_datos] Hijos:', currentUser.hijos?.length, 'Padres:', currentUser.padres?.length);
-              document.title = 'Cargado: ' + currentUser.email;
-              fillUserInfo(currentUser);
-              mostrarEstado("Datos obtenidos desde la base de datos", 0);
-              setEstadoBotonEnviar(false);
-              addBrothers();
-              // Ocultar sección de invitados si no tiene hijos ni padres registrados
-              ocultarInvitadosSiNoHayRegistro();
-              // Ocultar label completitud si tiene datos
-              const tieneHijos = currentUser.hijos && currentUser.hijos.length > 0;
-              if (tieneHijos) {
-                document.getElementById('completitudLabel').style.display = 'none';
-                window._ocultarCompletitud = true;
-              }
-              // Aplicar restricción si el usuario no es el representante de la familia
-              aplicarRestriccionNoRepresentante();
-            })
-            .catch(err2 => {
-              console.error('[mis_datos] Error cargando manual user:', err2);
-              mostrarEstado("Error al cargar datos del usuario", 1);
-              setEstadoBotonEnviar(false);
-            });
+          cargarDatosPorEmail(userEmailParam);
         } else {
           const err_msg = String(error).toLowerCase();
           if (err_msg.includes('no autenticado') || err_msg.includes('unauthorize')) {
@@ -368,6 +390,16 @@
           }
         }
       });
+    }).catch(err => {
+      // Salvaguarda: si algo falla en la inicializacion, no dejar la pantalla
+      // colgada en "Cargando datos...".
+      console.error('[mis_datos] Error en inicializacion:', err);
+      const loading = document.getElementById('loading-state');
+      if (loading) loading.style.display = 'none';
+      const form = document.getElementById('registro-form');
+      if (form) form.style.display = 'block';
+      const _p = new URLSearchParams(window.location.search).get('user_email');
+      if (_p) cargarDatosPorEmail(_p);
     });
 
   </script>
@@ -1192,6 +1224,10 @@
      * Solo el representante puede realizar cambios.
      */
     function aplicarRestriccionNoRepresentante() {
+      // Modo admin (Ver Acceso con admin_view=1): el administrador puede
+      // modificar los datos aunque no sea el representante de la familia.
+      if (window._adminView) return;
+
       if (!currentUser || !currentUser.padres || currentUser.padres.length === 0) return;
 
       // Determinar si el usuario logueado es el representante
@@ -1692,7 +1728,7 @@
       fetch('/api/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...currentUser, invitados })
+        body: JSON.stringify({ ...currentUser, invitados, admin_view: !!window._adminView })
       })
       .then(res => res.json())
       .then(data => {
@@ -1718,7 +1754,7 @@
       fetch('/api/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...currentUser, invitados })
+        body: JSON.stringify({ ...currentUser, invitados, admin_view: !!window._adminView })
       })
       .then(res => res.json())
       .then(data => {
@@ -1871,13 +1907,16 @@
     }
 
     function enableSubmitButton() {
-      // No reactivar si el usuario no es el representante de la familia
-      if (currentUser && currentUser.padres && currentUser.padres.length > 0) {
-        const esRepresentante = currentUser.padres.some(p => 
-          p.es_usuario_cuenta === true && 
-          (p.correo || '').toLowerCase().trim() === (currentUser.email || '').toLowerCase().trim()
-        );
-        if (!esRepresentante) return;
+      // En modo admin (Ver Acceso) siempre se permite habilitar el guardado.
+      if (!window._adminView) {
+        // No reactivar si el usuario no es el representante de la familia
+        if (currentUser && currentUser.padres && currentUser.padres.length > 0) {
+          const esRepresentante = currentUser.padres.some(p => 
+            p.es_usuario_cuenta === true && 
+            (p.correo || '').toLowerCase().trim() === (currentUser.email || '').toLowerCase().trim()
+          );
+          if (!esRepresentante) return;
+        }
       }
       const submitButton = document.querySelector('button[type="submit"]');
       if (submitButton) {
@@ -2410,7 +2449,7 @@
     fetch('/api/registro', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({...currentUser, hijos, padres})
+      body: JSON.stringify({...currentUser, hijos, padres, admin_view: !!window._adminView})
     })
     .then(res => res.json())
     .then(response => {

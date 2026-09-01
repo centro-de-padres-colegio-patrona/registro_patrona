@@ -20,6 +20,8 @@ const SECRET_API_KEY = config_env.API_KEY;
 // Mapeo auxiliar de jornadas
 const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
+const current_server = config_env.LOCAL_PORT === 5001 ? `http://localhost:${config_env.LOCAL_PORT}` : config_env.URL_SERVER || BASEURL;
+console.log(`[api_entradas.js] current_server: ${current_server}, BASEURL: ${BASEURL}, config_env.URL_SERVER: ${config_env.URL_SERVER}, config_env.LOCAL_PORT: ${config_env.LOCAL_PORT}`);
 
 async function append_qr_data(qr_str, filename = 'qr_data.txt') {
   try {
@@ -588,8 +590,134 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
   }
 });
 
+  async function obtenerPagosEntradas(id_organizacion, id_evento, user_email) {
+    let compromiso_maximo_alcanzado = false;
+    let numero_entradas = 0;
+    const tag = '[obtenerPagosEntradas]';
+    console.log(`${tag} Obteniendo pagos de entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    const url_server = current_server;
+    const local_port = config_env.LOCAL_PORT;
+    console.log(`${tag} current_server:`, url_server, 'local_port:', local_port);
+    try {
+      
+      console.log(`${tag} Llamando a ${url_server}/api/evento/estado_de_pago`);
+      const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      console.log(`${tag} Resultado de /api/evento/estado_de_pago: status=${result.status}`);
+      if ( result.status === 200 ) {
+        const pago_entradas = await result.json();
+        const tipo_pase = 'pases_invitados';
+        if ( Object.hasOwn(pago_entradas, tipo_pase )) {
+          for (const pago of pago_entradas[tipo_pase]) {
+            if ( compromiso_maximo_alcanzado ) break;
+            compromiso_maximo_alcanzado = pago.compromiso_maximo_alcanzado;
+            numero_entradas += pago.cantidad;
+          }
+        }
+      }
+      console.log(`${tag} Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+    } catch (err) {
+      console.log(`${tag} Error obteniendo pagos entradas:`, err);
+    }
+    return { compromiso_maximo_alcanzado, numero_entradas };
+  }
 
+async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
+  const tag = '[obtenerMaxInvitados]';
 
+  try {
+    console.log(`${tag} Calculando máximo invitados...`);
+    const url_server = current_server;
+    const cursos = [];
+    for (const hijo of hijos) {
+      const curso = await db_support.nombreCursoMapDB.findOne({id: hijo});
+      if (curso && curso.value)
+        cursos.push(curso.value);
+    }
+
+    console.log(`${tag} id_organizacion=${id_organizacion}, id_evento=${id_evento}, hijos=${JSON.stringify(hijos)}, cursos=${JSON.stringify(cursos)}`); 
+
+    const result = await fetch(`${url_server}/api/eventos/max_invitados?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&cursos=${encodeURIComponent(JSON.stringify(cursos))}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    if (!result.ok) throw new Error(`Error al obtener max_invitados: ${result.statusText}`);
+    const data = await result.json();
+    const max = data.max_invitados;
+    //console.log("Maximo Invitados:", max);
+    return max;
+  } catch (error) {
+    console.error('Error al calcular máximo invitados:', error);
+  }
+  return 0;
+}
+
+router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entrada/consolidar]';
+  try {
+    const { id_organizacion, id_evento, user_email } = req.body;
+    let result = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+    if (result > 0) {
+      res.status(200).json({ message: 'Entradas consolidadas correctamente' });
+    } else if (result === 0) {
+      res.status(200).json({ message: 'No se requieren cambios en las entradas' });
+    } else if (result === -1) {
+      res.status(400).json({ error: 'Error consolidando entradas: datos insuficientes' });
+    } else {
+      res.status(500).json({ error: 'Error consolidando entradas' });
+    }
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error consolidando entradas' });
+  }
+});
+
+async function consolidarEntradasInvitados(id_organizacion, id_evento, user_email) {
+  const tag = '[consolidarEntradasInvitados]';
+  try {
+    if (!user_email) {
+      console.log(`${tag} user_email is required`);
+      return -1;
+    }
+
+    console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
+    console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+
+    const userInfo = await db_support.usersDB.findOne({email: user_email});
+    if (!userInfo) {
+      return -1;
+    }
+    const { hijos, padres, invitados } = userInfo;
+    if ( !hijos || !hijos.length) {
+      return -1;
+    }
+
+    let num_invitados = 0
+    if (compromiso_maximo_alcanzado) {
+      console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
+      const nombre_hijos = hijos.map(hijo => hijo.nombre);
+      num_invitados = await obtenerMaxInvitados(id_organizacion, id_evento, nombre_hijos);
+    } else {
+      num_invitados = numero_entradas;
+    }
+    if (num_invitados > 0 && invitados && invitados.length < num_invitados) {
+      console.log(`${tag} numero_entradas=${numero_entradas}, invitados.length=${invitados.length}`);
+      // Actualizar la cantidad de invitados en la base de datos
+      await db_support.usersDB.updateOne(
+        { email: user_email },
+        { $set: { 'invitados': Array(num_invitados).fill({}) } }
+      );
+      return num_invitados;
+    }
+    return 0;
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    return -1;
+  }
+}
 
 // Activar entradas:
 // Se activan las entradas de la familia del user_email
@@ -612,7 +740,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/entrada/activar]'
   //console.log(`${tag} Starting ...`);
   try {
-    const { id_organizacion, id_evento, folio, familia, user_email } = req.body;
+    const { id_organizacion, id_evento, folio, familia, user_email, admin_view } = req.body;
     //console.log(`${tag} Continue ...`, {id_organizacion, id_evento, folio, user_email});
 
     if (!id_organizacion) return res.status(400).json({ error: 'Falta id_organizacion' });
@@ -629,29 +757,44 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
     const esSupervisor = await hasSupervisorAccessRights(user_email);
     console.log(`${tag} user ${user_email} es Supervisor: ${esSupervisor}`);
 
-    if ( user_email !== sessionEmail && !esSupervisor) {
+    // Modo admin (Ver Acceso con admin_view=1): la autorizacion se basa en la
+    // sesion del administrador (sessionEmail), no en el user_email del apoderado.
+    // Permite que un supervisor/admin active entradas de cualquier familia.
+    const adminViewFlag = admin_view === true || admin_view === 'true' || admin_view === 1 || admin_view === '1';
+    const sesionEsSupervisor = await hasSupervisorAccessRights(sessionEmail);
+    const adminSesionSupervisor = adminViewFlag && sesionEsSupervisor;
+    console.log(`${tag} admin_view check ${JSON.stringify({ admin_view, adminViewFlag, sessionEmail, sesionEsSupervisor, adminSesionSupervisor })}`);
+    if (adminSesionSupervisor) {
+      console.log(`${tag} activacion en modo admin_view por sesion ${sessionEmail} sobre user ${user_email}`);
+    }
+
+    if ( user_email !== sessionEmail && !esSupervisor && !adminSesionSupervisor) {
       const err_msg = `unexpected email: ${JSON.stringify({user_email, sessionEmail, esSupervisor})}`;
       console.log(`${tag} ${err_msg} `);
       res.status(400).json({ error: err_msg });
       return;
     }
 
-    if (folio && esSupervisor) {
+    if (user_email) {
+      await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+    }
+
+    if (folio && (esSupervisor || adminSesionSupervisor)) {
       const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
 
-      if (ticket.estado !== 'inactiva' || ticket.usado !== false) {
-        const err_msg = `ticket ${folio} no se puede activar porque ya ha sido usado`;
-        console.log(`${tag} Error: ${err_msg}`);
-        return res.status(404).json({ error: err_msg });
-      }
-
+      // El ticket debe existir.
       if (!ticket) {
         return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
       }
 
-      if (!ticket.usado) {
-        return res.status(409).json({ error: 'Este ticket ya está pendiente' });
+      // Solo se pueden activar entradas que estan inactivas. Si ya esta activa
+      // no hay nada que hacer; si fue usada/anulada no debe reactivarse aqui.
+      if (ticket.estado !== 'inactiva') {
+        const err_msg = `El ticket ${folio} no está inactivo (estado actual: ${ticket.estado}); no se puede activar.`;
+        console.log(`${tag} Error: ${err_msg}`);
+        return res.status(409).json({ error: err_msg });
       }
+
       const result = await db_support.TicketEventoDB.findOneAndUpdate(
         { folio: parseInt(folio), estado: 'inactiva' },
         { 

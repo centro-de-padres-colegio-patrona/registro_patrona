@@ -306,6 +306,7 @@
             <span id="pago-cpa-${idx}">${pagoCpaHtml}</span>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
+            <button onclick="verAcceso('${correo}')" style="padding:4px 10px; background:#d1e7dd; color:#0f5132; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;">Ver Acceso</button>
             <button onclick='abrirEditar(${JSON.stringify(user).replace(/'/g, "&#39;")})' style="padding:4px 10px; background:#fff3cd; color:#856404; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;">Editar</button>
             <button onclick="eliminarApoderado('${correo}')" style="padding:4px 10px; background:#f8d7da; color:#721c24; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;">Eliminar</button>
           </div>
@@ -410,6 +411,23 @@
         }
       }
     });
+  }
+
+  // Abrir el panel del usuario en una nueva pestaña, como si fuese el apoderado
+  function verAcceso(correo) {
+    if (!correo || correo === '—') {
+      alert('Este apoderado no tiene un correo asociado para ver su acceso.');
+      return;
+    }
+    const url = `/panel_usuario.html?user_email=${encodeURIComponent(correo)}&admin_view=1`;
+    // Esta vista se carga dentro de un iframe del panel; usar window.top para
+    // asegurar que la pestaña se abra en el navegador y no dentro del iframe.
+    const win = (window.top || window);
+    const nuevaPestana = win.open(url, '_blank', 'noopener');
+    // Si el navegador bloqueó la apertura (popup blocker), avisar al usuario.
+    if (!nuevaPestana) {
+      alert('El navegador bloqueó la apertura de la nueva pestaña. Permita las ventanas emergentes para este sitio.');
+    }
   }
 
   // Reenviar entradas al correo del apoderado

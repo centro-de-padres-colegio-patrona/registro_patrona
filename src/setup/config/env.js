@@ -36,7 +36,7 @@ const DATABASE_YEAR_NAME = process.env.DATABASE_YEAR_NAME || '';
 const FLOW_API_KEY = process.env.FLOW_API_KEY;
 const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY;
 
-const LOCAL_PORT = process.env.LOCAL_PORT || 5001;
+const LOCAL_PORT = process.env.LOCAL_PORT ? parseInt(process.env.LOCAL_PORT, 10) : 5001;
 
 const API_KEY = process.env.API_KEY || '123456';
 

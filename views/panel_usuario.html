@@ -195,6 +195,10 @@
   </div>
 
   <script>
+
+    const id_pagina = window.location.pathname.split('/').pop();
+    const id_organizacion = 'cpa_patrona';
+
     function cargarContenido(url, botonPresionado) {
       // Verificar si hay cambios sin guardar en Mis Datos antes de cambiar de menú
       try {
@@ -219,8 +223,14 @@
       const emailFromUrl = urlParams.get('user_email');
       const emailUsuario = emailFromUrl || document.getElementById('usuario-correo').textContent;
       let fullUrl = url;
-      if (emailUsuario && !url.includes('user_email')) {
+      console.log('cargarContenido: url=', url, 'emailUsuario=', emailUsuario);
+      if (emailUsuario && url && !url.includes('user_email')) {
         fullUrl = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailUsuario);
+      }
+      // Propagar admin_view (modo "Ver Acceso" del administrador) a las vistas
+      // internas para que pueda editar como si fuera el representante.
+      if (urlParams.get('admin_view') === '1' && !fullUrl.includes('admin_view')) {
+        fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + 'admin_view=1';
       }
 
       // Desktop
@@ -311,6 +321,7 @@
           alert('No se pudo desvincular los datos del usuario. Revise la consola para más detalles.');
           return;
         }
+        console.log('Desvinculando datos del usuario con correo:', document.getElementById('usuario-correo').textContent);
         fetch(`/api/update/user/apoderado_email?user_email=${encodeURIComponent(document.getElementById('usuario-correo').textContent)}`, {
           method: 'DELETE',
           headers: {
@@ -330,6 +341,11 @@
           console.log('Datos desvinculados correctamente:', data);
           // Mostrar mensaje de éxito al usuario
           alert('Los datos del usuario han sido desvinculados correctamente.');
+        })
+        .catch(err => {
+          console.error('Error al desvincular los datos del usuario:', err);
+          // Mostrar mensaje de error al usuario
+          //alert('No se pudo desvincular los datos del usuario. Revise la consola para más detalles.');
         });
       })
       .catch(err => {
@@ -341,6 +357,8 @@
 
     // Definición de menús por rol
     const query = '?id_evento=fiesta_chilena_2026&id_organizacion=cpa_patrona';
+    const queryBingo = '?id_evento=bingo_familiar_2026&id_organizacion=cpa_patrona';
+    const queryHuilen = '?id_evento=bloque_huilen_2026&id_organizacion=cpa_patrona';
     const menusPorRol = {
       administrador: [
         { label: '📋 Mis datos', url: 'mis_datos.html' + query },
@@ -348,6 +366,7 @@
         { label: '📊 Estado CGPA Curso', url: 'estado_cpa_curso.html' + query },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '💃🕺Huilen', url: 'entradas_eventos.html' + queryHuilen },
         { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
@@ -369,6 +388,7 @@
         { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '💃🕺 Huilen', url: 'entradas_eventos.html' + queryHuilen },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -377,6 +397,7 @@
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '💃🕺 Huilen', url: 'entradas_eventos.html' + queryHuilen },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -388,6 +409,7 @@
         { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
         { label: '📊 Estado CGPA Curso', url: 'estado_cpa_curso.html' + query },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '💃🕺 Huilen', url: 'entradas_eventos.html' + queryHuilen },
         { label: '---', url: '' },
         { label: '::Mantenedores', url: '' },
         { label: '👨‍👩‍👧 Apoderados', url: 'apoderados.html' },
@@ -400,6 +422,7 @@
         { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
         { label: '📊 Estado CGPA Curso', url: 'estado_cpa_curso.html' + query },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '💃🕺 Huilen', url: 'entradas_eventos.html' + queryHuilen },
         { label: '---', url: '' },
         { label: '::Ayuda', url: '' },
         { label: '❓ Ayuda', url: 'ayuda.html' },
@@ -409,6 +432,7 @@
         { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },
         //{ label: '📄 Mis Documentos de Matrícula', url: 'documentos_matricula.html' },
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
+        { label: '💃🕺 Huilen', url: 'entradas_eventos.html' + queryHuilen },
         { label: '---', url: '' },
         { label: '::Herramientas para Pruebas', url: '' },
         { label: '🏫 Listas por Curso', url: 'listas_cursos.html' + query },
@@ -427,8 +451,11 @@
       // al CGPA" y "Actividades y Eventos". Ambos requieren tener hijos enrolados.
       // Se habilitan nuevamente una vez que registra sus datos en Mis Datos.
       if (!window._usuarioRegistrado) {
-        const ocultarSinRegistro = ['pagos_cpa.html', 'entradas_eventos.html'];
+        const ocultarSinRegistro = ['pagos_cpa.html', 'entradas_eventos.html'+query, 'entradas_eventos.html'+queryHuilen];
         menus = menus.filter(m => !(m.url && ocultarSinRegistro.includes(m.url.split('?')[0])));
+      }
+      if (!window._tieneEntradasHuilen) {
+        menus = menus.filter(m => !(m.url && m.url.startsWith('entradas_eventos.html'+queryHuilen)));
       }
       if (roles && roles.length > 1) {
         const urlsYaIncluidas = new Set(menus.filter(m => m.url).map(m => m.url));
@@ -439,6 +466,10 @@
             if (item.url && !urlsYaIncluidas.has(item.url)) {
               // Solo agregar "Estado CPA Curso" si tiene curso_asignado
               if (item.url === 'estado_cpa_curso.html' && !window._cursoAsignado) {
+                continue;
+              }
+              console.log('Agregando item de rol extra:', r, item.label, item.url);
+              if (item.url === 'entradas_eventos.html'+queryHuilen && !window._tieneEntradasHuilen) {
                 continue;
               }
               // Insertar después de "Mis Pagos al CPA" si existe, sino al final antes de Ayuda
@@ -526,12 +557,69 @@
       }
     }
 
+    async function obtener_feature(feature) {
+      try {
+        //verifyParameter({id_organizacion}, 'cpa_patrona');
+        
+        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+        if (!response.ok) {
+          console.log({response});
+          throw new Error('Error al consultar /api/feature/options');
+        }
+        
+        // Formato JSON esperado, por ejemplo:
+        // { feature: "ir_a_pagos", enabled: false }
+        const features = await response.json();
+        return features;
+      } catch (err) {
+        console.error(`Error al obtener feature ${feature}:`, err);
+        return { feature, enabled: false};
+      }
+    }
+
+    async function subpertenencia(hijos) {
+      const tag = '[subpertenencia] ';
+      try {
+        console.log(`${tag} Consultando subpertenencia de estudiantes: `, hijos);
+        if (!hijos || hijos.length === 0) return null;
+
+        const query = new URLSearchParams({
+          id_organizacion: id_organizacion,
+          estudiantes: JSON.stringify(hijos)
+        });
+
+        const apiKey = await getApiKey();
+
+        const result = await fetch(`/api/consulta/estudiantes/subpertenencia?${query.toString()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+        });
+
+        if ( result.status === 200 ) {
+          const response = await result.json();
+          //console.log(`${tag} Subpertenencia de estudiantes ${JSON.stringify(hijos)}: `, response);
+        } else {
+          const error_msg = await result.json();
+          console.log(`${tag} Error al consultar subpertenencia de estudiantes. Status: ${result.status}, Error: ${JSON.stringify(error_msg)}`);
+        }
+
+        const subpertenencias = hijos.map(h => h.subpertenencia).filter(sp => sp && sp.trim() !== '');
+        if (subpertenencias.length === 0) return null;
+        // Retornar el primer subpertenencia encontrada
+        return subpertenencias;
+      } catch (err) {
+        console.error(`${tag} Error inesperado al consultar subpertenencia de estudiantes:`, err);
+        return null;
+      }
+    }
+
     // Inicialización: obtener usuario y su perfil
     async function inicializarPanel() {
       let correo = '';
       let nombreCompleto = '';
       // Determinar si el usuario está registrado (tiene hijos y padres con datos)
       window._usuarioRegistrado = false;
+      window._tieneEntradasHuilen = false;
 
       const urlParams = new URLSearchParams(window.location.search);
       const emailFromUrl = urlParams.get('user_email');
@@ -542,24 +630,52 @@
         return tieneHijos && tienePadres;
       };
 
-      try {
-        const resUser = await fetch('/api/user');
-        if (resUser.ok) {
-          const data = await resUser.json();
-          const user = data.user;
-          correo = user?.email || '';
-          if (user?.padres && user.padres.length > 0) {
-            // Primero buscar el padre cuyo correo coincide con el usuario logueado
-            const p = user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres.find(pa => pa.es_usuario_cuenta);
-            if (p) {
-              nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+      // Si viene user_email en la URL, se prioriza ese usuario (modo "Ver
+      // Acceso": permite que un administrador vea el panel de otro apoderado
+      // sin usar su propia sesion de Google). Solo si NO viene user_email se
+      // usa la sesion autenticada.
+      if (!emailFromUrl) {
+        try {
+          const resUser = await fetch('/api/user');
+          if (resUser.ok) {
+            const data = await resUser.json();
+            const user = data.user;
+            correo = user?.email || '';
+            if (user?.padres && user.padres.length > 0) {
+              // Primero buscar el padre cuyo correo coincide con el usuario logueado
+              const p = user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres.find(pa => pa.es_usuario_cuenta);
+              if (p) {
+                nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+              }
+            }
+            if (!nombreCompleto) nombreCompleto = data.req?.displayName || user?.displayName || '';
+            window._usuarioRegistrado = estaRegistrado(user);
+          if (window._usuarioRegistrado) {
+            //console.log('Usuario no registrado (sin hijos/padres con datos). Ocultando "Mis Pagos al CGPA" y "Actividades y Eventos".');
+            //window._tieneEntradasHuilen = false;
+            const feature = await obtener_feature('entradas_huilen');
+            console.log('Feature entradas_huilen:', feature);
+            if (feature && feature.enabled) {
+              //console.log('Feature entradas_huilen habilitado, verificando si tiene entradas Huilen...');
+              console.log('Usuario tiene hijos:', user.hijos, 'and numero hijos:', user.hijos.length);
+              if (user?.hijos && user.hijos.length > 0) {
+                const nombre_hijos = user.hijos.map(h => h.nombre);
+                console.log('Verificando subpertenencia de hijos:', nombre_hijos);
+                const subpertenenciaHuilen = await subpertenencia(nombre_hijos);
+                console.log('Subpertenencia de hijos:', subpertenenciaHuilen);
+                if (subpertenenciaHuilen) {
+                  window._tieneEntradasHuilen = true;
+                  //console.log('Usuario tiene hijos con subpertenencia Huilen. Mostrando menú de entradas Huilen.');
+                } else {
+                  //console.log('Usuario NO tiene hijos con subpertenencia Huilen. Ocultando menú de entradas Huilen.');
+                }
+              }
             }
           }
-          if (!nombreCompleto) nombreCompleto = data.req?.displayName || user?.displayName || '';
-          window._usuarioRegistrado = estaRegistrado(user);
+          }
+        } catch (err) {
+          console.log('Usuario no autenticado por Google, usando URL param');
         }
-      } catch (err) {
-        console.log('Usuario no autenticado por Google, usando URL param');
       }
 
       if (!correo && emailFromUrl) {
@@ -595,7 +711,13 @@
       window._cursoAsignado = '';
       if (correo) {
         try {
-          const resPerfil = await fetch(`/api/mi-perfil?email=${encodeURIComponent(correo)}`);
+          // Si el panel se abrio con user_email en la URL (modo "Ver Acceso"),
+          // forzar la consulta del perfil por ese correo para no heredar el rol
+          // de la sesion activa (p. ej. la del administrador).
+          const perfilUrl = emailFromUrl
+            ? `/api/mi-perfil?forzar_email=${encodeURIComponent(correo)}`
+            : `/api/mi-perfil?email=${encodeURIComponent(correo)}`;
+          const resPerfil = await fetch(perfilUrl);
           if (resPerfil.ok) {
             const perfil = await resPerfil.json();
             rol = perfil.rol || 'apoderado';
@@ -650,6 +772,10 @@
         let paginaUrl = paginaCarga;
         if (emailParaIframe && !paginaCarga.includes('user_email')) {
           paginaUrl = paginaCarga + (paginaCarga.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailParaIframe);
+        }
+        // Propagar admin_view (modo "Ver Acceso") a la vista inicial.
+        if (new URLSearchParams(window.location.search).get('admin_view') === '1' && !paginaUrl.includes('admin_view')) {
+          paginaUrl = paginaUrl + (paginaUrl.includes('?') ? '&' : '?') + 'admin_view=1';
         }
 
         // Desktop: cargar iframe y marcar botón activo

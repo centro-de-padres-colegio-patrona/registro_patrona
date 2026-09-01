@@ -1545,18 +1545,19 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
       headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
     });
     const allUsersConHijosResult = await allUsersConHijosResponse.json();
+    const allUserEmails = allUsersConHijosResult.map(user => user.email);
     console.log(`${tag} All users with children: `, allUsersConHijosResult.length);
 
-    for (const user of allUsersConHijosResult) {
-      const user_email = user.email;
-      console.log(`${tag} Consolidando entradas para: ${user_email}`);
+    //for (const user of allUsersConHijosResult) {
+      //const user_email = user.email;
+      console.log(`${tag} Consolidando entradas para: ${allUsersConHijosResult.length} usuarios con hijos.`);
 
       /*const response = await fetch(`${url_server}/api/entrada/consolidar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
         body: JSON.stringify({ id_organizacion, id_evento, user_email })
       });*/
-      const response = await fetch(`${url_server}/api/entrada/consolidar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+      const response = await fetch(`${url_server}/api/entrada/consolidar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_emails_list=${encodeURIComponent(JSON.stringify(allUserEmails))}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
@@ -1568,7 +1569,7 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
         console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
         log_result(tag, 'fail');
       }
-    }
+    //}
   } catch (error) {
     console.log(`${tag} Unexpected error: `, error);
     log_result(tag, 'fail');

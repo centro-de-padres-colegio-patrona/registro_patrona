@@ -698,20 +698,20 @@ async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
 router.get('/entrada/consolidar', apiKeyAuth, async (req, res) => {
   const tag = '[GET /api/entrada/consolidar]';
   try {
-    const { id_organizacion, id_evento, user_email } = req.query;
-    let result = await consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+    const { id_organizacion, id_evento, user_email = null, user_emails_list = null } = req.query;
+    let result = await consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email, user_emails_list);
     if (result > 0) {
-      res.status(200).json({ message: 'Entradas consolidadas correctamente' });
+      res.status(200).json({ por_consolidar: result, message: 'Se requieren cambios en las entradas' });
     } else if (result === 0) {
-      res.status(200).json({ message: 'No se requieren cambios en las entradas' });
+      res.status(200).json({ por_consolidar: result, message: 'No se requieren cambios en las entradas' });
     } else if (result === -1) {
-      res.status(400).json({ error: 'Error consolidando entradas: datos insuficientes' });
+      res.status(400).json({ por_consolidar: -1, error: 'Error consolidando entradas: datos insuficientes' });
     } else {
-      res.status(500).json({ error: 'Error consolidando entradas' });
+      res.status(500).json({ por_consolidar: -1, error: 'Error consolidando entradas' });
     }
   } catch (error) {
     console.error(`${tag} Error:`, error);
-    res.status(500).json({ error: 'Error consolidando entradas' });
+    res.status(500).json({ por_consolidar: -1, error: 'Error consolidando entradas' });
   }
 });
 
@@ -737,40 +737,52 @@ router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
 });
 
 
-async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email) {
+async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email = null, user_emails_list = null) {
   const tag = '[consultarConsolidarEntradasInvitados]';
   try {
-    if (!user_email) {
-      console.log(`${tag} user_email is required`);
+    if (!user_email && !user_emails_list) {
+      console.log(`${tag} user_email or user_emails_list is required`);
       return -1;
     }
 
-    //console.log(`${tag} Consultando si se deben consolidar entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
-    const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
-    //console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+    if (user_email) {
+      //console.log(`${tag} Consultando si se deben consolidar entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+      const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
+      //console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
 
-    const userInfo = await db_support.usersDB.findOne({email: user_email});
-    if (!userInfo) {
-      return -1;
-    }
-    const { hijos, padres, invitados } = userInfo;
-    if ( !hijos || !hijos.length) {
-      return -1;
-    }
+      const userInfo = await db_support.usersDB.findOne({email: user_email});
+      if (!userInfo) {
+        return { user_email, invitados: -1, por_consolidar: -1, message: 'Usuario no encontrado en la base de datos' };
+      }
+      const { hijos, padres, invitados } = userInfo;
+      if ( !hijos || !hijos.length) {
+        return { user_email, invitados: -1, por_consolidar: -1, message: 'No tiene hijos registrados' };
+      }
 
-    let num_invitados = 0
-    if (compromiso_maximo_alcanzado) {
-      //console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
-      const nombre_hijos = hijos.map(hijo => hijo.nombre);
-      num_invitados = await obtenerMaxInvitados(id_organizacion, id_evento, nombre_hijos);
-    } else {
-      num_invitados = numero_entradas;
+      let num_invitados = 0
+      if (compromiso_maximo_alcanzado) {
+        //console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
+        const nombre_hijos = hijos.map(hijo => hijo.nombre);
+        num_invitados = await obtenerMaxInvitados(id_organizacion, id_evento, nombre_hijos);
+      } else {
+        num_invitados = numero_entradas;
+      }
+      if (num_invitados > 0 && invitados && invitados.length < num_invitados) {
+        //console.log(`${tag} numero_invitados pagados=${numero_entradas}, invitados registrados.length=${invitados.length}`);
+        return { user_email, invitados: invitados.length, por_consolidar: num_invitados, message: 'Se requieren cambios en las entradas' };
+      }
+      return { user_email, invitados: invitados.length, por_consolidar: 0, message: 'No se requieren cambios en las entradas' };
+    } else if (user_emails_list) {
+      let total_por_consolidar = 0;
+
+      for (const email of user_emails_list) {
+        const result = await consultarConsolidarEntradasInvitados(id_organizacion, id_evento, email);
+        if (result.por_consolidar > 0) {
+          total_por_consolidar += result.por_consolidar;
+        }
+      }
+      return { user_emails_list, total_por_consolidar, message: 'Consolidación completada' };
     }
-    if (num_invitados > 0 && invitados && invitados.length < num_invitados) {
-      //console.log(`${tag} numero_invitados pagados=${numero_entradas}, invitados registrados.length=${invitados.length}`);
-      return num_invitados;
-    }
-    return 0;
   } catch (error) {
     console.error(`${tag} Error:`, error);
     return -1;

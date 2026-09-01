@@ -566,8 +566,9 @@ router.get('/consulta/estudiantes/subpertenencia', async (req, res) => {
 router.get('/consulta/usuarios_con_hijos', async (req, res) => {
   const tag = '[GET /api/consulta/usuarios_con_hijos]';
   try {
+    const usuariosConHijos = await db_support.usersDB.find({'hijo.0':{$exists:true}}).lean();
     // Buscar todos los usuarios que tengan hijos registrados en hermanosMapDB
-    const usuariosConHijos = await db_support.hermanosMapDB.find({ apoderado_email: { $exists: true, $not: { $size: 0 } } }).lean();
+    //const usuariosConHijos = await db_support.hermanosMapDB.find({ apoderado_email: { $exists: true, $not: { $size: 0 } } }).lean();
     
     if (!usuariosConHijos || usuariosConHijos.length === 0) {
       return res.json({ total_usuarios_con_hijos: 0, apoderados_emails: [] });

@@ -1655,13 +1655,7 @@
             btnAgregar.disabled = false;
           }
           btnAgregar.onclick = function() {
-            const url = 'pagos_cpa.html';
-            if (window.parent && window.parent.document.getElementById('visor')) {
-              const email = currentUser.email || '';
-              window.parent.document.getElementById('visor').src = url + '?user_email=' + encodeURIComponent(email);
-            } else {
-              window.location.href = url;
-            }
+            irAMisPagos();
           };
         }
       }
@@ -1678,6 +1672,37 @@
       controlarBotonPagos();
     }
 
+    // Navega a "Mis Pagos" a traves del menu del panel padre para que el item
+    // del menu quede seleccionado (activo). Si por alguna razon no encuentra el
+    // boton del menu, cae al comportamiento anterior (cargar el iframe directo).
+    function irAMisPagos() {
+      const url = 'pagos_cpa.html';
+      try {
+        if (window.parent && window.parent !== window) {
+          const btnMenu = Array.from(
+            window.parent.document.querySelectorAll('#menu-container button, #mobile-menu-items button')
+          ).find(b => {
+            const dataUrl = b.getAttribute('data-url') || '';
+            return dataUrl.split('?')[0] === url;
+          });
+          if (btnMenu) {
+            btnMenu.click();
+            return;
+          }
+          // Fallback: cargar el iframe visor si no existe el boton de menu.
+          const visor = window.parent.document.getElementById('visor');
+          if (visor) {
+            const email = currentUser.email || '';
+            visor.src = url + '?user_email=' + encodeURIComponent(email);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('[mis_datos] No se pudo navegar via menu del panel:', e);
+      }
+      window.location.href = url;
+    }
+
     function solicitarInvitado() {
       const invitados = currentUser.invitados || [];
       const entradasInv = _invitadosCargados || [];
@@ -1687,12 +1712,7 @@
       // Validar si tiene cuota CPA pagada
       if (!window._cuotaCpaPagada) {
         if (confirm('Debes tener la Cuota CGPA pagada para solicitar invitados.\n\n¿Ir a Mis Pagos?')) {
-          const url = 'pagos_cpa.html';
-          if (window.parent && window.parent.document.getElementById('visor')) {
-            window.parent.document.getElementById('visor').src = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(currentUser.email || '');
-          } else {
-            window.location.href = url;
-          }
+          irAMisPagos();
         }
         return;
       }

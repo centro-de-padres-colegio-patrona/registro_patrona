@@ -569,13 +569,26 @@ router.get('/consulta/usuarios_con_hijos', async (req, res) => {
     // Buscar todos los usuarios que tengan hijos registrados en hermanosMapDB
     const usuariosConHijos = await db_support.hermanosMapDB.find({ apoderado_email: { $exists: true, $not: { $size: 0 } } }).lean();
     
+    if (!usuariosConHijos || usuariosConHijos.length === 0) {
+      return res.json({ total_usuarios_con_hijos: 0, apoderados_emails: [] });
+    }
+
+    console.log(`${tag} Total usuarios con hijos registrados: `, usuariosConHijos.length);
+
     // Extraer los emails de los apoderados
     const apoderadosEmails = usuariosConHijos.flatMap(usuario => usuario.apoderado_email || []);
-    
+
     // Eliminar duplicados
     const apoderadosEmailsUnicos = [...new Set(apoderadosEmails)];
 
-    res.json({ total_usuarios_con_hijos: apoderadosEmailsUnicos.length, apoderados_emails: apoderadosEmailsUnicos });
+    console.log(`${tag} Total apoderados únicos: `, apoderadosEmailsUnicos.length);
+
+    // Solo con usuario creado en la base de datos (usersDB) y que tenga hijos registrados
+    const apoderadosConUsuario = await db_support.usersDB.find({ email: { $in: apoderadosEmailsUnicos } }).lean();
+    console.log(`${tag} Total apoderados con usuario en la base de datos: `, apoderadosConUsuario.length);
+    const apoderadosConUsuarioEmails = apoderadosConUsuario.map(user => user.email);
+
+    res.json(apoderadosConUsuarioEmails);
   } catch (error) {
     console.error(`${tag} Error: `, error);
     res.status(500).json({ error: 'Internal Server Error' });

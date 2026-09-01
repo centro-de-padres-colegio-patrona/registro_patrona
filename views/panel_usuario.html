@@ -199,10 +199,67 @@
     const id_pagina = window.location.pathname.split('/').pop();
     const id_organizacion = 'cpa_patrona';
 
+    // Devuelve true si el layout activo es el movil (mismo breakpoint que el
+    // media query CSS de esta pagina: max-width: 768px).
+    function esLayoutMovil() {
+      try {
+        return window.matchMedia('(max-width: 768px)').matches;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Asigna el src SOLO al iframe visible segun el layout y deja el otro en
+    // about:blank. Evita la doble carga de la misma vista en #visor y
+    // #mobile-visor (ver comentario en cargarContenido).
+    function cargarEnIframeActivo(fullUrl) {
+      const visor = document.getElementById('visor');
+      const mobileVisor = document.getElementById('mobile-visor');
+      const movil = esLayoutMovil();
+
+      const activo = movil ? mobileVisor : visor;
+      const inactivo = movil ? visor : mobileVisor;
+
+      if (activo && !activo.src.endsWith(fullUrl)) activo.src = fullUrl;
+      // El iframe inactivo se limpia para no ejecutar la vista en paralelo.
+      if (inactivo && !inactivo.src.endsWith('about:blank')) inactivo.src = 'about:blank';
+    }
+
+    // Si el layout cambia de breakpoint (rotacion del dispositivo o cambio de
+    // tamano de ventana), traspasar la vista actual al iframe que pasa a estar
+    // visible, ya que el otro estaba en about:blank.
+    (function observarCambioDeLayout() {
+      try {
+        const mql = window.matchMedia('(max-width: 768px)');
+        const onChange = () => {
+          const visor = document.getElementById('visor');
+          const mobileVisor = document.getElementById('mobile-visor');
+          const movil = esLayoutMovil();
+          const activo = movil ? mobileVisor : visor;
+          const inactivo = movil ? visor : mobileVisor;
+          // Origen del src actual: el iframe que estaba visible antes del cambio.
+          const srcActual = (inactivo && inactivo.src && !inactivo.src.endsWith('about:blank'))
+            ? inactivo.src
+            : (activo ? activo.src : '');
+          if (srcActual && !srcActual.endsWith('about:blank')) {
+            const url = srcActual.replace(window.location.origin, '');
+            cargarEnIframeActivo(url);
+          }
+        };
+        if (mql.addEventListener) mql.addEventListener('change', onChange);
+        else if (mql.addListener) mql.addListener(onChange);
+      } catch (e) {
+        // matchMedia no disponible: sin manejo de cambio de layout.
+      }
+    })();
+
     function cargarContenido(url, botonPresionado) {
       // Verificar si hay cambios sin guardar en Mis Datos antes de cambiar de menú
       try {
-        const visorActual = document.getElementById('visor') || document.getElementById('mobile-visor');
+        // Usar el iframe del layout activo: el otro esta en about:blank.
+        const visorActual = esLayoutMovil()
+          ? document.getElementById('mobile-visor')
+          : document.getElementById('visor');
         if (visorActual && visorActual.contentWindow) {
           const srcActual = visorActual.src || '';
           if (srcActual.includes('mis_datos.html') && !url.includes('mis_datos.html')) {
@@ -233,17 +290,13 @@
         fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + 'admin_view=1';
       }
 
-      // Desktop
-      const visor = document.getElementById('visor');
-      if (visor) {
-        if (!visor.src.endsWith(fullUrl)) visor.src = fullUrl;
-      }
-
-      // Mobile
-      const mobileVisor = document.getElementById('mobile-visor');
-      if (mobileVisor) {
-        if (!mobileVisor.src.endsWith(fullUrl)) mobileVisor.src = fullUrl;
-      }
+      // Cargar SOLO el iframe del layout activo. Ambos iframes (#visor y
+      // #mobile-visor) existen siempre en el DOM y solo se muestran/ocultan por
+      // CSS. Si a ambos se les asigna el mismo src, la vista se carga dos veces
+      // en paralelo; en paginas con guard anti-duplicados por window.top (p. ej.
+      // entradas_eventos.html) el segundo iframe se queda colgado en "Cargando".
+      // Ver cargarEnIframeActivo().
+      cargarEnIframeActivo(fullUrl);
 
       // Desktop buttons
       const botones = document.querySelectorAll('#menu-container button');
@@ -778,9 +831,11 @@
           paginaUrl = paginaUrl + (paginaUrl.includes('?') ? '&' : '?') + 'admin_view=1';
         }
 
-        // Desktop: cargar iframe y marcar botón activo
-        const visor = document.getElementById('visor');
-        if (visor) visor.src = paginaUrl;
+        // Cargar SOLO el iframe del layout activo (evita doble carga; ver
+        // cargarEnIframeActivo).
+        cargarEnIframeActivo(paginaUrl);
+
+        // Desktop: marcar botón activo
         const desktopBtns = document.querySelectorAll('#menu-container button');
         for (const btn of desktopBtns) {
           if (btn.getAttribute('data-url') === paginaCarga) {
@@ -788,9 +843,7 @@
             break;
           }
         }
-        // Mobile: cargar iframe y marcar menú activo
-        const mobileVisor = document.getElementById('mobile-visor');
-        if (mobileVisor) mobileVisor.src = paginaUrl;
+        // Mobile: marcar menú activo
         const mobileMenuBtns = document.querySelectorAll('#mobile-menu-items button');
         for (const btn of mobileMenuBtns) {
           if (btn.getAttribute('data-url') === paginaCarga) {

@@ -1348,7 +1348,7 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
         continue;
       }
 
-      console.log(`${tag} Enviando correo a: ${correo_destinatario}, ${timestamp} Respuesta: ${respuesta}, Estado: ${estado}`);
+      console.log(`${tag} ${timestamp} Enviando correo a: ${correo_destinatario}, Respuesta: ${respuesta}, Estado: ${estado}`);
       continue; // Skip sending email if already sent or response is empty
       const asunto = `Respuesta a tu consulta`;
 

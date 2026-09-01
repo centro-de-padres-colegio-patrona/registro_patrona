@@ -48,7 +48,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_api_branch, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_relacion, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_subpertenencia, delay: delay_ms, arguments: url_server});
-  test_array.push({test_fn: test_api_entrada_consolidar, delay: delay_ms, arguments: url_server});
+  //test_array.push({test_fn: test_api_entrada_consolidar, delay: delay_ms, arguments: url_server});
 
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {

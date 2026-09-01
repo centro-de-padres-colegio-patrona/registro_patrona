@@ -227,6 +227,11 @@
       if (emailUsuario && url && !url.includes('user_email')) {
         fullUrl = url + (url.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailUsuario);
       }
+      // Propagar admin_view (modo "Ver Acceso" del administrador) a las vistas
+      // internas para que pueda editar como si fuera el representante.
+      if (urlParams.get('admin_view') === '1' && !fullUrl.includes('admin_view')) {
+        fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + 'admin_view=1';
+      }
 
       // Desktop
       const visor = document.getElementById('visor');
@@ -625,21 +630,26 @@
         return tieneHijos && tienePadres;
       };
 
-      try {
-        const resUser = await fetch('/api/user');
-        if (resUser.ok) {
-          const data = await resUser.json();
-          const user = data.user;
-          correo = user?.email || '';
-          if (user?.padres && user.padres.length > 0) {
-            // Primero buscar el padre cuyo correo coincide con el usuario logueado
-            const p = user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres.find(pa => pa.es_usuario_cuenta);
-            if (p) {
-              nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+      // Si viene user_email en la URL, se prioriza ese usuario (modo "Ver
+      // Acceso": permite que un administrador vea el panel de otro apoderado
+      // sin usar su propia sesion de Google). Solo si NO viene user_email se
+      // usa la sesion autenticada.
+      if (!emailFromUrl) {
+        try {
+          const resUser = await fetch('/api/user');
+          if (resUser.ok) {
+            const data = await resUser.json();
+            const user = data.user;
+            correo = user?.email || '';
+            if (user?.padres && user.padres.length > 0) {
+              // Primero buscar el padre cuyo correo coincide con el usuario logueado
+              const p = user.padres.find(pa => (pa.correo || '').toLowerCase() === correo.toLowerCase()) || user.padres.find(pa => pa.es_usuario_cuenta);
+              if (p) {
+                nombreCompleto = `${p.nombre || ''} ${p.apellido || ''}`.trim();
+              }
             }
-          }
-          if (!nombreCompleto) nombreCompleto = data.req?.displayName || user?.displayName || '';
-          window._usuarioRegistrado = estaRegistrado(user);
+            if (!nombreCompleto) nombreCompleto = data.req?.displayName || user?.displayName || '';
+            window._usuarioRegistrado = estaRegistrado(user);
           if (window._usuarioRegistrado) {
             //console.log('Usuario no registrado (sin hijos/padres con datos). Ocultando "Mis Pagos al CGPA" y "Actividades y Eventos".');
             //window._tieneEntradasHuilen = false;
@@ -662,9 +672,10 @@
               }
             }
           }
+          }
+        } catch (err) {
+          console.log('Usuario no autenticado por Google, usando URL param');
         }
-      } catch (err) {
-        console.log('Usuario no autenticado por Google, usando URL param');
       }
 
       if (!correo && emailFromUrl) {
@@ -700,7 +711,13 @@
       window._cursoAsignado = '';
       if (correo) {
         try {
-          const resPerfil = await fetch(`/api/mi-perfil?email=${encodeURIComponent(correo)}`);
+          // Si el panel se abrio con user_email en la URL (modo "Ver Acceso"),
+          // forzar la consulta del perfil por ese correo para no heredar el rol
+          // de la sesion activa (p. ej. la del administrador).
+          const perfilUrl = emailFromUrl
+            ? `/api/mi-perfil?forzar_email=${encodeURIComponent(correo)}`
+            : `/api/mi-perfil?email=${encodeURIComponent(correo)}`;
+          const resPerfil = await fetch(perfilUrl);
           if (resPerfil.ok) {
             const perfil = await resPerfil.json();
             rol = perfil.rol || 'apoderado';
@@ -755,6 +772,10 @@
         let paginaUrl = paginaCarga;
         if (emailParaIframe && !paginaCarga.includes('user_email')) {
           paginaUrl = paginaCarga + (paginaCarga.includes('?') ? '&' : '?') + 'user_email=' + encodeURIComponent(emailParaIframe);
+        }
+        // Propagar admin_view (modo "Ver Acceso") a la vista inicial.
+        if (new URLSearchParams(window.location.search).get('admin_view') === '1' && !paginaUrl.includes('admin_view')) {
+          paginaUrl = paginaUrl + (paginaUrl.includes('?') ? '&' : '?') + 'admin_view=1';
         }
 
         // Desktop: cargar iframe y marcar botón activo

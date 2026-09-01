@@ -81,7 +81,13 @@ function fillTextFit(ctx, canvas, layout ) {
     const textWidth = ctx.measureText(labelText).width;
     if (textWidth > maxPxWidth) {
       const scale = maxPxWidth / textWidth;
-      //ctx.save();
+      // IMPORTANTE: guardar y restaurar el estado del contexto de forma
+      // balanceada. El translate/scale modifican la matriz global del canvas;
+      // sin un save() previo, el restore() no revierte la transformacion y esta
+      // queda "pegada", afectando a todo lo que se dibuje despues (en especial
+      // el QR, que se renderiza en paralelo via Promise.all y terminaba fuera
+      // del recuadro cuando el nombre superaba el ancho maximo).
+      ctx.save();
       ctx.translate(_x, _y);
       ctx.scale(scale, 1);
       ctx.fillText(labelText, 0, 0);

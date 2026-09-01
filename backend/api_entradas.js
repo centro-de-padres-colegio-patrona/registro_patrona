@@ -1987,4 +1987,65 @@ router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
 });
 
 
+// Generar y devolver el PDF de las entradas de un apoderado (para abrir en una
+// nueva pestaña, sin enviarlo por correo). Reutiliza el mismo flujo de
+// generacion que /entradas/send_email cuando tipo_attachment === 'pdf'.
+router.get('/entradas/pdf', async (req, res) => {
+  const tag = '[GET /entradas/pdf]';
+  const url_server = config_env.URL_SERVER || BASEURL;
+  try {
+    const { user_email } = req.query;
+    if (!user_email) return res.status(400).json({ error: 'Falta user_email' });
+
+    const id_organizacion = 'cpa_patrona';
+    const id_evento = 'fiesta_chilena_2026';
+
+    // 1. Buscar el usuario y su primer hijo para determinar la familia
+    const emailRegex = new RegExp('^' + user_email.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    const user = await db_support.usersDB.findOne({ email: { $regex: emailRegex } });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user.hijos || user.hijos.length === 0) return res.status(400).json({ error: 'El usuario no tiene hijos registrados' });
+
+    const nombreHijo = user.hijos[0].nombre;
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ id: nombreHijo });
+    if (!familiaInfo || !familiaInfo.nombre_familia) return res.status(404).json({ error: 'No se encontró la familia del usuario' });
+    const familia = familiaInfo.nombre_familia;
+
+    // 2. Obtener las entradas activas de la familia
+    const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia }).sort({ folio: 1 }).lean();
+    const ticketsActivos = (tickets || []).filter(t => t.estado === 'activa');
+    if (ticketsActivos.length === 0) return res.status(400).json({ error: 'No hay entradas activas para mostrar' });
+
+    // 3. Generar los buffers PNG de cada entrada (mismo flujo que send_email pdf)
+    let evento_id = null;
+    const buffersPNG = await Promise.all(
+      ticketsActivos.map(async (ticket_info) => {
+        if (!evento_id) evento_id = ticket_info.id_evento;
+        const eventInfo = await db_support.EventDB.findOne({ id_evento: ticket_info.id_evento });
+        const imagen_ticket_path = eventInfo ? eventInfo.imagen_ticket_path : '';
+        const [resultadoCanvas] = await genEntradaCanvas({ ...ticket_info, imagen_ticket_path, url_server });
+        return resultadoCanvas;
+      })
+    );
+
+    const buffersValidos = buffersPNG.filter(buf => buf !== null);
+    if (buffersValidos.length === 0) {
+      return res.status(500).json({ error: 'No se pudieron generar las entradas' });
+    }
+
+    // 4. Compilar el PDF en memoria y devolverlo inline para abrir en el navegador
+    const pdfBuffer = await generarPdfDesdeBuffers(buffersValidos);
+    const nombreArchivo = `${(evento_id || id_evento).replace(/ /g, '_')}_${familia.replace(/ /g, '_')}.pdf`;
+
+    console.log(`${tag} PDF generado para ${user_email} (familia: ${familia}, ${buffersValidos.length} entradas)`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.log(`${tag} Error: `, err);
+    res.status(500).json({ error: 'Error al generar el PDF de las entradas' });
+  }
+});
+
+
 module.exports = router;

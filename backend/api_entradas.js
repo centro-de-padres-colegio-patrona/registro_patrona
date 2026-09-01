@@ -698,16 +698,32 @@ async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
 router.get('/entrada/consolidar', apiKeyAuth, async (req, res) => {
   const tag = '[GET /api/entrada/consolidar]';
   try {
-    const { id_organizacion, id_evento, user_email = null, user_emails_list = null } = req.query;
+    const { id_organizacion, id_evento, user_email = null} = req.query;
+    const user_emails_list_str = req.query.user_emails_list || null;
+    if (!id_organizacion || !id_evento) {
+      return res.status(400).json({ por_consolidar: -1, error: 'Faltan parámetros requeridos: id_organizacion o id_evento' });
+    }
+    if (!user_email && !user_emails_list_str) {
+      return res.status(400).json({ por_consolidar: -1, error: 'Faltan parámetros requeridos: user_email o user_emails_list' });
+    }
+    let user_emails_list = null;
+    if (user_emails_list_str) {
+      try {
+        user_emails_list = JSON.parse(user_emails_list_str);
+        if (!Array.isArray(user_emails_list)) {
+          return res.status(400).json({ por_consolidar: -1, error: 'user_emails_list debe ser un array JSON' });
+        }
+      } catch (err) {
+        return res.status(400).json({ por_consolidar: -1, error: 'user_emails_list no es un JSON válido' });
+      }
+    }
+    //console.log(`${tag} id_organizacion=${id_organizacion}, id_evento=${id_evento}, user_email=${user_email}, user_emails_list=${JSON.stringify(user_emails_list)}`);
     let result = await consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email, user_emails_list);
-    if (result > 0) {
-      res.status(200).json({ por_consolidar: result, message: 'Se requieren cambios en las entradas' });
-    } else if (result === 0) {
-      res.status(200).json({ por_consolidar: result, message: 'No se requieren cambios en las entradas' });
-    } else if (result === -1) {
-      res.status(400).json({ por_consolidar: -1, error: 'Error consolidando entradas: datos insuficientes' });
+    //console.log(`${tag} Resultado de la consulta de consolidación: `, result);
+    if (result) {
+      res.status(200).json(result);
     } else {
-      res.status(500).json({ por_consolidar: -1, error: 'Error consolidando entradas' });
+      res.status(500).json({ por_consolidar: -1, error: 'Error durante la consolidación de entradas' });
     }
   } catch (error) {
     console.error(`${tag} Error:`, error);
@@ -726,9 +742,9 @@ router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
     } else if (result === 0) {
       res.status(200).json({ message: 'No se requieren cambios en las entradas' });
     } else if (result === -1) {
-      res.status(400).json({ error: 'Error consolidando entradas: datos insuficientes' });
+      res.status(400).json({ error: 'Error: datos insuficientes' });
     } else {
-      res.status(500).json({ error: 'Error consolidando entradas' });
+      res.status(500).json({ error: 'Error en la API de consolidación de entradas' });
     }
   } catch (error) {
     console.error(`${tag} Error:`, error);
@@ -736,16 +752,13 @@ router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
   }
 });
 
-
-async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email = null, user_emails_list = null) {
-  const tag = '[consultarConsolidarEntradasInvitados]';
+async function consultarConsolidarEntradasInvitadosByUser(id_organizacion, id_evento, user_email = null) {
+  const tag = '[consultarConsolidarEntradasInvitadosByUser]';
+  if (!user_email) {
+    console.log(`${tag} user_email is required`);
+    return { user_email: null, invitados: -1, por_consolidar: -1, message: null, error: 'user_email is required' };
+  }
   try {
-    if (!user_email && !user_emails_list) {
-      console.log(`${tag} user_email or user_emails_list is required`);
-      return -1;
-    }
-
-    if (user_email) {
       //console.log(`${tag} Consultando si se deben consolidar entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
       const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
       //console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
@@ -759,6 +772,25 @@ async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, 
         return { user_email, invitados: -1, por_consolidar: -1, message: 'No tiene hijos registrados' };
       }
 
+      //const num_entradas_esperadas = 
+      let tickets = null;
+      let tickets_estudiantes = [];
+      let tickets_apoderados = [];
+      let tickets_invitados = [];
+
+      let activaciones_pendientes = 0;
+      
+      const nombre_hijo = hijos[0].nombre;
+      const hijoInfo = await db_support.hermanosMapDB.findOne({id: nombre_hijo});
+      if (hijoInfo) {
+        const id_familia = hijoInfo.nombre_familia;
+        tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 }).lean();
+        tickets_estudiantes = tickets.filter(ticket => ticket.tipo === 'estudiante' && ticket.estado === 'activa');
+        tickets_apoderados = tickets.filter(ticket => ticket.tipo === 'apoderado' && ticket.estado === 'activa');
+        tickets_invitados = tickets.filter(ticket => ticket.tipo === 'invitado' && ticket.estado === 'activa');
+        activaciones_pendientes = Math.max(0, hijos.length - tickets_estudiantes.length) + Math.max(0, padres.length - tickets_apoderados.length);
+      }
+      
       let num_invitados = 0
       if (compromiso_maximo_alcanzado) {
         //console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
@@ -769,24 +801,74 @@ async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, 
       }
       if (num_invitados > 0 && invitados && invitados.length < num_invitados) {
         //console.log(`${tag} numero_invitados pagados=${numero_entradas}, invitados registrados.length=${invitados.length}`);
-        return { user_email, invitados: invitados.length, por_consolidar: num_invitados, message: 'Se requieren cambios en las entradas' };
+        activaciones_pendientes += Math.max(0, num_invitados - invitados.length);
+        return { user_email, invitados: invitados.length, por_consolidar: num_invitados, activaciones_pendientes, message: 'Si se requieren cambios en las entradas' };
       }
-      return { user_email, invitados: invitados.length, por_consolidar: 0, message: 'No se requieren cambios en las entradas' };
-    } else if (user_emails_list) {
-      let total_por_consolidar = 0;
+      activaciones_pendientes += Math.max(0, invitados.length - tickets_invitados.length);
+      return { user_email, invitados: invitados.length, por_consolidar: 0, activaciones_pendientes, message: 'No se requieren cambios en las entradas' };
 
-      for (const email of user_emails_list) {
-        const result = await consultarConsolidarEntradasInvitados(id_organizacion, id_evento, email);
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    return { user_email, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'Error consultando consolidación de entradas' };
+  }
+}
+
+async function consultarConsolidarEntradasInvitadosByBundle(id_organizacion, id_evento, user_emails_list = null) {
+  const tag = '[consultarConsolidarEntradasInvitadosByBundle]';
+  const respuesta = []
+  let current_email = null;
+  try {
+    if (!user_emails_list) {
+      console.log(`${tag} user_emails_list is required`);
+      return [{ user_email: null, invitados: -1, por_consolidar: -1, message: null, error: 'user_emails_list is required' }];
+    }
+
+    let total_por_consolidar = 0;
+
+    for (const email of user_emails_list) {
+      current_email = email;
+      //console.log(`${tag} Processing email: ${email}`);
+      const result = await consultarConsolidarEntradasInvitadosByUser(id_organizacion, id_evento, email);
+      if (result) {
+        //console.log(`${tag} email ${email} has result`);
         if (result.por_consolidar > 0) {
           total_por_consolidar += result.por_consolidar;
         }
+        respuesta.push(result);
+      } else {
+        console.log(`${tag} No result for email ${email}`);
       }
-      return { user_emails_list, total_por_consolidar, message: 'Consolidación completada' };
+    }
+    return respuesta;
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    respuesta.push({ user_email: current_email, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'Error consultando consolidación de entradas por bundle' });
+    return respuesta;
+  }
+  return respuesta;
+}
+
+async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email = null, user_emails_list = null) {
+  const tag = '[consultarConsolidarEntradasInvitados]';
+  let result = null;
+  //console.log(`${tag} id_organizacion=${id_organizacion}, id_evento=${id_evento}, user_email=${user_email}, user_emails_list=${JSON.stringify(user_emails_list)}`);
+  try {
+    if (!user_email && !user_emails_list) {
+      console.log(`${tag} user_email or user_emails_list is required`);
+      return { user_email: null, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'user_email or user_emails_list is required' };
+    }
+
+    if (user_email) {
+      result = await consultarConsolidarEntradasInvitadosByUser(id_organizacion, id_evento, user_email);
+    } else if (user_emails_list) {
+      result = await consultarConsolidarEntradasInvitadosByBundle(id_organizacion, id_evento, user_emails_list);
     }
   } catch (error) {
     console.error(`${tag} Error:`, error);
-    return -1;
+    return { user_email: null, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'Error consultando consolidación de entradas' };
   }
+  //console.log(`${tag} Resultado final de la consulta de consolidación: `, result);
+  return result;
 }
 
 async function consolidarEntradasInvitados(id_organizacion, id_evento, user_email) {
@@ -794,7 +876,7 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
   try {
     if (!user_email) {
       console.log(`${tag} user_email is required`);
-      return -1;
+      return { user_email: null, por_consolidar: -1, message: null, error: 'user_email is required' };
     }
 
     //console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);

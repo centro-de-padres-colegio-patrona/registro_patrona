@@ -18,6 +18,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
 
   const test_array = [];
 
+  if (config_env.TEST_API_ENABLE_SMOKE_TESTS && config_env.TEST_API_ENABLE_SMOKE_TESTS === 'true') {
   test_array.push({test_fn: test_api_db_connection, delay: delay_ms, arguments: db_uri});
   test_array.push({test_fn: test_api_perfiles, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_curso, delay: delay_ms, arguments: url_server});
@@ -48,6 +49,8 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_api_branch, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_relacion, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_subpertenencia, delay: delay_ms, arguments: url_server});
+  }
+
   if ( config_env.TEST_API_CONSOLIDAR_ENTRADAS_INVITADOS && config_env.TEST_API_CONSOLIDAR_ENTRADAS_INVITADOS === 'true') {
     test_array.push({test_fn: test_api_entrada_consolidar, delay: delay_ms, arguments: url_server});
   }
@@ -1542,7 +1545,7 @@ async function test_api_consulta_estudiantes_subpertenencia(url_server = 'http:/
 }
 
 async function test_api_entrada_consolidar(url_server = 'http://localhost:5001') {
-  const tag = '[test POST /api/entrada/consolidar]';
+  const tag = '[test_api_entrada_consolidar]';
   const id_organizacion = 'cpa_patrona';
   const id_evento = 'fiesta_chilena_2026';
   //const user_email = 'leo.herrera.mena@gmail.com';
@@ -1555,28 +1558,46 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
     const allUserEmails = allUsersConHijosResult.map(user => user.email);
     console.log(`${tag} All users with children: `, allUsersConHijosResult.length);
 
-    //for (const user of allUsersConHijosResult) {
+    // Procesar cada 100 usuarios
+    for (let index = 0; index < allUsersConHijosResult.length; index += 100) {
+      const bunchOfUsers = allUsersConHijosResult.slice(index, index + 100);
       //const user_email = user.email;
-      console.log(`${tag} Consolidando entradas para: ${allUsersConHijosResult.length} usuarios con hijos.`);
+      console.log(`${tag} Consolidando entradas para: ${bunchOfUsers.length} usuarios con hijos.`);
 
       /*const response = await fetch(`${url_server}/api/entrada/consolidar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
         body: JSON.stringify({ id_organizacion, id_evento, user_email })
       });*/
-      const response = await fetch(`${url_server}/api/entrada/consolidar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_emails_list=${encodeURIComponent(JSON.stringify(allUserEmails))}`, {
+      const response = await fetch(`${url_server}/api/entrada/consolidar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_emails_list=${encodeURIComponent(JSON.stringify(bunchOfUsers.map(user => user.email)))}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
       const result = await response.json();
-      console.log(`${tag} Response: `, result);
+      console.log(`${tag} Total: `, result.length);
       if (response.status === 200) {
+        // Entradas Consolidadas Correctamente
+        const entradasConsolidadas = result.map(entry => entry.por_consolidar === 0);
+        const entradasRequierenConsolidacion = result.map(entry => entry.por_consolidar > 0);
+        const entradasConActivacionesPendientes = result.map(entry => entry.activaciones_pendientes > 0);
+        // Entradas que requieren consolidacion
+        console.log(`${tag} Entradas que requieren consolidacion: `, entradasRequierenConsolidacion.length);
+        console.log(`${tag} Entradas consolidadas correctamente: `, entradasConsolidadas.length);
+        // Entradas con Activaciones Pendientes
+        console.log(`${tag} Entradas con Activaciones Pendientes: `, entradasConActivacionesPendientes.length);
+        // Detalle de resultados por entrada
+        // Entradas Consolidadas:
+        console.log(`${tag} Detalle Entradas Consolidadas: `, entradasConsolidadas);
+        // Entradas que requieren consolidacion:
+        console.log(`${tag} Detalle Entradas que requieren consolidacion: `, entradasRequierenConsolidacion);
+        // Entradas con Activaciones Pendientes:
+        console.log(`${tag} Detalle Entradas con Activaciones Pendientes: `, entradasConActivacionesPendientes);
         log_result(tag, 'pass');
       } else {
         console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
         log_result(tag, 'fail');
       }
-    //}
+    }
   } catch (error) {
     console.log(`${tag} Unexpected error: `, error);
     log_result(tag, 'fail');

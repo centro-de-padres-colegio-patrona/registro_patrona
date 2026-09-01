@@ -2545,6 +2545,151 @@ router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
 });
 
 
+// Crear una entrada de cortesía y enviarla por correo desde la cuenta del CGPA.
+// Solo pueden usarlo perfiles administrador o supervisor.
+// La entrada se crea con tipo 'cortesia' y estado 'activa' (lista para validar).
+router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entrada/cortesia]';
+  const url_server = config_env.URL_SERVER || BASEURL;
+  try {
+    const {
+      id_organizacion = 'cpa_patrona',
+      id_evento = 'fiesta_chilena_2026',
+      nombre_completo,
+      jornada,
+      curso,
+      bloques,
+      correo,
+      user_email
+    } = req.body;
+
+    // Validar campos obligatorios del formulario
+    if (!nombre_completo || !nombre_completo.trim()) {
+      return res.status(400).json({ error: 'Falta el nombre completo' });
+    }
+    if (!jornada) {
+      return res.status(400).json({ error: 'Falta la jornada' });
+    }
+    if (!correo || !correo.trim()) {
+      return res.status(400).json({ error: 'Falta el correo del destinatario' });
+    }
+
+    // Control de acceso: solo administrador o supervisor
+    if (!user_email) {
+      return res.status(400).json({ error: 'Falta user_email para validar permisos' });
+    }
+    const autorizado = await hasSupervisorAccessRights(user_email);
+    if (!autorizado) {
+      return res.status(403).json({ error: 'Acceso denegado. Se requiere perfil de Administrador o Supervisor' });
+    }
+
+    // El esquema de TicketEvento exige 'familia' (required). Las entradas de
+    // cortesía no tienen familia asociada; se usa un valor temporal para pasar
+    // la validación y luego se reasigna a "Cortesía-<folio>" (familia única por
+    // entrada). Esto evita que la validación por QR (que marca como usadas todas
+    // las entradas de una misma familia) afecte a otras entradas de cortesía.
+    const ticket = await db_support.TicketEventoDB.create({
+      id_organizacion,
+      id_evento,
+      familia: 'Cortesía',
+      nombre_completo: nombre_completo.trim(),
+      tipo: 'cortesia',
+      jornada: jornada || '',
+      curso: curso || '',
+      bloques: bloques || '',
+      num_listado: 0,
+      fecha_generacion: new Date(),
+      usado: false,
+      estado: 'activa',
+      validado_por: null,
+      historial: [{ accion: 'creacion', descripcion: `entrada de cortesía creada por ${user_email}` }]
+    });
+
+    const folio = ticket.folio || '';
+
+    // Reasignar la familia a un valor único por entrada para aislar la
+    // validación familiar de otras entradas de cortesía.
+    const familia = `Cortesía-${String(folio).padStart(4, '0')}`;
+    await db_support.TicketEventoDB.updateOne({ folio }, { $set: { familia } });
+
+    // Obtener la imagen de fondo del ticket configurada para el evento
+    const eventInfo = await db_support.EventDB.findOne({ id_evento });
+    const imagen_ticket_path = eventInfo ? eventInfo.imagen_ticket_path : '';
+
+    const ticketInfo = {
+      url_server,
+      id_organizacion,
+      id_evento,
+      imagen_ticket_path,
+      familia,
+      nombre_completo: nombre_completo.trim(),
+      folio,
+      num_listado: 0,
+      curso: curso || '',
+      jornada: jornada || '',
+      tipo: 'cortesia',
+      bloques: bloques || ''
+    };
+
+    // Generar la imagen del ticket y guardar el qr_str en la entrada
+    const [buffer, qr_str] = await genEntradaCanvas(ticketInfo);
+    if (!buffer) {
+      console.log(`${tag} image buffer null`);
+      return res.status(500).json({ error: 'No se pudo generar la imagen de la entrada' });
+    }
+    await db_support.TicketEventoDB.findOneAndUpdate(
+      { folio, id_evento, nombre_completo: nombre_completo.trim() },
+      { $set: { qr_str } }
+    );
+
+    // Preparar el adjunto y enviar el correo desde la cuenta del CGPA
+    const nombreArchivo = `${id_evento.replace(/ /g, '_')}_${String(folio).padStart(4, '0')}_${nombre_completo.trim().replace(/ /g, '_')}.png`;
+    const attachments = [
+      { filename: nombreArchivo, content: buffer, contentType: 'image/png' }
+    ];
+
+    const asuntoCorreo = 'Entrada de Cortesía - Fiesta a la Chilena';
+    const mensajeCorreo = [
+      `Estimado(a) ${nombre_completo.trim()},`,
+      '',
+      'Adjuntamos su entrada de cortesía para la Fiesta a la Chilena del Colegio Patrona de Lourdes.',
+      'Presente el código QR de la entrada al momento de ingresar al evento.',
+      '',
+      'Saludos cordiales,',
+      'Centro General de Padres y Apoderados (CGPA)'
+    ];
+
+    const send_email_result = await send_email_from_cpa_account({
+      email_destinatario: correo.trim(),
+      asuntoCorreo,
+      mensajeCorreo,
+      attachments
+    });
+
+    if (send_email_result.status !== 'ok') {
+      console.log(`${tag} Entrada ${folio} creada pero fallo el envio de correo:`, send_email_result.message);
+      return res.status(200).json({
+        status: 'partial',
+        folio,
+        mensaje: 'La entrada se creó, pero no se pudo enviar el correo.',
+        email_error: send_email_result.message
+      });
+    }
+
+    console.log(`${tag} Entrada de cortesía ${folio} creada y enviada a ${correo}`);
+    return res.status(200).json({
+      status: 'ok',
+      folio,
+      mensaje: `Entrada de cortesía N° ${String(folio).padStart(4, '0')} creada y enviada a ${correo.trim()}`
+    });
+
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al crear la entrada de cortesía' });
+  }
+});
+
+
 // Generar y devolver el PDF de las entradas de un apoderado (para abrir en una
 // nueva pestaña, sin enviarlo por correo). Reutiliza el mismo flujo de
 // generacion que /entradas/send_email cuando tipo_attachment === 'pdf'.

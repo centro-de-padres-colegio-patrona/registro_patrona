@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Entradas Cortesía</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f1f4f9;
+      padding: 24px;
+    }
+
+    .page-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      border-left: 5px solid #4A90E2;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      max-width: 600px;
+    }
+
+    .card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .form-field {
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .form-field input,
+    .form-field select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      background: #fafafa;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .form-field input:focus,
+    .form-field select:focus {
+      border-color: #4A90E2;
+      background: white;
+    }
+
+    .btn-generar {
+      width: 100%;
+      padding: 12px;
+      background: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 6px;
+    }
+
+    .btn-generar:hover:not(:disabled) { background: #357abd; }
+    .btn-generar:disabled { background: #b0c4de; cursor: not-allowed; }
+
+    .estado {
+      font-size: 0.9rem;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      display: none;
+      max-width: 600px;
+    }
+
+    .estado.ok { display: block; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .estado.error { display: block; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+    .estado.info { display: block; background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+
+    .aviso-acceso {
+      max-width: 600px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    @media screen and (max-width: 768px) {
+      body { padding: 12px; }
+      .page-title { font-size: 1.05rem; }
+      .card { padding: 16px; max-width: 100%; }
+      .form-row { flex-direction: column; gap: 0; }
+      .form-field { min-width: 100%; }
+      .form-field input,
+      .form-field select { font-size: 1rem; padding: 10px 12px; }
+      .btn-generar { padding: 14px; font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-title">🎫 Entradas Cortesía</div>
+
+<div class="aviso-acceso" id="aviso-acceso">
+  No tiene permisos para crear entradas de cortesía. Esta función es solo para perfiles Administrador o Supervisor.
+</div>
+
+<div class="card" id="card-form">
+  <h3>Datos de la entrada de cortesía</h3>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label>Nombre Completo</label>
+      <input type="text" id="nombre_completo" placeholder="Nombre y apellidos">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label>Jornada</label>
+      <select id="jornada">
+        <option value="" disabled selected>Seleccione jornada</option>
+        <option value="manana">AM</option>
+        <option value="tarde">PM</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Curso</label>
+      <input type="text" id="curso" placeholder="Ej: 3° Básico A">
+    </div>
+    <div class="form-field">
+      <label>Bloque</label>
+      <input type="text" id="bloques" placeholder="Ej: Amarillo">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
+      <label>Correo (destinatario)</label>
+      <input type="email" id="correo" placeholder="correo@ejemplo.com">
+    </div>
+  </div>
+
+  <button class="btn-generar" id="btn-crear" onclick="crearCortesia()">
+    Crear y Enviar Entrada
+  </button>
+</div>
+
+<p class="estado" id="estado"></p>
+
+<script>
+  const ID_ORGANIZACION = 'cpa_patrona';
+  const ID_EVENTO = 'fiesta_chilena_2026';
+
+  let userEmail = null;
+
+  async function getUserEmail() {
+    try {
+      // 1. Intentar obtener de los parámetros de la URL del panel (window.parent)
+      const urlParams = new URLSearchParams(window.parent.location.search);
+      let email = urlParams.get('user_email');
+      if (email && email.trim() !== '') return email;
+    } catch (e) {
+      // Puede fallar por cross-origin; se continúa con las otras estrategias
+    }
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      let email = urlParams.get('user_email');
+      if (email && email.trim() !== '') return email;
+    } catch (e) { /* ignorar */ }
+
+    try {
+      const response = await fetch('/api/user');
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (data && data.user && data.user.email && data.user.email.trim() !== '') {
+        return data.user.email;
+      }
+    } catch (err) {
+      console.error('Error obteniendo usuario:', err);
+    }
+    return null;
+  }
+
+  async function init() {
+    userEmail = await getUserEmail();
+    if (!userEmail) {
+      document.getElementById('card-form').style.display = 'none';
+      document.getElementById('aviso-acceso').style.display = 'block';
+    }
+  }
+
+  init();
+
+  function mostrarEstado(mensaje, tipo) {
+    const estado = document.getElementById('estado');
+    estado.textContent = mensaje;
+    estado.className = 'estado ' + tipo;
+  }
+
+  async function crearCortesia() {
+    const btn = document.getElementById('btn-crear');
+    const nombre_completo = document.getElementById('nombre_completo').value.trim();
+    const jornada = document.getElementById('jornada').value;
+    const curso = document.getElementById('curso').value.trim();
+    const bloques = document.getElementById('bloques').value.trim();
+    const correo = document.getElementById('correo').value.trim();
+
+    // Validaciones básicas del formulario
+    if (!nombre_completo) { mostrarEstado('Ingrese el nombre completo.', 'error'); return; }
+    if (!jornada) { mostrarEstado('Seleccione la jornada.', 'error'); return; }
+    if (!correo) { mostrarEstado('Ingrese el correo del destinatario.', 'error'); return; }
+
+    if (!userEmail) {
+      mostrarEstado('No se pudo determinar su usuario. Vuelva a iniciar sesión.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Creando y enviando...';
+    mostrarEstado('Creando la entrada y enviando el correo...', 'info');
+
+    try {
+      // Obtener la API Key asociada al usuario autenticado
+      const configRes = await fetch(`/api/config?email=${encodeURIComponent(userEmail)}`);
+      if (!configRes.ok) {
+        mostrarEstado('No tiene permisos para realizar esta acción.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Crear y Enviar Entrada';
+        return;
+      }
+      const config = await configRes.json();
+
+      const res = await fetch('/api/entrada/cortesia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+        body: JSON.stringify({
+          id_organizacion: ID_ORGANIZACION,
+          id_evento: ID_EVENTO,
+          nombre_completo,
+          jornada,
+          curso,
+          bloques,
+          correo,
+          user_email: userEmail
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        mostrarEstado(data.error || 'No se pudo crear la entrada de cortesía.', 'error');
+      } else if (data.status === 'partial') {
+        mostrarEstado(data.mensaje || 'La entrada se creó, pero el correo no pudo enviarse.', 'error');
+      } else {
+        mostrarEstado(data.mensaje || 'Entrada de cortesía creada y enviada correctamente.', 'ok');
+        // Limpiar el formulario para la próxima entrada
+        document.getElementById('nombre_completo').value = '';
+        document.getElementById('jornada').value = '';
+        document.getElementById('curso').value = '';
+        document.getElementById('bloques').value = '';
+        document.getElementById('correo').value = '';
+      }
+    } catch (err) {
+      console.error('Error al crear entrada de cortesía:', err);
+      mostrarEstado('Error inesperado al crear la entrada de cortesía.', 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Crear y Enviar Entrada';
+  }
+</script>
+
+</body>
+</html>

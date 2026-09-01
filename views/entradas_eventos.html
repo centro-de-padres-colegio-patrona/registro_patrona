@@ -652,6 +652,49 @@
       }
     }
 
+    /**
+     * Activa en lote las entradas INACTIVAS del propio usuario al entrar al
+     * menu ACTIVIDADES. Usa el mismo endpoint que el boton "Activar", pero
+     * sin folio: en ese caso el backend activa todas las entradas inactivas
+     * de la familia del usuario (estudiantes y apoderados/invitados segun
+     * corresponda). Los invitados se activan si la familia tiene la cuota CGPA
+     * pagada. Autorizada por el backend para el propio usuario
+     * (user_email === sessionEmail) o para un admin/supervisor que emula el
+     * acceso (admin_view=1).
+     *
+     * Es best-effort: si falla, no se interrumpe la carga de entradas.
+     */
+    async function activarEntradasInactivasUsuario() {
+      // Funciona para el propio usuario y tambien cuando un admin/supervisor
+      // emula el acceso (admin_view=1): en ese caso el backend autoriza la
+      // activacion en lote sobre el user_email indicado.
+      if (!userEmail || !id_organizacion || !id_evento) return;
+
+      try {
+        const apiKey = await getApiKey();
+        const resp = await fetch('/api/entrada/activar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({
+            id_organizacion,
+            id_evento,
+            user_email: userEmail,
+            admin_view: esAdminView
+          })
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          if (data.activadas) {
+            console.log(`Entradas inactivas activadas automaticamente: ${data.activadas}`);
+          }
+        } else {
+          console.warn('No se pudieron activar automaticamente las entradas inactivas: ', data.error || resp.status);
+        }
+      } catch (err) {
+        console.error('Error al activar automaticamente las entradas inactivas: ', err);
+      }
+    }
+
     async function validar_hermanos(hijos) {
       const apiKey = await getApiKey();
       console.log('Api Key obtenida: ', apiKey);
@@ -753,6 +796,11 @@
       }
 
       try {
+        // Al entrar al menu ACTIVIDADES, activar automaticamente las entradas
+        // inactivas del usuario (mismo backend que el boton "Activar", en lote).
+        // Se hace antes de leer las entradas para que ya vengan activadas.
+        await activarEntradasInactivasUsuario();
+
         let entradas_todas = await obtenerEntradasFamilia(nombres_hijos[0].nombre);
         //console.log(`Entradas obtenidas: `, entradas_todas, `\nCantidad: ${entradas_todas.length}`);
 
@@ -820,7 +868,7 @@
         const renderizar = {
           activa: true,
           usada: true,
-          inactiva: false,
+          inactiva: true,
           anulada: false
         };
         ['activa', 'usada', 'inactiva', 'anulada'].forEach(estado => {
@@ -1001,7 +1049,7 @@
         const result_entradas = await fetch('/api/entrada/activar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-          body: JSON.stringify({ id_organizacion, id_evento, user_email: userEmail })
+          body: JSON.stringify({ id_organizacion, id_evento, user_email: userEmail, admin_view: esAdminView })
         });
 
         const response = await fetch(`/api/entrada/familia?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&nombre_completo=${encodeURIComponent(nombre_completo)}`, {

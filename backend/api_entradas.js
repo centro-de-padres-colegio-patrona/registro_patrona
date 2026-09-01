@@ -20,6 +20,37 @@ const SECRET_API_KEY = config_env.API_KEY;
 // Mapeo auxiliar de jornadas
 const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 
+// Normaliza un nombre para comparaciones tolerantes a espacios extra:
+// recorta extremos y colapsa espacios internos duplicados. Evita que un
+// nombre guardado como "reyes san martin agatha " (con espacio final) no
+// haga match con "reyes san martin agatha" al activar entradas.
+const normalizarNombre = (str) => (str || '').trim().replace(/\s+/g, ' ');
+
+// Determina si la cuota CGPA (clave interna cuota_cpa) esta pagada para alguno
+// de los estudiantes indicados. Cuando la cuota CGPA esta pagada, las
+// invitaciones vienen incluidas, por lo que al activar en lote se consideran
+// cubiertos todos los pases de invitado de la familia.
+// Recibe una lista de nombres de estudiantes (tal como estan en pagosDB.id).
+async function familiaTieneCuotaCpaPagada(nombresEstudiantes) {
+  const tag = '[familiaTieneCuotaCpaPagada]';
+  try {
+    const nombres = (Array.isArray(nombresEstudiantes) ? nombresEstudiantes : [])
+      .map(n => normalizarNombre(n))
+      .filter(Boolean);
+    if (!nombres.length) return false;
+
+    // Match tolerante a mayusculas/espacios: se arma un regex exacto por nombre.
+    const regexes = nombres.map(n => new RegExp('^' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'));
+    const pagos = await db_support.pagosDB.find({ id: { $in: regexes } }).lean();
+    const pagada = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
+    console.log(`${tag} estudiantes=${JSON.stringify(nombres)} cuota_cpa_pagada=${pagada}`);
+    return pagada;
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    return false;
+  }
+}
+
 const current_server = config_env.LOCAL_PORT === 5001 ? `http://localhost:${config_env.LOCAL_PORT}` : config_env.URL_SERVER || BASEURL;
 console.log(`[api_entradas.js] current_server: ${current_server}, BASEURL: ${BASEURL}, config_env.URL_SERVER: ${config_env.URL_SERVER}, config_env.LOCAL_PORT: ${config_env.LOCAL_PORT}`);
 
@@ -593,6 +624,11 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
   async function obtenerPagosEntradas(id_organizacion, id_evento, user_email) {
     let compromiso_maximo_alcanzado = false;
     let numero_entradas = 0;
+    // ok indica si la consulta del estado de pago fue efectivamente exitosa.
+    // Sirve para distinguir "no hay pases pagados" (ok=true, numero_entradas=0)
+    // de "no se pudo consultar" (ok=false), y asi evitar que un fallo de red
+    // transitorio provoque una sincronizacion incorrecta de las entradas.
+    let ok = false;
     const tag = '[obtenerPagosEntradas]';
     console.log(`${tag} Obteniendo pagos de entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
     const url_server = current_server;
@@ -607,6 +643,7 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
       });
       console.log(`${tag} Resultado de /api/evento/estado_de_pago: status=${result.status}`);
       if ( result.status === 200 ) {
+        ok = true;
         const pago_entradas = await result.json();
         const tipo_pase = 'pases_invitados';
         if ( Object.hasOwn(pago_entradas, tipo_pase )) {
@@ -616,12 +653,16 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
             numero_entradas += pago.cantidad;
           }
         }
+      } else {
+        console.warn(`${tag} estado_de_pago respondio status ${result.status}; no se considera una consulta exitosa`);
       }
-      console.log(`${tag} Resultado /api/evento/estado_de_pago: compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+      console.log(`${tag} Resultado /api/evento/estado_de_pago: ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
     } catch (err) {
+      // Fallo de red/timeout: ok permanece en false para que el llamador no
+      // sincronice las entradas a la baja por un error transitorio.
       console.log(`${tag} Error obteniendo pagos entradas:`, err);
     }
-    return { compromiso_maximo_alcanzado, numero_entradas };
+    return { ok, compromiso_maximo_alcanzado, numero_entradas };
   }
 
 async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
@@ -683,8 +724,17 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
     }
 
     console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
-    const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
-    console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+    const { ok, compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
+    console.log(`${tag} ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+
+    // Si la consulta del estado de pago no fue exitosa (fallo de red/timeout o
+    // status != 200), NO consolidamos: preferimos no tocar el array de invitados
+    // antes que sincronizarlo con un numero_entradas=0 erroneo por un fallo
+    // transitorio. Se reintentara en la proxima carga de "Mis Datos".
+    if (!ok) {
+      console.warn(`${tag} No se pudo obtener el estado de pago (ok=false); se omite la consolidacion para no desincronizar invitados`);
+      return -1;
+    }
 
     const userInfo = await db_support.usersDB.findOne({email: user_email});
     if (!userInfo) {
@@ -815,7 +865,10 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       if (result) {
         return res.status(200).json({status: 'updated'});
       }
-    } else if (user_email === sessionEmail) {
+    } else if (user_email === sessionEmail || adminSesionSupervisor) {
+      // Activacion en lote de la familia del user_email indicado. Aplica tanto
+      // al propio usuario (user_email === sessionEmail) como a un
+      // supervisor/admin que emula el acceso (admin_view=1) sobre ese usuario.
       const userInfo = await db_support.usersDB.findOne({email: user_email});
       if (!userInfo) {
         return res.status(404).json({ error: 'usuario no encontrado' });
@@ -827,7 +880,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
       //console.log(`${tag} userInfo: `, userInfo);
       //console.log(`${tag} `, { hijos, padres, invitados });
-      const nombres_hijos = hijos.flatMap(hijo => hijo.nombre);
+      const nombres_hijos = hijos.flatMap(hijo => normalizarNombre(hijo.nombre));
       //console.log(`${tag} nombres_hijos: `, nombres_hijos);
 
       // Obteniendo la informacion de los hermanos
@@ -839,7 +892,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       // Searching for the tickets for the family
       const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
 
-      const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.includes(ticket.nombre_completo));
+      const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.includes(normalizarNombre(ticket.nombre_completo)));
       const tickets_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
       const tickets_invitados = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
 
@@ -852,10 +905,18 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
       console.log(`${tag} `, {folios_to_update_estudiantes, folios_to_update_apoderados, folios_to_update_invitados});
 
-      const cantidad_to_update_apoderados = Math.max(0, padres.length - (tickets_apoderados.length - folios_to_update_apoderados.length));
-      const cantidad_to_update_invitados = Math.max(0, invitados.length - (tickets_invitados.length - folios_to_update_invitados.length));
+      // Si la cuota CGPA (cuota_cpa) esta pagada, las invitaciones vienen
+      // incluidas: se consideran cubiertos todos los pases de invitado de la
+      // familia, sin limitar por la cantidad de invitados registrados en el
+      // perfil del usuario.
+      const cpaPagada = await familiaTieneCuotaCpaPagada(nombres_hijos);
 
-      console.log(`${tag} `, {padres:padres.length, invitados:invitados.length});
+      const cantidad_to_update_apoderados = Math.max(0, padres.length - (tickets_apoderados.length - folios_to_update_apoderados.length));
+      const cantidad_to_update_invitados = cpaPagada
+        ? folios_to_update_invitados.length
+        : Math.max(0, invitados.length - (tickets_invitados.length - folios_to_update_invitados.length));
+
+      console.log(`${tag} `, {padres:padres.length, invitados:invitados.length, cpaPagada});
       console.log(`${tag} `, {tickets_apoderados:tickets_apoderados.length, tickets_invitados:tickets_invitados.length});
       console.log(`${tag} `, {folios_to_update_apoderados:folios_to_update_apoderados.length, folios_to_update_invitados:folios_to_update_invitados.length});
       console.log(`${tag} `, {cantidad_to_update_apoderados, cantidad_to_update_invitados});
@@ -931,7 +992,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
       //console.log(`${tag} userInfo: `, userInfo);
       //console.log(`${tag} `, { hijos, padres, invitados });
-      const nombres_hijos = hijos.flatMap(hijo => hijo.nombre);
+      const nombres_hijos = hijos.flatMap(hijo => normalizarNombre(hijo.nombre));
       //console.log(`${tag} nombres_hijos: `, nombres_hijos);
 
       // Obteniendo la informacion de los hermanos
@@ -943,7 +1004,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       // Searching for the tickets for the family
       const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
 
-      const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.includes(ticket.nombre_completo));
+      const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.includes(normalizarNombre(ticket.nombre_completo)));
       const tickets_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
       const tickets_invitados = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
 
@@ -956,10 +1017,16 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
       console.log(`${tag} `, {folios_to_update_estudiantes, folios_to_update_apoderados, folios_to_update_invitados});
 
-      const cantidad_to_update_apoderados = Math.max(0, padres.length - (tickets_apoderados.length - folios_to_update_apoderados.length));
-      const cantidad_to_update_invitados = Math.max(0, invitados.length - (tickets_invitados.length - folios_to_update_invitados.length));
+      // Si la cuota CGPA (cuota_cpa) esta pagada, las invitaciones vienen
+      // incluidas: se activan todos los pases de invitado de la familia.
+      const cpaPagada = await familiaTieneCuotaCpaPagada(nombres_hijos);
 
-      console.log(`${tag} `, {padres:padres.length, invitados:invitados.length});
+      const cantidad_to_update_apoderados = Math.max(0, padres.length - (tickets_apoderados.length - folios_to_update_apoderados.length));
+      const cantidad_to_update_invitados = cpaPagada
+        ? folios_to_update_invitados.length
+        : Math.max(0, invitados.length - (tickets_invitados.length - folios_to_update_invitados.length));
+
+      console.log(`${tag} `, {padres:padres.length, invitados:invitados.length, cpaPagada});
       console.log(`${tag} `, {tickets_apoderados:tickets_apoderados.length, tickets_invitados:tickets_invitados.length});
       console.log(`${tag} `, {folios_to_update_apoderados:folios_to_update_apoderados.length, folios_to_update_invitados:folios_to_update_invitados.length});
       console.log(`${tag} `, {cantidad_to_update_apoderados, cantidad_to_update_invitados});
@@ -1100,7 +1167,7 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
 
       //console.log(`${tag} userInfo: `, userInfo);
       //console.log(`${tag} `, { hijos, padres, invitados });
-      const nombres_hijos = hijos.flatMap(hijo => hijo.nombre);
+      const nombres_hijos = hijos.flatMap(hijo => normalizarNombre(hijo.nombre));
       //console.log(`${tag} nombres_hijos: `, nombres_hijos);
 
       // Obteniendo la informacion de los hermanos

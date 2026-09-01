@@ -1321,7 +1321,7 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
     }
 
     archivos_leidos.push(file_correos);
-    //await fs.writeFile(file_leidos, JSON.stringify(archivos_leidos, null, 2), 'utf-8');
+    await fs.writeFile(file_leidos, JSON.stringify(archivos_leidos, null, 2), 'utf-8');
 
     const data_file = await fs.readFile(file_correos, 'utf-8');
     const correosData = JSON.parse(data_file);
@@ -1349,7 +1349,7 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
       }
 
       console.log(`${tag} ${timestamp} Enviando correo a: ${correo_destinatario}, Respuesta: ${respuesta}, Estado: ${estado}`);
-      continue; // Skip sending email if already sent or response is empty
+      //continue; // Skip sending email if already sent or response is empty
       const asunto = `Respuesta a tu consulta`;
 
       /*const mensaje_array = [`Hola ${nombre_destinatario}. Hemos recibido la siguiente consulta de parte tuya:`,

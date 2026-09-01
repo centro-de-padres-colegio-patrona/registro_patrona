@@ -740,7 +740,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/entrada/activar]'
   //console.log(`${tag} Starting ...`);
   try {
-    const { id_organizacion, id_evento, folio, familia, user_email } = req.body;
+    const { id_organizacion, id_evento, folio, familia, user_email, admin_view } = req.body;
     //console.log(`${tag} Continue ...`, {id_organizacion, id_evento, folio, user_email});
 
     if (!id_organizacion) return res.status(400).json({ error: 'Falta id_organizacion' });
@@ -757,7 +757,18 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
     const esSupervisor = await hasSupervisorAccessRights(user_email);
     console.log(`${tag} user ${user_email} es Supervisor: ${esSupervisor}`);
 
-    if ( user_email !== sessionEmail && !esSupervisor) {
+    // Modo admin (Ver Acceso con admin_view=1): la autorizacion se basa en la
+    // sesion del administrador (sessionEmail), no en el user_email del apoderado.
+    // Permite que un supervisor/admin active entradas de cualquier familia.
+    const adminViewFlag = admin_view === true || admin_view === 'true' || admin_view === 1 || admin_view === '1';
+    const sesionEsSupervisor = await hasSupervisorAccessRights(sessionEmail);
+    const adminSesionSupervisor = adminViewFlag && sesionEsSupervisor;
+    console.log(`${tag} admin_view check ${JSON.stringify({ admin_view, adminViewFlag, sessionEmail, sesionEsSupervisor, adminSesionSupervisor })}`);
+    if (adminSesionSupervisor) {
+      console.log(`${tag} activacion en modo admin_view por sesion ${sessionEmail} sobre user ${user_email}`);
+    }
+
+    if ( user_email !== sessionEmail && !esSupervisor && !adminSesionSupervisor) {
       const err_msg = `unexpected email: ${JSON.stringify({user_email, sessionEmail, esSupervisor})}`;
       console.log(`${tag} ${err_msg} `);
       res.status(400).json({ error: err_msg });
@@ -768,22 +779,22 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
     }
 
-    if (folio && esSupervisor) {
+    if (folio && (esSupervisor || adminSesionSupervisor)) {
       const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
 
-      if (ticket.estado !== 'inactiva' || ticket.usado !== false) {
-        const err_msg = `ticket ${folio} no se puede activar porque ya ha sido usado`;
-        console.log(`${tag} Error: ${err_msg}`);
-        return res.status(404).json({ error: err_msg });
-      }
-
+      // El ticket debe existir.
       if (!ticket) {
         return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
       }
 
-      if (!ticket.usado) {
-        return res.status(409).json({ error: 'Este ticket ya está pendiente' });
+      // Solo se pueden activar entradas que estan inactivas. Si ya esta activa
+      // no hay nada que hacer; si fue usada/anulada no debe reactivarse aqui.
+      if (ticket.estado !== 'inactiva') {
+        const err_msg = `El ticket ${folio} no está inactivo (estado actual: ${ticket.estado}); no se puede activar.`;
+        console.log(`${tag} Error: ${err_msg}`);
+        return res.status(409).json({ error: err_msg });
       }
+
       const result = await db_support.TicketEventoDB.findOneAndUpdate(
         { folio: parseInt(folio), estado: 'inactiva' },
         { 

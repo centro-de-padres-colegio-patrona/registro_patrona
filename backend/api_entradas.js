@@ -509,12 +509,14 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
       });
     }
 
+    const fechaUso = new Date();
+
     await db_support.TicketEventoDB.findOneAndUpdate(
       { folio: parseInt(folio) },
       { 
         $set: { 
           usado: true, 
-          fecha_uso: new Date(), 
+          fecha_uso: fechaUso, 
           validado_por: email || 'desconocido',
           estado: 'usada'
         },
@@ -528,7 +530,47 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
     );
 
     console.log(`[/api/entrada/validar] Ticket ${folio} marcado como usado por ${email}`);
-    res.json({ status: 'ok', mensaje: 'Ticket validado correctamente' });
+
+    // Marcar como usados el resto de tickets de la misma familia en este evento.
+    // Al validar una entrada, toda la familia queda con sus entradas validadas.
+    let entradasFamilia = 0;
+    if (ticket.familia && ticket.id_evento) {
+      const resultadoFamilia = await db_support.TicketEventoDB.updateMany(
+        {
+          id_organizacion: ticket.id_organizacion,
+          id_evento: ticket.id_evento,
+          familia: ticket.familia,
+          folio: { $ne: parseInt(folio) },
+          usado: { $ne: true },
+          estado: 'activa'
+        },
+        {
+          $set: {
+            usado: true,
+            fecha_uso: fechaUso,
+            validado_por: email || 'desconocido',
+            estado: 'usada'
+          },
+          $push: {
+            historial: {
+              accion: 'ingreso',
+              descripcion: `ingreso validado por ${email} (validación familiar desde folio ${folio})`
+            }
+          }
+        }
+      );
+      entradasFamilia = resultadoFamilia.modifiedCount || 0;
+      if (entradasFamilia > 0) {
+        console.log(`[/api/entrada/validar] ${entradasFamilia} entrada(s) adicional(es) de la familia "${ticket.familia}" marcadas como usadas`);
+      }
+    }
+
+    res.json({
+      status: 'ok',
+      mensaje: 'Ticket validado correctamente',
+      familia: ticket.familia,
+      entradas_familia_validadas: entradasFamilia
+    });
   } catch (error) {
     console.error('[/api/entrada/validar] Error:', error);
     res.status(500).json({ error: 'Error al validar entrada' });

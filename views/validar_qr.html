@@ -578,6 +578,16 @@
           btn.textContent = '✅ ENTRADA VALIDADA';
           btn.style.background = '#2ecc71';
           btn.onclick = null;
+
+          // Informar si se validaron entradas adicionales de la familia
+          const extras = data.entradas_familia_validadas || 0;
+          if (extras > 0) {
+            const contenido = document.getElementById('resultado-contenido');
+            const aviso = document.createElement('div');
+            aviso.style.cssText = 'background:#e8f5e9; border:2px solid #2ecc71; border-radius:8px; padding:12px; margin-top:14px; text-align:center;';
+            aviso.innerHTML = `<p style="font-size:0.95rem; font-weight:700; color:#27ae60; margin:0;">👨‍👩‍👧‍👦 Se validaron ${extras} entrada(s) adicional(es) de la familia <strong>${data.familia || ''}</strong></p>`;
+            contenido.appendChild(aviso);
+          }
         } else if (res.status === 409) {
           btn.textContent = '🚫 YA FUE UTILIZADA';
           btn.style.background = '#e74c3c';

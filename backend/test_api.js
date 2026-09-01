@@ -48,7 +48,9 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_api_branch, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_relacion, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_subpertenencia, delay: delay_ms, arguments: url_server});
-  //test_array.push({test_fn: test_api_entrada_consolidar, delay: delay_ms, arguments: url_server});
+  if ( config_env.TEST_API_CONSOLIDAR_ENTRADAS_INVITADOS && config_env.TEST_API_CONSOLIDAR_ENTRADAS_INVITADOS === 'true') {
+    test_array.push({test_fn: test_api_entrada_consolidar, delay: delay_ms, arguments: url_server});
+  }
 
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
@@ -1536,18 +1538,32 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
   const tag = '[test POST /api/entrada/consolidar]';
   const id_organizacion = 'cpa_patrona';
   const id_evento = 'fiesta_chilena_2026';
-  const user_email = 'leo.herrera.mena@gmail.com';
-  const response = await fetch(`${url_server}/api/entrada/consolidar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-    body: JSON.stringify({ id_organizacion, id_evento, user_email })
-  });
-  const result = await response.json();
-  console.log(`${tag} Response: `, result);
-  if (response.status === 200) {
-    log_result(tag, 'pass');
-  } else {
-    console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
+  //const user_email = 'leo.herrera.mena@gmail.com';
+  try {
+    const allUsersResponse = await fetch(`${url_server}/api/consulta/usuarios_con_hijos`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    const allUsersResult = await allUsersResponse.json();
+    console.log(`${tag} All users with children: `, allUsersResult.length);
+
+    return;
+
+    const response = await fetch(`${url_server}/api/entrada/consolidar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+      body: JSON.stringify({ id_organizacion, id_evento, user_email })
+    });
+    const result = await response.json();
+    console.log(`${tag} Response: `, result);
+    if (response.status === 200) {
+      log_result(tag, 'pass');
+    } else {
+      console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
+      log_result(tag, 'fail');
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
     log_result(tag, 'fail');
   }
 }

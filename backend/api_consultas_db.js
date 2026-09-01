@@ -562,5 +562,26 @@ router.get('/consulta/estudiantes/subpertenencia', async (req, res) => {
 });
 
 
+// Obtener todos los usuarios con hijos registrados (para pruebas y herramientas internas)
+router.get('/consulta/usuarios_con_hijos', async (req, res) => {
+  const tag = '[GET /api/consulta/usuarios_con_hijos]';
+  try {
+    // Buscar todos los usuarios que tengan hijos registrados en hermanosMapDB
+    const usuariosConHijos = await db_support.hermanosMapDB.find({ apoderado_email: { $exists: true, $not: { $size: 0 } } }).lean();
+    
+    // Extraer los emails de los apoderados
+    const apoderadosEmails = usuariosConHijos.flatMap(usuario => usuario.apoderado_email || []);
+    
+    // Eliminar duplicados
+    const apoderadosEmailsUnicos = [...new Set(apoderadosEmails)];
+
+    res.json({ total_usuarios_con_hijos: apoderadosEmailsUnicos.length, apoderados_emails: apoderadosEmailsUnicos });
+  } catch (error) {
+    console.error(`${tag} Error: `, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 module.exports = router;
 

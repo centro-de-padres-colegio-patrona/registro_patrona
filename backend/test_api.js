@@ -1540,27 +1540,34 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
   const id_evento = 'fiesta_chilena_2026';
   //const user_email = 'leo.herrera.mena@gmail.com';
   try {
-    const allUsersResponse = await fetch(`${url_server}/api/consulta/usuarios_con_hijos`, {
+    const allUsersConHijosResponse = await fetch(`${url_server}/api/consulta/usuarios_con_hijos`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
     });
-    const allUsersResult = await allUsersResponse.json();
-    console.log(`${tag} All users with children: `, allUsersResult.length);
+    const allUsersConHijosResult = await allUsersConHijosResponse.json();
+    console.log(`${tag} All users with children: `, allUsersConHijosResult.length);
 
-    return;
+    for (const user of allUsersConHijosResult) {
+      const user_email = user.user_email;
+      console.log(`${tag} Consolidando entradas para: ${user_email}`);
 
-    const response = await fetch(`${url_server}/api/entrada/consolidar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-      body: JSON.stringify({ id_organizacion, id_evento, user_email })
-    });
-    const result = await response.json();
-    console.log(`${tag} Response: `, result);
-    if (response.status === 200) {
-      log_result(tag, 'pass');
-    } else {
-      console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
-      log_result(tag, 'fail');
+      /*const response = await fetch(`${url_server}/api/entrada/consolidar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({ id_organizacion, id_evento, user_email })
+      });*/
+      const response = await fetch(`${url_server}/api/entrada/consolidar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      const result = await response.json();
+      console.log(`${tag} Response: `, result);
+      if (response.status === 200) {
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
+        log_result(tag, 'fail');
+      }
     }
   } catch (error) {
     console.log(`${tag} Unexpected error: `, error);

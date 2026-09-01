@@ -566,7 +566,7 @@ router.get('/consulta/estudiantes/subpertenencia', async (req, res) => {
 router.get('/consulta/usuarios_con_hijos', async (req, res) => {
   const tag = '[GET /api/consulta/usuarios_con_hijos]';
   try {
-    const usuariosConHijos = await db_support.usersDB.find({'hijo.0':{$exists:true}}).lean();
+    const usuariosConHijos = await db_support.usersDB.find({'hijos.0':{$exists:true}}).lean();
     // Buscar todos los usuarios que tengan hijos registrados en hermanosMapDB
     //const usuariosConHijos = await db_support.hermanosMapDB.find({ apoderado_email: { $exists: true, $not: { $size: 0 } } }).lean();
     
@@ -577,7 +577,7 @@ router.get('/consulta/usuarios_con_hijos', async (req, res) => {
     console.log(`${tag} Total usuarios con hijos registrados: `, usuariosConHijos.length);
 
     // Extraer los emails de los apoderados
-    const apoderadosEmails = usuariosConHijos.flatMap(usuario => usuario.apoderado_email || []);
+    /*const apoderadosEmails = usuariosConHijos.flatMap(usuario => usuario.apoderado_email || []);
 
     // Eliminar duplicados
     const apoderadosEmailsUnicos = [...new Set(apoderadosEmails)];
@@ -587,9 +587,9 @@ router.get('/consulta/usuarios_con_hijos', async (req, res) => {
     // Solo con usuario creado en la base de datos (usersDB) y que tenga hijos registrados
     const apoderadosConUsuario = await db_support.usersDB.find({ email: { $in: apoderadosEmailsUnicos } }).lean();
     console.log(`${tag} Total apoderados con usuario en la base de datos: `, apoderadosConUsuario.length);
-    const apoderadosConUsuarioEmails = apoderadosConUsuario.map(user => user.email);
+    const apoderadosConUsuarioEmails = apoderadosConUsuario.map(user => user.email);*/
 
-    res.json(apoderadosConUsuarioEmails);
+    res.json(usuariosConHijos);
   } catch (error) {
     console.error(`${tag} Error: `, error);
     res.status(500).json({ error: 'Internal Server Error' });

@@ -626,7 +626,7 @@
         const renderizar = {
           activa: true,
           usada: true,
-          inactiva: true,
+          inactiva: false,
           anulada: false
         };
         ['activa', 'usada', 'inactiva', 'anulada'].forEach(estado => {
@@ -783,7 +783,12 @@
 
     async function getFeatureOptions(feature) {
       try {
-        const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+        let response = null;
+        if (Array.isArray(feature)) {
+          response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&features=${encodeURIComponent(feature.join(','))}&default=false`);
+        } else {
+          response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+        }
         if (!response.ok) {
           throw new Error('Error al consultar /api/feature/options');
         }

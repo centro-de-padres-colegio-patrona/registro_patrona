@@ -630,18 +630,18 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
     // transitorio provoque una sincronizacion incorrecta de las entradas.
     let ok = false;
     const tag = '[obtenerPagosEntradas]';
-    console.log(`${tag} Obteniendo pagos de entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    //console.log(`${tag} Obteniendo pagos de entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
     const url_server = current_server;
     const local_port = config_env.LOCAL_PORT;
-    console.log(`${tag} current_server:`, url_server, 'local_port:', local_port);
+    //console.log(`${tag} current_server:`, url_server, 'local_port:', local_port);
     try {
       
-      console.log(`${tag} Llamando a ${url_server}/api/evento/estado_de_pago`);
+      //console.log(`${tag} Llamando a ${url_server}/api/evento/estado_de_pago`);
       const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
-      console.log(`${tag} Resultado de /api/evento/estado_de_pago: status=${result.status}`);
+      //console.log(`${tag} Resultado de /api/evento/estado_de_pago: status=${result.status}`);
       if ( result.status === 200 ) {
         ok = true;
         const pago_entradas = await result.json();
@@ -654,13 +654,13 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
           }
         }
       } else {
-        console.warn(`${tag} estado_de_pago respondio status ${result.status}; no se considera una consulta exitosa`);
+        //console.warn(`${tag} estado_de_pago respondio status ${result.status}; no se considera una consulta exitosa`);
       }
-      console.log(`${tag} Resultado /api/evento/estado_de_pago: ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+      //console.log(`${tag} Resultado /api/evento/estado_de_pago: ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
     } catch (err) {
       // Fallo de red/timeout: ok permanece en false para que el llamador no
       // sincronice las entradas a la baja por un error transitorio.
-      console.log(`${tag} Error obteniendo pagos entradas:`, err);
+      //console.log(`${tag} Error obteniendo pagos entradas:`, err);
     }
     return { ok, compromiso_maximo_alcanzado, numero_entradas };
   }
@@ -745,9 +745,9 @@ async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, 
       return -1;
     }
 
-    console.log(`${tag} Consultando si se deben consolidar entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    //console.log(`${tag} Consultando si se deben consolidar entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
     const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
-    console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+    //console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
 
     const userInfo = await db_support.usersDB.findOne({email: user_email});
     if (!userInfo) {
@@ -760,14 +760,14 @@ async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, 
 
     let num_invitados = 0
     if (compromiso_maximo_alcanzado) {
-      console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
+      //console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
       const nombre_hijos = hijos.map(hijo => hijo.nombre);
       num_invitados = await obtenerMaxInvitados(id_organizacion, id_evento, nombre_hijos);
     } else {
       num_invitados = numero_entradas;
     }
     if (num_invitados > 0 && invitados && invitados.length < num_invitados) {
-      console.log(`${tag} numero_invitados pagados=${numero_entradas}, invitados registrados.length=${invitados.length}`);
+      //console.log(`${tag} numero_invitados pagados=${numero_entradas}, invitados registrados.length=${invitados.length}`);
       return num_invitados;
     }
     return 0;
@@ -785,9 +785,9 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
       return -1;
     }
 
-    console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    //console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
     const { ok, compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
-    console.log(`${tag} ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+    //console.log(`${tag} ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
 
     // Si la consulta del estado de pago no fue exitosa (fallo de red/timeout o
     // status != 200), NO consolidamos: preferimos no tocar el array de invitados

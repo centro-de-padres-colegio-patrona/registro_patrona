@@ -155,7 +155,7 @@ router.get('/evento/estado_de_pago', apiKeyAuth, async (req, res) => {
             for ( const regla_info of lista_reglas_info ) {
                 //console.log(`${tag} regla_info: `, regla_info);
                 const { compromiso_name, pases_por_compromiso, compromisos_maximo, compromiso_maximo_alcanzado } = regla_info;
-                console.log(`${tag} compromiso_name: ${compromiso_name}, pases_por_compromiso: ${pases_por_compromiso}, compromisos_maximo: ${compromisos_maximo}, compromiso_maximo_alcanzado: ${compromiso_maximo_alcanzado}`);
+                //console.log(`${tag} compromiso_name: ${compromiso_name}, pases_por_compromiso: ${pases_por_compromiso}, compromisos_maximo: ${compromisos_maximo}, compromiso_maximo_alcanzado: ${compromiso_maximo_alcanzado}`);
                 //console.log(`${tag} Filtrando pagos para compromiso_name: ${compromiso_name}, pagos: `, pagos);
                 //const pago_filtered = pagos_reducidos_por_compromiso.filter(pago => pago.tipo === compromiso_name || (pago.compromisos_de_pago && pago.compromisos_de_pago.includes(compromiso_name)));
                 if ( !Object.hasOwn(pagos_reducidos_por_compromiso, compromiso_name ) ) continue; 
@@ -180,7 +180,7 @@ router.get('/evento/estado_de_pago', apiKeyAuth, async (req, res) => {
         //const estado_de_pagos = {}
         /*for ( const [tipo_pase, lista_pagos] of Object.entries(pagos_por_tipo_entradas) ) {
             const total_pagos = lista_pagos.length;*/
-        console.log(`${tag} pagos_por_tipo_entradas: `, pagos_por_tipo_entradas);
+        //console.log(`${tag} pagos_por_tipo_entradas: `, pagos_por_tipo_entradas);
 
         res.json(pagos_por_tipo_entradas);
 

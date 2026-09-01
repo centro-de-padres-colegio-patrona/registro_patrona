@@ -1548,7 +1548,7 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
     console.log(`${tag} All users with children: `, allUsersConHijosResult.length);
 
     for (const user of allUsersConHijosResult) {
-      const user_email = user.user_email;
+      const user_email = user.email;
       console.log(`${tag} Consolidando entradas para: ${user_email}`);
 
       /*const response = await fetch(`${url_server}/api/entrada/consolidar`, {

@@ -1301,7 +1301,7 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
 async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
   const tag = '[test POST /api/enviarCorreo]';
-  const filename = 'respuestas_consultas_2026_08_26_v2';
+  const filename = 'consultas_2026_09_01';
   const file_correos = path.resolve(__dirname,`../tests/respuestas_consultas/${filename}.json`);
   const file_leidos = path.resolve(__dirname, '../tests/respuestas_consultas/archivos_leidos.json');
   try {
@@ -1321,7 +1321,7 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
     }
 
     archivos_leidos.push(file_correos);
-    await fs.writeFile(file_leidos, JSON.stringify(archivos_leidos, null, 2), 'utf-8');
+    //await fs.writeFile(file_leidos, JSON.stringify(archivos_leidos, null, 2), 'utf-8');
 
     const data_file = await fs.readFile(file_correos, 'utf-8');
     const correosData = JSON.parse(data_file);
@@ -1331,6 +1331,7 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
     const nombre_key = "Nombre";
     const consulta_key = "Coméntanos cual es tu problema";
     const respuesta_key = "Respuesta";
+    const enviado = "respuesta enviada";
 
     const correo_verificacion = 'l.herreramena@gmail.com';
 
@@ -1340,9 +1341,15 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
       const timestamp = correoData[timestamp_key];
       const consulta = correoData[consulta_key];
       const respuesta = correoData[respuesta_key];
+      const estado = correoData[enviado];
 
-      console.log(`${tag} Enviando correo a: ${correo_destinatario}, Respuesta: ${respuesta}`);
+      if ((estado && estado.toLowerCase().trim() === 'enviado') || !respuesta || respuesta.trim() === '') {
+        //console.log(`${tag} Omitiendo correo: ${correo_destinatario}, Estado: ${estado}, Respuesta: ${respuesta}`);
+        continue;
+      }
 
+      console.log(`${tag} Enviando correo a: ${correo_destinatario}, ${timestamp} Respuesta: ${respuesta}, Estado: ${estado}`);
+      continue; // Skip sending email if already sent or response is empty
       const asunto = `Respuesta a tu consulta`;
 
       /*const mensaje_array = [`Hola ${nombre_destinatario}. Hemos recibido la siguiente consulta de parte tuya:`,

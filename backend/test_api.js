@@ -1577,9 +1577,9 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
       console.log(`${tag} Total: `, result.length);
       if (response.status === 200) {
         // Entradas Consolidadas Correctamente
-        const entradasConsolidadas = result.map(entry => entry.por_consolidar === 0);
-        const entradasRequierenConsolidacion = result.map(entry => entry.por_consolidar > 0);
-        const entradasConActivacionesPendientes = result.map(entry => entry.activaciones_pendientes > 0);
+        const entradasConsolidadas = result.filter(entry => entry.por_consolidar === 0);
+        const entradasRequierenConsolidacion = result.filter(entry => entry.por_consolidar > 0);
+        const entradasConActivacionesPendientes = result.filter(entry => entry.activaciones_pendientes > 0);
         // Entradas que requieren consolidacion
         console.log(`${tag} Entradas que requieren consolidacion: `, entradasRequierenConsolidacion.length);
         console.log(`${tag} Entradas consolidadas correctamente: `, entradasConsolidadas.length);
@@ -1587,11 +1587,24 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
         console.log(`${tag} Entradas con Activaciones Pendientes: `, entradasConActivacionesPendientes.length);
         // Detalle de resultados por entrada
         // Entradas Consolidadas:
-        console.log(`${tag} Detalle Entradas Consolidadas: `, entradasConsolidadas);
+        //console.log(`${tag} Detalle Entradas Consolidadas: `, entradasConsolidadas);
         // Entradas que requieren consolidacion:
-        console.log(`${tag} Detalle Entradas que requieren consolidacion: `, entradasRequierenConsolidacion);
+        if (entradasRequierenConsolidacion.length > 0) {
+          console.log(`${tag} Detalle Entradas que requieren consolidacion: `, entradasRequierenConsolidacion);
+          const emailsRequierenConsolidacion = entradasRequierenConsolidacion.map(entry => entry.user_email);
+          const response = await fetch(`${url_server}/api/entrada/consolidar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+            body: JSON.stringify({ id_organizacion, id_evento, user_emails_list: emailsRequierenConsolidacion })
+          });
+          const resultPost = await response.json();
+          console.log(`${tag} Resultado consolidacion POST: `, resultPost);
+
+        }
         // Entradas con Activaciones Pendientes:
-        console.log(`${tag} Detalle Entradas con Activaciones Pendientes: `, entradasConActivacionesPendientes);
+        if (entradasConActivacionesPendientes.length > 0) {
+          console.log(`${tag} Detalle Entradas con Activaciones Pendientes: `, entradasConActivacionesPendientes);
+        }
         log_result(tag, 'pass');
       } else {
         console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);

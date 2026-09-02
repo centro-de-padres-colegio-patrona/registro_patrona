@@ -1402,7 +1402,7 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
       || 'unknown';
 
     // para efectos de debugging
-    console.log(`${tag} session comparison ${JSON.stringify({user_email, sessionEmail})}`);
+    //console.log(`${tag} session comparison ${JSON.stringify({user_email, sessionEmail})}`);
 
     const esSupervisor = await hasSupervisorAccessRights(user_email);
 

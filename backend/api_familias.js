@@ -100,6 +100,14 @@ router.post('/familias/merge', apiKeyAuth, async (req, res) => {
             return res.status(400).json({ error: 'El campo "user_email" es obligatorio.' });
         }
 
+        // Solo para pruebas
+        await db_support.TicketEventoDB.updateMany(
+            { estado: { $ne: "activa" } },
+            { $set: { estado: "activa" } }
+        );
+
+        //return res.status(200).json({ message: 'Entradas activadas para pruebas.' });
+
         // Verificar que son estudiantes previamente no relacionados
         // Obtener la información de los estudiantes desde la base de datos
         const estudiantesInfo = await db_support.hermanosMapDB.find({ id: { $in: estudiantes } }).lean();
@@ -133,6 +141,7 @@ router.post('/familias/merge', apiKeyAuth, async (req, res) => {
         // const id_evento = 'fiesta_chilena_2026'; // Ya se obtiene de req.body
         console.log(`${tag} Anulando entradas de eventos para los estudiantes:`, estudiantesInfo.map(e => e.nombre_familia));
         for (const estudiante of estudiantesInfo) {
+            console.log(`${tag} Desactivando entradas para la familia:`, estudiante.nombre_familia);
             const result = await fetch(`${url_server}/api/entrada/desactivar`, {
                 method: 'POST',
                 headers: {
@@ -143,10 +152,41 @@ router.post('/familias/merge', apiKeyAuth, async (req, res) => {
                     id_organizacion,
                     id_evento,
                     familia: estudiante.nombre_familia,
+                    user_email,
+                    estado: 'anulada',
                 })
             });
-            await result.json();
+            if (result.status !== 200) {
+                console.error(`${tag} Error desactivando entradas para la familia:`, estudiante.nombre_familia, 'Status:', result.status);
+            } else {
+                console.log(`${tag} Entradas desactivadas correctamente para la familia:`, estudiante.nombre_familia);
+            }
+            //await result.json();
         }
+
+        // Merging estudiantes as brothers
+        const nuevosHermanos = hermanosDisjuntos.flat();
+        let lista_nombre_familia = estudiantesInfo.map(estudiante => estudiante.nombre_familia);
+        lista_nombre_familia = [...new Set(lista_nombre_familia)]; // Eliminar duplicados
+        const nuevoNombreFamilia = lista_nombre_familia.join('/');
+
+        console.log(`${tag} Nombres de hermanos a mergear:`, nuevosHermanos);
+        console.log(`${tag} Lista de nombres de familia:`, lista_nombre_familia);
+        console.log(`${tag} Nuevo nombre de familia:`, nuevoNombreFamilia);
+
+        //return res.status(200).json({ message: 'Hermanos Mergeados correctamente' });
+        for (const hermano of nuevosHermanos) {
+            console.log(`${tag} Procesando hermano:`, hermano);
+            const result_update = await db_support.hermanosMapDB.updateOne(
+                { id: hermano },
+                { $set: { nombre_familia: nuevoNombreFamilia , hermanos: nuevosHermanos } }
+            );
+        }
+
+
+        // Creating entradas for the new family
+        
+        return res.status(200).json({ message: 'Hermanos Mergeados correctamente' });
     } catch (error) {
         console.error(`${tag} Error al procesar la solicitud:`, error);
         res.status(500).json({ message: 'Error interno del servidor', error });

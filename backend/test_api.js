@@ -1670,6 +1670,7 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
 
 async function test_api_mergear_hermanos(url_server = 'http://localhost:5001') {
     const tag = '[test_api_mergear_hermanos]';
+    const user_email = 'l.herreramena@gmail.com';
     const lists_hermanos_para_mergear = [
       ['tejeda morales sophia trinidad', 'tejeda morales maria jesus', 'hermosilla morales maximiliano emilio']
     ];
@@ -1681,7 +1682,7 @@ async function test_api_mergear_hermanos(url_server = 'http://localhost:5001') {
             const response = await fetch(`${url_server}/api/familias/merge`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-                body: JSON.stringify({ id_organizacion: 'cpa_patrona', id_evento: 'fiesta_chilena_2026', user_email: 'test_user@example.com', estudiantes: hermanos })
+                body: JSON.stringify({ id_organizacion: 'cpa_patrona', id_evento: 'fiesta_chilena_2026', user_email: user_email, estudiantes: hermanos })
             });
             const result = await response.json();
             console.log(`${tag} Resultado merge POST: `, result);

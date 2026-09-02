@@ -562,5 +562,40 @@ router.get('/consulta/estudiantes/subpertenencia', async (req, res) => {
 });
 
 
+// Obtener todos los usuarios con hijos registrados (para pruebas y herramientas internas)
+router.get('/consulta/usuarios_con_hijos', async (req, res) => {
+  const tag = '[GET /api/consulta/usuarios_con_hijos]';
+  try {
+    const usuariosConHijos = await db_support.usersDB.find({'hijos.0':{$exists:true}}).lean();
+    // Buscar todos los usuarios que tengan hijos registrados en hermanosMapDB
+    //const usuariosConHijos = await db_support.hermanosMapDB.find({ apoderado_email: { $exists: true, $not: { $size: 0 } } }).lean();
+    
+    if (!usuariosConHijos || usuariosConHijos.length === 0) {
+      return res.json({ total_usuarios_con_hijos: 0, apoderados_emails: [] });
+    }
+
+    console.log(`${tag} Total usuarios con hijos registrados: `, usuariosConHijos.length);
+
+    // Extraer los emails de los apoderados
+    /*const apoderadosEmails = usuariosConHijos.flatMap(usuario => usuario.apoderado_email || []);
+
+    // Eliminar duplicados
+    const apoderadosEmailsUnicos = [...new Set(apoderadosEmails)];
+
+    console.log(`${tag} Total apoderados únicos: `, apoderadosEmailsUnicos.length);
+
+    // Solo con usuario creado en la base de datos (usersDB) y que tenga hijos registrados
+    const apoderadosConUsuario = await db_support.usersDB.find({ email: { $in: apoderadosEmailsUnicos } }).lean();
+    console.log(`${tag} Total apoderados con usuario en la base de datos: `, apoderadosConUsuario.length);
+    const apoderadosConUsuarioEmails = apoderadosConUsuario.map(user => user.email);*/
+
+    res.json(usuariosConHijos);
+  } catch (error) {
+    console.error(`${tag} Error: `, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 module.exports = router;
 

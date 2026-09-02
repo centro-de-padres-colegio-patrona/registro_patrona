@@ -2018,7 +2018,7 @@ router.get('/entradas/huilen/pre_generar', apiKeyAuth, async (req, res) => {
       if (!nombres_estudiantes.includes(nombre_completo)) {
         // Generar entrada para la familia del estudiante
         //console.log(`${tag} calling generarEntradaParaFamilia(${JSON.stringify({id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques})})`);
-        const nombres = await generarEntradaParaFamiliaHuilen(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, true);
+        const nombres = await generarEntradaParaFamiliaHuilen(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, false);
         if (!nombres || !nombres.length) {
           console.log(`${tag} failed creating entradas para familia de ${nombres_estudiantes}`);
           return;

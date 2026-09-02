@@ -93,6 +93,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     test_array.push({test_fn: test_send_entradas, delay: delay_ms, arguments: url_server});
   }
 
+  if ( config_env.TEST_API_MERGEAR_HERMANOS && config_env.TEST_API_MERGEAR_HERMANOS === 'true') {
+    test_array.push({test_fn: test_api_mergear_hermanos, delay: delay_ms, arguments: url_server});
+  }
+
   let test_name = ''
 
   try {
@@ -1662,6 +1666,30 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
     console.log(`${tag} Unexpected error: `, error);
     log_result(tag, 'fail');
   }
+}
+
+async function test_api_mergear_hermanos(url_server = 'http://localhost:5001') {
+    const tag = '[test_api_mergear_hermanos]';
+    const lists_hermanos_para_mergear = [
+      ['tejeda morales sophia trinidad', 'tejeda morales maria jesus', 'hermosilla morales maximiliano emilio']
+    ];
+    try {
+        // Aquí iría la lógica para probar la API de mergear hermanos
+        console.log(`${tag} Iniciando prueba de mergear hermanos en: ${url_server}`);
+        for (const hermanos of lists_hermanos_para_mergear) {
+            console.log(`${tag} Mergeando hermanos: `, hermanos);
+            const response = await fetch(`${url_server}/api/familias/merge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+                body: JSON.stringify({ id_organizacion: 'cpa_patrona', id_evento: 'fiesta_chilena_2026', user_email: 'test_user@example.com', estudiantes: hermanos })
+            });
+            const result = await response.json();
+            console.log(`${tag} Resultado merge POST: `, result);
+        }
+        
+    } catch (error) {
+        console.error(`${tag} Error durante la prueba:`, error);
+    }
 }
 
 module.exports.lauch_test_api = lauch_test_api;

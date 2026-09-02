@@ -71,7 +71,7 @@ const url_server = config_env.LOCAL_PORT === 5001 ? `http://localhost:${config_e
 
 router.post('/familias/merge', apiKeyAuth, async (req, res) => {
     const tag = '[POST /api/familias/merge]';
-    const url_server = config_env.URL_SERVER || BASEURL;
+    //const url_server = config_env.URL_SERVER || BASEURL;
     try {
         const { id_organizacion, id_evento, user_email} = req.body;
         let estudiantes = req.body.estudiantes;

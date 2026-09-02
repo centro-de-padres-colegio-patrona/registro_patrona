@@ -76,6 +76,14 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     test_array.push({test_fn: test_api_entradas_familia, delay: delay_ms, arguments: url_server});
   }
 
+  if ( config_env.TEST_API_PRE_GENERATE_ENTRADAS_FIESTA_CHILENA && config_env.TEST_API_PRE_GENERATE_ENTRADAS_FIESTA_CHILENA === 'true') {
+    test_array.push({test_fn: test_api_pre_generate_entradas, delay: delay_ms, arguments: url_server});
+  }
+
+  if ( config_env.TEST_API_PRE_GENERATE_ENTRADAS_HUILEN && config_env.TEST_API_PRE_GENERATE_ENTRADAS_HUILEN === 'true') {
+    test_array.push({test_fn: test_api_pre_generate_entradas_huilen, delay: delay_ms, arguments: url_server});
+  }
+
   console.log(`config_env.TEST_API_BORRAR_ENTRADAS: ${config_env.TEST_API_BORRAR_ENTRADAS}`);
   if ( config_env.TEST_API_BORRAR_ENTRADAS && config_env.TEST_API_BORRAR_ENTRADAS === 'true') {
     test_array.push({test_fn: test_api_borrar_entradas, delay: delay_ms, arguments: url_server});
@@ -449,6 +457,34 @@ async function test_api_pre_generate_entradas(url_server = 'http://localhost:500
     log_result(tag, 'fail');
   }
 }
+
+/// Testear pre-generacion de entradas Huilen
+async function test_api_pre_generate_entradas_huilen(url_server = 'http://localhost:5001') {
+  const tag = 'test /api/pre_generate_entradas Huilen';
+  try {
+    const infoOrganizacion = await db_support.infoOrganizacionDB.findOne({id_organizacion: 'cpa_patrona'});
+    const id_organizacion = infoOrganizacion.id_organizacion;
+    const id_evento = 'bloque_huilen_2026';
+
+    // Borrando Entradas anteriores
+    const drop_result = await fetch (`${url_server}/api/entradas?id_evento=${encodeURIComponent(id_evento)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+    });
+
+    // Pre generar entradas
+    const result = await fetch(`${url_server}/api/entradas/huilen/pre_generar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    const entradas = await result.json();
+    console.log('Entradas pre-generadas:', entradas);
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
   const tag = 'test /api/entradas/generar/familia';

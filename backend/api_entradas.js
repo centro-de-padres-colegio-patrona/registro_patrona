@@ -1981,6 +1981,198 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
   }
 });
 
+
+router.get('/entradas/huilen/pre_generar', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entradas/huilen/pre_generar]';
+  const nombres_estudiantes = [];
+  try {
+    const id_organizacion = req.query.id_organizacion;
+    const id_evento = req.query.id_evento;
+
+    //console.log(`${tag} ${JSON.stringify({id_organizacion, id_evento})}`);
+    // Corregir regla
+    try {
+      const indexes = await db_support.TicketEventoDB.collection.listIndexes().toArray();
+      const indexExists = indexes.some(idx => idx.name === "folio_1");
+
+      if (indexExists) {      
+        await db_support.TicketEventoDB.collection.dropIndex("folio_1");
+        await db_support.TicketEventoDB.collection.createIndex({ id_evento: 1, folio: 1 }, { unique: true });
+      }
+    } catch (error) {
+      console.error(`${tag} Indices already fixed:`, error);
+    }
+    // Obtener informacion del evento:
+    const infoEvento = await db_support.EventDB.findOne({id_evento});
+    const curso_bloques = infoEvento ? infoEvento.cursoBloqueMap : {};
+    //console.log(`${tag} infoEvento: `, infoEvento);
+    const imagen_ticket_path = infoEvento.imagen_ticket_path;
+
+    // Obtener listado de cursos desde la base de datos
+    const huilenInfo = await db_support.HuilenMapDB.find().lean();
+    const listadoEstudiantes = huilenInfo.map( item => item.id);
+    
+    for (const nombre_completo of listadoEstudiantes) {
+      //console.log(`${tag} nombre_completo: `, nombre_completo);
+      // Verificar si nombre_complete ya existe en nombres_estudiantes para evitar duplicados
+      if (!nombres_estudiantes.includes(nombre_completo)) {
+        // Generar entrada para la familia del estudiante
+        //console.log(`${tag} calling generarEntradaParaFamilia(${JSON.stringify({id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques})})`);
+        const nombres = await generarEntradaParaFamiliaHuilen(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, true);
+        if (!nombres || !nombres.length) {
+          console.log(`${tag} failed creating entradas para familia de ${nombres_estudiantes}`);
+          return;
+        }
+        // Agregar nombres generados a la lista de nombres_estudiantes
+        nombres_estudiantes.push(...nombres);
+        //break;  // jsut for debugging
+      }
+    }
+
+    console.log(`${tag} Pre-generación de entradas completada. Total estudiantes procesados: ${nombres_estudiantes.length}`);
+    res.json({ status: 'ok', total_estudiantes: nombres_estudiantes.length });
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error al pre-generar entradas' });
+  }
+});
+
+async function generarEntradaParaFamiliaHuilen(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, save_file, user_email) {
+  const tag = '[generarEntradaParaFamiliaHuilen]';
+  const lista_entradas = [];
+  // Detecta si está en producción según NODE_ENV o si existe URL_SERVER
+  const localPort = process.env.PORT || 5001;
+  const baseUrl = localPort !== 5001 
+    ? config_env.URL_SERVER
+    : `http://localhost:5001`;  
+  //console.log(`generarEntradaParaFamilia: ${JSON.stringify({id_evento, imagen_ticket_path, nombre_completo})}`);
+  //console.log(`${tag} url_server: ${baseUrl}`);
+  try {
+    console.log(`${tag} Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
+    // Buscar la familia en la base de datos usando el nombre completo del estudiante
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': nombre_completo }).lean();
+    const { nombre_familia, hermanos } = familiaInfo || {};
+
+    console.log(`${tag}:1440 hermanos: `, hermanos);
+    // Arreglos
+    const cursos = new Set();
+    const jornadas = new Set();
+    const bloques = new Set();
+    const personas = [];
+    
+    let max_apoderados = 0;
+    let max_invitados = 0;
+    
+    //const jornadaMap = { manana: 'AM', tarde: 'PM'};
+
+    const infoPersona = {id_organizacion, id_evento, imagen_ticket_path, familia: nombre_familia, curso: '', num_listado: '', save_file};
+
+    // Buscar Cursos
+    for (const nombre_estudiante of hermanos || []) {
+      console.log(`${tag}:1455 nombre estudiante: `, nombre_estudiante)
+      const estudianteInfo = await db_support.nombreCursoMapDB.findOne({ 'id': nombre_estudiante });
+      const curso = estudianteInfo.value;
+      cursos.add(curso);
+      const bloqueInfo = curso_bloques['HI'];
+      jornadas.add(bloqueInfo.jornada);
+      bloques.add(bloqueInfo.bloque);
+      max_apoderados = Math.max(max_apoderados, bloqueInfo.pases_apoderados);
+      max_invitados = Math.max(max_invitados, bloqueInfo.pases_invitados);
+      const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
+      const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
+      const persona = { ...infoPersona, nombre_completo: nombre_estudiante, curso, num_listado};
+      console.log(`${tag}:1467 adding estudiante: `, persona);
+      personas.push(persona);
+    }
+
+    console.log(`${tag}:1470 largo hermanos: ${hermanos.length}, max_apoderados: ${max_apoderados}, max_invitados: ${max_invitados}, largo personas: ${personas.length}`);
+    const jornada = [...jornadas].join('/');
+    const bloque_str = [...bloques].toSorted().join('/').replaceAll('_', ' ');
+
+    for ( const estudiante of personas ) {
+      estudiante['tipo'] = 'estudiante';
+      estudiante['jornada'] = jornada;
+      estudiante['bloques'] = bloque_str;
+    }
+    
+    infoPersona['jornada'] = jornada;
+    infoPersona['bloques'] = bloque_str;
+
+    for ( let i = 1; i <= max_apoderados; i++ ) {
+      personas.push({...infoPersona, nombre_completo: `Apoderado ${i}`, tipo: 'apoderado'});
+    }
+    for ( let i = 1; i <= max_invitados; i++ ) {
+      personas.push({...infoPersona, nombre_completo: `Invitado ${i}`, tipo: 'invitado'});
+    }
+
+    for ( const entrada of personas ) {
+      console.log(`${tag}:1490 crear entrada para: `, entrada);
+      // Buscar si la entrada ya existe en la base de datos
+      const existingEntry = await db_support.TicketEventoDB.findOne({
+        id_organizacion: entrada.id_organizacion,
+        id_evento: entrada.id_evento,
+        familia: entrada.familia,
+        nombre_completo: entrada.nombre_completo,
+        tipo: entrada.tipo
+      });
+
+      if (existingEntry) {
+        if ((existingEntry.estado === 'anulada' || existingEntry.estado === 'inactiva') && ( await hasSupervisorAccessRights(user_email))){
+          const prev_estado = existingEntry.estado;
+          console.log(`${tag}:1503 La entrada para ${entrada.nombre_completo} estaba ${prev_estado}. Se reactivará. Folio: ${existingEntry.folio}`);
+          await db_support.TicketEventoDB.findOneAndUpdate(
+            { _id: existingEntry._id },
+            { 
+              $set: {
+                estado: 'inactiva',
+                bloques: entrada.bloques,
+                jornada: entrada.jornada,
+                curso: entrada.curso,
+                qr_str: genQrData(entrada),
+                usado: false,
+                fecha_uso: null,
+                validado_por: null
+              },
+              $push: {
+                historial: {
+                  accion: 'reactivacion',
+                  descripcion: `entrada reactivada (inactiva) durante creacion de entradas de la familia`
+                }
+              }
+            }
+          );
+        } else
+          console.log(`${tag}:1526 La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
+        if (entrada.tipo === 'estudiante') {
+          lista_entradas.push(entrada.nombre_completo);
+        }
+        continue; // Saltar a la siguiente entrada si ya existe
+      }
+
+      // Si la entrada no existe, crearla mediante la API
+      console.log(`${tag}:1534 Creando la entrada...`);
+      const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify(entrada)
+      });
+      if (result_create.status != 200 ) {
+        const errBody = await result_create.json().catch(() => ({ error: 'Error no especificado' }));
+        console.log(`${tag}:1542 La entrada para ${entrada.nombre_completo} no se pudo crear. status: ${result_create.status} | error: ${errBody.error}`);
+        continue;
+      }
+      if (entrada.tipo === 'estudiante') {
+        lista_entradas.push(entrada.nombre_completo);
+      }
+    }
+    return lista_entradas;
+    // Pending
+  } catch (error) {
+    console.error(`${tag} Error al generar entrada para la familia del estudiante ${nombre_completo}:`, error);
+  }
+  return [];
+}
+
 async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, save_file, user_email) {
   const tag = '[generarEntradaParaFamilia]';
   const lista_entradas = [];

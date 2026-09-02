@@ -64,6 +64,14 @@ const userHistorialSchema = new mongoose.Schema({
   detalles: { type: Object, required: true }
 });
 
+const userDeliverySchema = new mongoose.Schema({
+  fecha: { type: Date, default: Date.now },
+  id_pagina: { type: String, required: true },
+  id_evento: { type: String, required: true },
+  id_organizacion: { type: String, required: true },
+  detalles: { type: Object, required: true }
+});
+
 const userSchema = new mongoose.Schema({
   googleId: String,
   displayName: String,
@@ -87,6 +95,7 @@ const userSchema = new mongoose.Schema({
   bloqueadoHasta: Date,
   passwordHash: String,
   historial: [userHistorialSchema],
+  entregas: [userDeliverySchema]
 });
 
 const testRunHistorialSchema = new mongoose.Schema({
@@ -385,7 +394,7 @@ const ticketAccionSchema = new mongoose.Schema({
 const ticketEventoSchema = new mongoose.Schema({
   id_organizacion: { type: String, required: true },
   id_evento: { type: String, required: true },
-  folio: { type: Number, unique: true },
+  folio: { type: Number},
   familia: { type: String, required: true },
   nombre_completo: String,
   tipo: String,
@@ -566,7 +575,7 @@ async function test_info_organizacion() {
         numeracion: '7370',
         codigo_postal: '8270829',
       },
-      rut: '',
+      rut: '65.062.640-0',
       tipo_organizacion: 'centro_padres',
       duracion_database: 'anual'
     }

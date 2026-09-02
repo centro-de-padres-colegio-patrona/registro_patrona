@@ -12,10 +12,12 @@ const { BASEURL } = require('../backend/git_branch');
 
 const SECRET_API_KEY = config_env.API_KEY;
 
+const url_server = config_env.LOCAL_PORT === 5001 ? `http://localhost:${config_env.LOCAL_PORT}` : BASEURL;
+
 
 router.post('/api/familias/merge', apiKeyAuth, async (req, res) => {
     const tag = '[POST /api/familias/merge]';
-    const url_server = config_env.URL_SERVER || BASEURL;
+    //const url_server = config_env.URL_SERVER || BASEURL;
     try {
         const { id_organizacion, estudiantes , user_email} = req.body;
 
@@ -39,9 +41,6 @@ router.post('/api/familias/merge', apiKeyAuth, async (req, res) => {
         const listas_hermanos = [];
         const estudiantesAnalizados = new Set();
         for (const estudianteInfo of estudiantesInfo) {
-        
-
-
             // Anular todas las entradas de eventos.
             const id_evento = 'fiesta_chilena_2026';
             for (const estudiante of estudiantesInfo) {
@@ -60,6 +59,10 @@ router.post('/api/familias/merge', apiKeyAuth, async (req, res) => {
                 await result.json();
             }
         }
+        // Merging estudiantes as brothers
+
+        // Creating entradas for the new family
+        
     } catch (error) {
         console.error(`${tag} Error al procesar la solicitud:`, error);
         res.status(500).json({ message: 'Error interno del servidor', error });

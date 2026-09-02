@@ -1592,6 +1592,8 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
         if (entradasRequierenConsolidacion.length > 0) {
           console.log(`${tag} Detalle Entradas que requieren consolidacion: `, entradasRequierenConsolidacion);
           const emailsRequierenConsolidacion = entradasRequierenConsolidacion.map(entry => entry.user_email);
+          console.log(`${tag} Emails que requieren consolidacion: `, emailsRequierenConsolidacion);
+          break;
           const response = await fetch(`${url_server}/api/entrada/consolidar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },

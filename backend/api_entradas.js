@@ -736,7 +736,18 @@ router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/entrada/consolidar]';
   try {
     const { id_organizacion, id_evento, user_email } = req.body;
-    let result = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+    const user_emails_list_str = req.body.user_emails_list || null;
+    const user_emails_list = JSON.parse(user_emails_list_str);
+    if (!user_email && !user_emails_list) {
+      return res.status(400).json({ error: 'Faltan parámetros requeridos: user_email o user_emails_list' });
+    }
+    let result = 0;
+    if (user_email)
+      result = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+    if (user_emails_list)
+      for (const email of user_emails_list) {
+        result += await consolidarEntradasInvitados(id_organizacion, id_evento, email);
+      }
     if (result > 0) {
       res.status(200).json({ message: 'Entradas consolidadas correctamente' });
     } else if (result === 0) {

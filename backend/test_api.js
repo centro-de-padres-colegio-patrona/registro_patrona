@@ -1592,8 +1592,7 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
         if (entradasRequierenConsolidacion.length > 0) {
           console.log(`${tag} Detalle Entradas que requieren consolidacion: `, entradasRequierenConsolidacion);
           const emailsRequierenConsolidacion = entradasRequierenConsolidacion.map(entry => entry.user_email);
-          console.log(`${tag} Emails que requieren consolidacion: `, emailsRequierenConsolidacion);
-          break;
+          console.log(`${tag} Consolidando los siguientes users: `, emailsRequierenConsolidacion);
           const response = await fetch(`${url_server}/api/entrada/consolidar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
@@ -1601,6 +1600,16 @@ async function test_api_entrada_consolidar(url_server = 'http://localhost:5001')
           });
           const resultPost = await response.json();
           console.log(`${tag} Resultado consolidacion POST: `, resultPost);
+
+          const emailsConActivacionPendiente = entradasConActivacionesPendientes.map(entry => entry.user_email);
+          const result = await fetch(`${url_server}/api/entrada/masivo/activar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+            body: JSON.stringify({id_organizacion, id_evento, user_emails_list: emailsConActivacionPendiente})
+          });
+          const resultPostActivar = await result.json();
+          console.log(`${tag} Resultado activacion POST: `, resultPostActivar);
+          //break;
 
         }
         // Entradas con Activaciones Pendientes:

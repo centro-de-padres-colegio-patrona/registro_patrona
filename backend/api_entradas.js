@@ -736,27 +736,30 @@ router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/entrada/consolidar]';
   try {
     const { id_organizacion, id_evento, user_email } = req.body;
-    const user_emails_list_str = req.body.user_emails_list || null;
-    const user_emails_list = JSON.parse(user_emails_list_str);
+    let user_emails_list = req.body.user_emails_list || null;
+
+    // Safely parse user_emails_list if it is provided as a string
+    if (typeof user_emails_list === 'string') {
+      try {
+        user_emails_list = JSON.parse(user_emails_list);
+      } catch (e) {
+        // Fallback for comma-separated email strings
+        user_emails_list = user_emails_list.split(',').map(e => e.trim()).filter(Boolean);
+      }
+    }
     if (!user_email && !user_emails_list) {
       return res.status(400).json({ error: 'Faltan parámetros requeridos: user_email o user_emails_list' });
     }
-    let result = 0;
-    if (user_email)
-      result = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+    let result = {};
+    if (user_email) {
+      const num_entradas_consolidadas = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+      result[user_email] = num_entradas_consolidadas;
+    }
     if (user_emails_list)
       for (const email of user_emails_list) {
-        result += await consolidarEntradasInvitados(id_organizacion, id_evento, email);
+        result[email] = await consolidarEntradasInvitados(id_organizacion, id_evento, email);
       }
-    if (result > 0) {
-      res.status(200).json({ message: 'Entradas consolidadas correctamente' });
-    } else if (result === 0) {
-      res.status(200).json({ message: 'No se requieren cambios en las entradas' });
-    } else if (result === -1) {
-      res.status(400).json({ error: 'Error: datos insuficientes' });
-    } else {
-      res.status(500).json({ error: 'Error en la API de consolidación de entradas' });
-    }
+    res.status(200).json(result);
   } catch (error) {
     console.error(`${tag} Error:`, error);
     res.status(500).json({ error: 'Error consolidando entradas' });
@@ -936,6 +939,138 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
   }
 }
 
+
+async function activarEntradasByUserEmail(id_organizacion, id_evento, user_email) {
+  const tag = `[activarEntradasByUserEmail]`;
+  // Implementar la lógica de activación de entradas para el user_email
+      // Activacion en lote de la familia del user_email indicado. Aplica tanto
+      // al propio usuario (user_email === sessionEmail) como a un
+      // supervisor/admin que emula el acceso (admin_view=1) sobre ese usuario.
+  const userInfo = await db_support.usersDB.findOne({email: user_email});
+  if (!userInfo) {
+    return res.status(404).json({ error: 'usuario no encontrado' });
+  }
+  const { hijos, padres, invitados } = userInfo;
+  if ( !hijos || !hijos.length) {
+    return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
+  }
+
+  //console.log(`${tag} userInfo: `, userInfo);
+  //console.log(`${tag} `, { hijos, padres, invitados });
+  const nombres_hijos = hijos.flatMap(hijo => normalizarNombre(hijo.nombre));
+  //console.log(`${tag} nombres_hijos: `, nombres_hijos);
+
+  // Obteniendo la informacion de los hermanos
+  const hermanosInfo = await db_support.hermanosMapDB.findOne({id: hijos[0].nombre});
+  if ( !hermanosInfo || !hermanosInfo.nombre_familia) return res.status(404).json({ error: 'no se encuentra familia' });
+
+  const familia = hermanosInfo.nombre_familia;
+
+  // Searching for the tickets for the family
+  const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
+
+  const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.includes(normalizarNombre(ticket.nombre_completo)));
+  const tickets_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
+  const tickets_invitados = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
+
+  const folios_to_update_estudiantes = tickets_estudiantes.filter(t => t.estado === 'inactiva')
+                                        .map(t => t.folio);
+  const folios_to_update_apoderados = tickets_apoderados.filter(t => t.estado === 'inactiva')
+                                        .map(t => t.folio);
+  const folios_to_update_invitados = tickets_invitados.filter(t => t.estado === 'inactiva')
+                                        .map(t => t.folio);
+
+  console.log(`${tag} `, {folios_to_update_estudiantes, folios_to_update_apoderados, folios_to_update_invitados});
+
+  // Si la cuota CGPA (cuota_cpa) esta pagada, las invitaciones vienen
+  // incluidas: se consideran cubiertos todos los pases de invitado de la
+  // familia, sin limitar por la cantidad de invitados registrados en el
+  // perfil del usuario.
+  const cpaPagada = await familiaTieneCuotaCpaPagada(nombres_hijos);
+
+  const cantidad_to_update_apoderados = Math.max(0, padres.length - (tickets_apoderados.length - folios_to_update_apoderados.length));
+  const cantidad_to_update_invitados = cpaPagada
+    ? folios_to_update_invitados.length
+    : Math.max(0, invitados.length - (tickets_invitados.length - folios_to_update_invitados.length));
+
+  console.log(`${tag} `, {padres:padres.length, invitados:invitados.length, cpaPagada});
+  console.log(`${tag} `, {tickets_apoderados:tickets_apoderados.length, tickets_invitados:tickets_invitados.length});
+  console.log(`${tag} `, {folios_to_update_apoderados:folios_to_update_apoderados.length, folios_to_update_invitados:folios_to_update_invitados.length});
+  console.log(`${tag} `, {cantidad_to_update_apoderados, cantidad_to_update_invitados});
+
+  const foliosToUpdate = [
+    ...folios_to_update_estudiantes,
+    ...folios_to_update_apoderados.slice(0, cantidad_to_update_apoderados),
+    ...folios_to_update_invitados.slice(0, cantidad_to_update_invitados)
+  ];
+  console.log(`${tag} foliosToUpdate: `, foliosToUpdate);
+
+  if (foliosToUpdate.length === 0) {
+    const exit_message = { status: 'ok', mensaje: 'No hay entrdas que requieran activaciom', activadas: 0 }
+    console.log(`${tag} `, exit_message);
+    return exit_message;
+  }
+
+  // Actualización masiva (Bulk) para garantizar rendimiento
+  const updateResult = await db_support.TicketEventoDB.updateMany(
+    { folio: { $in: foliosToUpdate } },
+    { 
+      $set: { 
+        usado: false, 
+        fecha_uso: null, 
+        validado_por: null,
+        estado: 'activa'
+      },
+      $push: {
+        historial: {
+          accion: 'activacion',
+          descripcion: `activado en lote por ${user_email}`
+        }
+      }
+    }
+  );
+
+  console.log(`${tag} Entradas de la familia ${familia} activadas correctamente. Total activadas: ${updateResult.modifiedCount}`);
+  return { status: 'ok', mensaje: 'Entradas activadas correctamente', activadas: updateResult.modifiedCount };
+}
+
+router.post('/entrada/masivo/activar', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entrada/masivo/activar]'
+  //console.log(`${tag} Starting ...`);
+  try {
+    const { id_organizacion, id_evento } = req.body;
+    //console.log(`${tag} Continue ...`, {id_organizacion, id_evento, folio, user_email});
+    let user_emails_list = req.body.user_emails_list || null;
+
+    if (!id_organizacion) return res.status(400).json({ error: 'Falta id_organizacion' });
+    if (!id_evento) return res.status(400).json({ error: 'Falta id_evento' });
+    if (!user_emails_list) return res.status(400).json({ error: 'Falta user_emails_list' });
+  
+
+    // Safely parse user_emails_list if it is provided as a string
+    if (typeof user_emails_list === 'string') {
+      try {
+        user_emails_list = JSON.parse(user_emails_list);
+      } catch (e) {
+        // Fallback for comma-separated email strings
+        user_emails_list = user_emails_list.split(',').map(e => e.trim()).filter(Boolean);
+      }
+    }
+
+    for (const user_email of user_emails_list) {
+      // Aquí puedes llamar a la función de activación para cada user_email
+      // Por ejemplo:
+      // await activarEntrada(id_organizacion, id_evento, user_email);
+      await activarEntradasByUserEmail(id_organizacion, id_evento, user_email);
+    }
+
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    return res.status(500).json({ error: 'Error inesperado' });
+  }
+  return res.status(200).json({ message: 'Validación exitosa' });
+});
+
 // Activar entradas:
 // Se activan las entradas de la familia del user_email
 // Se activan solo aquellas que estan 'desativadas'. 
@@ -985,7 +1120,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       console.log(`${tag} activacion en modo admin_view por sesion ${sessionEmail} sobre user ${user_email}`);
     }
 
-    if ( user_email !== sessionEmail && !esSupervisor && !adminSesionSupervisor) {
+    if ( user_email !== sessionEmail && !esSupervisor && !adminSesionSupervisor && !adminViewFlag) {
       const err_msg = `unexpected email: ${JSON.stringify({user_email, sessionEmail, esSupervisor})}`;
       console.log(`${tag} ${err_msg} `);
       res.status(400).json({ error: err_msg });
@@ -1032,7 +1167,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       if (result) {
         return res.status(200).json({status: 'updated'});
       }
-    } else if (user_email === sessionEmail || adminSesionSupervisor) {
+    } else if (user_email === sessionEmail || adminSesionSupervisor || (adminViewFlag || user_email)) {
       // Activacion en lote de la familia del user_email indicado. Aplica tanto
       // al propio usuario (user_email === sessionEmail) como a un
       // supervisor/admin que emula el acceso (admin_view=1) sobre ese usuario.

@@ -175,6 +175,7 @@
         <th>#</th>
         <th>Alumno</th>
         <th>Bloque</th>
+        <th>Entradas</th>
         <th>Color</th>
         <th>Curso</th>
         <th>Apoderado</th>
@@ -452,6 +453,7 @@
         <td>${idx + 1}</td>
         <td>${alumno.nombre || '—'}</td>
         <td>${bloquesHtml}</td>
+        <td style="text-align:center;">${alumno.entradas != null ? alumno.entradas : 0}</td>
         <td style="text-align:center;">${coloresHtml}</td>
         <td>${alumno.curso || ''} ${alumno.seccion || ''}</td>
         <td>${alumno.apoderado || '—'}</td>

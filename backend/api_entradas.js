@@ -26,6 +26,18 @@ const JORNADA_MAP = { 'manana': 'Mañana', 'tarde': 'Tarde' };
 // haga match con "reyes san martin agatha" al activar entradas.
 const normalizarNombre = (str) => (str || '').trim().replace(/\s+/g, ' ');
 
+// Construye una regex para hacer match del campo 'familia' de forma tolerante a
+// mayus/minus y a espacios extra. Necesario porque las entradas de una misma
+// familia pueden haberse guardado con distinta capitalizacion del apellido
+// (p.ej. "Ramirez silva" vs "ramirez silva"); un filtro exacto dejaria fuera
+// parte de las entradas al leerlas por familia.
+const rxFamilia = (familia) => {
+  const escaped = normalizarNombre(familia)
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/ /g, '\\s+');
+  return new RegExp('^\\s*' + escaped + '\\s*$', 'i');
+};
+
 // Determina si la cuota CGPA (clave interna cuota_cpa) esta pagada para alguno
 // de los estudiantes indicados. Cuando la cuota CGPA esta pagada, las
 // invitaciones vienen incluidas, por lo que al activar en lote se consideran
@@ -2015,7 +2027,11 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
             folio
           } = req.query;
 
-    const estudiantes = [];
+    // Conjunto de valores EXACTOS de 'familia' que identifican a ESTA familia.
+    // Se usa para no mezclar familias homonimas (mismo apellido, distinto grupo)
+    // cuando el campo 'familia' quedo guardado con distinta capitalizacion entre
+    // hermanos (p.ej. "Ramirez silva" y "ramirez silva").
+    let familiasExactas = null;
 
     if (familia) {
       id_familia = familia;
@@ -2023,12 +2039,33 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
       const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': nombre_completo });
       const { nombre_familia, hermanos } = familiaInfo || {};
       id_familia = nombre_familia;
+
+      // Resolver la familia por los HERMANOS reales del indice inverso: se buscan
+      // los tickets de tipo 'estudiante' de esos hermanos (match tolerante a
+      // mayus/minus y espacios sobre nombre_completo) y se toman sus valores de
+      // 'familia' exactos. Asi se cubren las entradas de apoderado/invitado
+      // asociadas y se distinguen familias homonimas.
+      const nombresFamilia = [...new Set([...(hermanos || []), nombre_completo].map(normalizarNombre).filter(Boolean))];
+      if (nombresFamilia.length) {
+        const rxNombres = nombresFamilia.map(rxFamilia);
+        const ticketsEstudiantes = await db_support.TicketEventoDB.find({
+          id_organizacion, id_evento, tipo: 'estudiante', nombre_completo: { $in: rxNombres }
+        }).lean();
+        const set = [...new Set(ticketsEstudiantes.map(t => t.familia).filter(Boolean))];
+        if (set.length) familiasExactas = set;
+      }
     } else if (folio) {
       const ticketInfo = await db_support.TicketEventoDB.findOne({id_organizacion, id_evento, folio});
       id_familia = ticketInfo.familia;
     }
-    if (id_familia) {
-      const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 }).lean();
+    if (familiasExactas || id_familia) {
+      // Preferir el conjunto de familias exactas (deriva de los hermanos reales).
+      // Si no se pudo determinar, caer a un match tolerante a mayus/minus por el
+      // nombre_familia canonico.
+      const filtroFamilia = familiasExactas
+        ? { $in: familiasExactas }
+        : rxFamilia(id_familia);
+      const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: filtroFamilia}).sort({ folio: 1 }).lean();
       if (tickets) {
         console.log(`${tag} folios: ${tickets.map(t => t.folio)}`);
         res.status(200).json(tickets);
@@ -2987,3 +3024,8 @@ router.delete('/entrada/cortesia', apiKeyAuth, async (req, res) => {
 
 
 module.exports = router;
+// Se exporta la funcion de generacion/consolidacion de entradas por familia para
+// poder reutilizarla desde otros modulos (p.ej. api_asignar_familia.js), de modo
+// que al asignar/reasignar una familia se regeneren sus entradas (familia
+// canonica, jornada/bloques combinados) sin duplicar la logica.
+module.exports.generarEntradaParaFamilia = generarEntradaParaFamilia;

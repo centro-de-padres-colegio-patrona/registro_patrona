@@ -368,6 +368,7 @@ const apiFeatures = require('../backend/api_feature');
 const apiBranch = require('../backend/api_branch');
 const apiReportIssue = require('../backend/api_report_problem');
 const apiFamiliasRouter = require('../backend/api_familias');
+const apiAsignarFamiliaRouter = require('../backend/api_asignar_familia');
 
 
 // Usar el Router de Entradas para todas las rutas que comienzan con /api
@@ -384,6 +385,7 @@ app.use('/api', apiFeatures);
 app.use('/api', apiBranch);
 app.use('/api', apiReportIssue);
 app.use('/api', apiFamiliasRouter);
+app.use('/api', apiAsignarFamiliaRouter);
 
 
 // Ruta para la página "hello world" (index.html)

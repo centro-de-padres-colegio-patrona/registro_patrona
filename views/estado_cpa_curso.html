@@ -174,6 +174,8 @@
       <tr>
         <th>#</th>
         <th>Alumno</th>
+        <th>Bloque</th>
+        <th>Color</th>
         <th>Curso</th>
         <th>Apoderado</th>
         <th>Estado CGPA</th>
@@ -192,6 +194,73 @@
 <script>
   // Variable global para saber si el usuario puede editar el estado CPA
   let _puedeEditarCPA = false;
+
+  // Cache del mapa curso -> {bloque, color} obtenido de /api/cursos-bloque
+  let cursosBloqueCache = null;
+
+  // Mapeo de código de color a color real (hex) para el dot.
+  // Reutiliza los mismos códigos que el mantenedor de Cursos/Bloque.
+  const colorMap = {
+    'ama_m': '#FFD700', 'ama_t': '#FFD700', 'roj': '#E74C3C', 'nar': '#FF8C00',
+    'azul': '#2196F3', 'ros_m': '#FF69B4', 'ros_t': '#FF69B4', 'morado': '#8E44AD',
+    'rosado': '#FF69B4', 'dorado': '#FFD700', 'negro': '#2C3E50', 'gris': '#95A5A6',
+    'verde': '#27AE60', 'amarillo': '#F1C40F', 'rojo': '#E74C3C', 'naranja': '#FF8C00',
+  };
+
+  const colorGlosa = {
+    'ama_m': 'Amarillo', 'ama_t': 'Amarillo', 'roj': 'Rojo', 'nar': 'Naranjo',
+    'azul': 'Azul', 'ros_m': 'Rosado', 'ros_t': 'Rosado', 'morado': 'Morado',
+    'rosado': 'Rosado', 'dorado': 'Dorado', 'negro': 'Negro', 'gris': 'Gris',
+    'verde': 'Verde', 'amarillo': 'Amarillo', 'rojo': 'Rojo', 'naranja': 'Naranja',
+  };
+
+  function getColorReal(codigo) {
+    return colorMap[codigo] || codigo || '#95A5A6';
+  }
+
+  function getColorNombre(codigo) {
+    return colorGlosa[codigo] || codigo || '';
+  }
+
+  // Presenta el bloque legible: "bloque_03" / "bloque 03" -> "Bloque 03"
+  function formatearBloque(valor) {
+    valor = (valor == null ? '' : String(valor)).trim();
+    if (!valor) return '';
+    return valor.replace(/_/g, ' ').replace(/\bbloque\b/gi, 'Bloque');
+  }
+
+  // Índice bloque (normalizado) -> código de color, construido desde /api/cursos-bloque.
+  let colorPorBloqueCache = null;
+
+  // Normaliza el nombre de un bloque para usarlo como clave: "Bloque 06" -> "bloque_06"
+  function normalizarBloque(valor) {
+    return (valor == null ? '' : String(valor)).trim().toLowerCase().replace(/\s+/g, '_');
+  }
+
+  // Carga (una sola vez) el mapa de cursos y construye el índice bloque -> color.
+  async function cargarMapaCursosBloque() {
+    if (colorPorBloqueCache) return colorPorBloqueCache;
+    try {
+      const res = await fetch('/api/cursos-bloque');
+      const cursosData = await res.json();
+      colorPorBloqueCache = {};
+      (Array.isArray(cursosData) ? cursosData : []).forEach(c => {
+        if (c && c.bloque) {
+          colorPorBloqueCache[normalizarBloque(c.bloque)] = c.color || '';
+        }
+      });
+    } catch (err) {
+      console.error('Error cargando /api/cursos-bloque:', err);
+      colorPorBloqueCache = {};
+    }
+    return colorPorBloqueCache;
+  }
+
+  // Devuelve el código de color asociado a un bloque (o '' si no se encuentra).
+  function getColorDeBloque(bloque) {
+    const mapa = colorPorBloqueCache || {};
+    return mapa[normalizarBloque(bloque)] || '';
+  }
 
   const params = new URLSearchParams(window.location.search);
   const userEmail = params.get('user_email') || '';
@@ -301,7 +370,11 @@
       let url = `/api/estado_cpa_curso?curso=${encodeURIComponent(curso)}`;
       if (seccion) url += `&seccion=${encodeURIComponent(seccion)}`;
 
-      const res = await fetch(url);
+      // Cargar en paralelo el estado CPA y el índice bloque -> color
+      const [res] = await Promise.all([
+        fetch(url),
+        cargarMapaCursosBloque()
+      ]);
       const data = await res.json();
 
       if (!res.ok) {
@@ -315,6 +388,31 @@
       document.getElementById('mensaje-vacio').style.display = 'block';
       document.getElementById('mensaje-vacio').textContent = 'Error al cargar datos: ' + err.message;
     }
+  }
+
+  // Genera un dot de color (círculo) para un código de color de bloque.
+  function dotColor(colorCodigo) {
+    const colorReal = getColorReal(colorCodigo);
+    const colorNombre = getColorNombre(colorCodigo);
+    return `<span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15); vertical-align:middle;" title="${colorNombre}"></span>`;
+  }
+
+  // A partir de la cadena de bloques del alumno (ej. "bloque_02/bloque_04"),
+  // devuelve { bloquesHtml, coloresHtml }. Vacío -> "----" en ambas columnas.
+  function construirCeldasBloque(bloquesStr) {
+    const lista = (bloquesStr == null ? '' : String(bloquesStr))
+      .split(/[\/,]/).map(b => b.trim()).filter(Boolean);
+
+    if (lista.length === 0) {
+      return { bloquesHtml: '----', coloresHtml: '----' };
+    }
+
+    const bloquesHtml = lista.map(b => formatearBloque(b)).join('/');
+    const coloresHtml = `<span style="display:inline-flex; gap:5px; align-items:center; justify-content:center;">`
+      + lista.map(b => dotColor(getColorDeBloque(b))).join('')
+      + `</span>`;
+
+    return { bloquesHtml, coloresHtml };
   }
 
   function renderTabla(alumnos) {
@@ -346,9 +444,15 @@
         ? `<td><button onclick="toggleEstadoCPA('${(alumno.apoderado_email || '').replace(/'/g, "\\'")}', ${!alumno.cpa_pagado}, this, '${(alumno.nombre || '').replace(/'/g, "\\'")}')" style="padding:4px 12px; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer; ${alumno.cpa_pagado ? 'background:#ffebee; color:#c62828;' : 'background:#e8f5e9; color:#2e7d32;'}">${alumno.cpa_pagado ? 'Marcar Pendiente' : 'Marcar Pagado'}</button></td>`
         : '';
 
+      // Bloques y colores del grupo familiar del alumno (desde sus entradas).
+      // Si aún no está registrado por su grupo familiar, ambas columnas van con "----".
+      const { bloquesHtml, coloresHtml } = construirCeldasBloque(alumno.bloques);
+
       row.innerHTML = `
         <td>${idx + 1}</td>
         <td>${alumno.nombre || '—'}</td>
+        <td>${bloquesHtml}</td>
+        <td style="text-align:center;">${coloresHtml}</td>
         <td>${alumno.curso || ''} ${alumno.seccion || ''}</td>
         <td>${alumno.apoderado || '—'}</td>
         <td>${estadoBadge}</td>

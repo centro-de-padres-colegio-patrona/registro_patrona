@@ -3082,6 +3082,48 @@ router.delete('/entrada/cortesia', apiKeyAuth, async (req, res) => {
   }
 });
 
+async function enviarEntradasHuilen(id_organizacion, id_evento, estudiantes) {
+  const tag = '[enviarEntradasHuilen]';
+
+  try {
+
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+  }
+
+}
+
+router.post('/entradas/huilen/enviar', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entradas/huilen/enviar]';
+  try {
+    const { id_organizacion, id_evento } = req.body;
+    let estudiantes = req.body.estudiantes;
+
+    if (typeof estudiantes === 'string') {
+        try { estudiantes = JSON.parse(estudiantes); }
+        catch (e) { estudiantes = estudiantes.split(',').map(s => s.trim()).filter(Boolean); }
+    }
+    if (!Array.isArray(estudiantes)) {
+        return res.status(400).json({ error: 'El campo "estudiantes" debe ser un arreglo.' });
+    }
+    
+    if (!id_organizacion || !id_evento || !Array.isArray(estudiantes)) {
+      return res.status(400).json({ error: 'Faltan parámetros requeridos' });
+    }
+
+    // Lógica para enviar entradas Huilen
+    console.log(`${tag} Enviando entradas Huilen para estudiantes: `, estudiantes);
+
+    await enviarEntradasHuilen(id_organizacion, id_evento, estudiantes);
+
+    // Simulación de envío de entradas
+    const result = { status: 'ok', total_estudiantes: estudiantes.length };
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al enviar las entradas Huilen' });
+  }
+});
 
 module.exports = router;
 // Se exporta la funcion de generacion/consolidacion de entradas por familia para

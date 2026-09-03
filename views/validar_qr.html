@@ -305,6 +305,137 @@
   
   let userEmail = null;
 
+  // Cache del mapa curso -> {bloque, color} obtenido de /api/cursos-bloque
+  let cursosBloqueCache = null;
+
+  // Mapeo de código de color a color real (hex) para el dot.
+  // Reutiliza los mismos códigos que el mantenedor de Cursos/Bloque.
+  const colorMap = {
+    'ama_m': '#FFD700',
+    'ama_t': '#FFD700',
+    'roj': '#E74C3C',
+    'nar': '#FF8C00',
+    'azul': '#2196F3',
+    'ros_m': '#FF69B4',
+    'ros_t': '#FF69B4',
+    'morado': '#8E44AD',
+    'rosado': '#FF69B4',
+    'dorado': '#FFD700',
+    'negro': '#2C3E50',
+    'gris': '#95A5A6',
+    'verde': '#27AE60',
+    'amarillo': '#F1C40F',
+    'rojo': '#E74C3C',
+    'naranja': '#FF8C00',
+  };
+
+  const colorGlosa = {
+    'ama_m': 'Amarillo',
+    'ama_t': 'Amarillo',
+    'roj': 'Rojo',
+    'nar': 'Naranjo',
+    'azul': 'Azul',
+    'ros_m': 'Rosado',
+    'ros_t': 'Rosado',
+    'morado': 'Morado',
+    'rosado': 'Rosado',
+    'dorado': 'Dorado',
+    'negro': 'Negro',
+    'gris': 'Gris',
+    'verde': 'Verde',
+    'amarillo': 'Amarillo',
+    'rojo': 'Rojo',
+    'naranja': 'Naranja',
+  };
+
+  function getColorReal(codigo) {
+    return colorMap[codigo] || codigo || '#95A5A6';
+  }
+
+  function getColorNombre(codigo) {
+    return colorGlosa[codigo] || codigo || '';
+  }
+
+  // Carga (una sola vez) el mapa de cursos y lo indexa por id de curso.
+  async function cargarMapaCursosBloque() {
+    if (cursosBloqueCache) return cursosBloqueCache;
+    try {
+      const res = await fetch('/api/cursos-bloque');
+      const cursos = await res.json();
+      cursosBloqueCache = {};
+      (Array.isArray(cursos) ? cursos : []).forEach(c => {
+        if (c && c.id) cursosBloqueCache[c.id] = c;
+      });
+    } catch (err) {
+      console.error('Error cargando /api/cursos-bloque:', err);
+      cursosBloqueCache = {};
+    }
+    return cursosBloqueCache;
+  }
+
+  // Devuelve los integrantes (tickets) asociados a una familia, cada uno con su curso.
+  async function obtenerIntegrantesFamilia(familia, apiKey) {
+    if (!familia || familia === '—') return [];
+    try {
+      const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(familia)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+      });
+      if (!res.ok) return [];
+      const tickets = await res.json();
+      if (!Array.isArray(tickets)) return [];
+      // Solo estudiantes de esa familia (comparación tolerante a mayúsculas/espacios)
+      const normalizar = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const familiaNorm = normalizar(familia);
+      return tickets.filter(t =>
+        normalizar(t.familia) === familiaNorm &&
+        (t.tipo || '').toLowerCase() === 'estudiante'
+      );
+    } catch (err) {
+      console.error('Error obteniendo integrantes de la familia:', err);
+      return [];
+    }
+  }
+
+  // Construye el HTML del listado de bloques por integrante, con su color según el curso.
+  function construirListadoBloques(integrantes, mapaCursos) {
+    if (!integrantes || integrantes.length === 0) return '';
+
+    // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
+    const vistos = new Set();
+    const filas = [];
+    integrantes.forEach(t => {
+      const nombre = (t.nombre_completo || '').trim();
+      const clave = nombre.toLowerCase();
+      if (!nombre || vistos.has(clave)) return;
+      vistos.add(clave);
+
+      const curso = t.curso || '';
+      const infoCurso = mapaCursos[curso] || {};
+      const bloque = infoCurso.bloque || t.bloques || '—';
+      const colorCodigo = infoCurso.color || '';
+      const colorReal = getColorReal(colorCodigo);
+      const colorNombre = getColorNombre(colorCodigo);
+
+      filas.push(`
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+          <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
+          <span style="flex:1; font-weight:600; color:#333; font-size:0.95rem;">${nombre}</span>
+          <span style="flex-shrink:0; font-weight:700; color:#555; font-size:0.9rem;">${bloque}</span>
+        </div>
+      `);
+    });
+
+    if (filas.length === 0) return '';
+
+    return `
+      <div style="margin-bottom:16px;">
+        <div class="dato-label" style="margin-bottom:6px;">Bloques de la familia</div>
+        ${filas.join('')}
+      </div>
+    `;
+  }
+
   // Función de inicialización
   async function init() {
     userEmail = await getUserEmail();
@@ -520,15 +651,17 @@
           }
         })
           .then(res => res.json())
-          .then(info => {
-            // Determinar el estado real de la entrada.
-            const estadoBD = (info.estado || '').toLowerCase();
-            const yaUsada = info.usado === true || estadoBD === 'usada';
-            const inactiva = estadoBD === 'inactiva';
-            const anulada = estadoBD === 'anulada';
+          .then(async info => {
+            // Cargar en paralelo el mapa de cursos y los integrantes de la familia
+            // para poder listar los bloques (con su color) antes del detalle.
+            const [mapaCursos, integrantes] = await Promise.all([
+              cargarMapaCursosBloque(),
+              obtenerIntegrantesFamilia(familia, config_json.apiKey)
+            ]);
+            const listadoBloquesHtml = construirListadoBloques(integrantes, mapaCursos);
 
-            if (yaUsada) {
-              // TICKET YA FUE USADO / ESCANEADO
+            if (info.usado || info.estado != 'activa') {
+              // TICKET YA FUE USADO
               resultadoCard.className = 'resultado-card error';
               resultadoTitulo.textContent = '⚠ ENTRADA YA UTILIZADA';
               resultadoContenido.innerHTML = `
@@ -537,43 +670,21 @@
                   <p style="font-size:0.85rem; color:#666; margin:0;">Validado por: <strong>${info.validado_por || '—'}</strong></p>
                   <p style="font-size:0.85rem; color:#666; margin:4px 0 0 0;">Fecha: <strong>${info.fecha_uso ? new Date(info.fecha_uso).toLocaleString('es-CL') : '—'}</strong></p>
                 </div>
-                ${filasComunes}
-              `;
-            } else if (inactiva) {
-              // ENTRADA INACTIVA (no habilitada aun): NO es lo mismo que usada.
-              resultadoCard.className = 'resultado-card error';
-              resultadoTitulo.textContent = '⚠ ENTRADA INACTIVA';
-              resultadoContenido.innerHTML = `
-                <div style="background:#f5f5f5; border:2px solid #9e9e9e; border-radius:8px; padding:16px; margin-bottom:14px; text-align:center;">
-                  <p style="font-size:1.05rem; font-weight:700; color:#616161; margin:0;">⚪ Entrada inactiva</p>
-                  <p style="font-size:0.85rem; color:#666; margin:6px 0 0 0;">Esta entrada no está habilitada. Debe activarse antes de validar.</p>
-                </div>
-                ${filasComunes}
-              `;
-            } else if (anulada) {
-              resultadoCard.className = 'resultado-card error';
-              resultadoTitulo.textContent = '🚫 ENTRADA ANULADA';
-              resultadoContenido.innerHTML = `
-                <div style="background:#fff3e0; border:2px solid #e65100; border-radius:8px; padding:16px; margin-bottom:14px; text-align:center;">
-                  <p style="font-size:1.05rem; font-weight:700; color:#e65100; margin:0;">Esta entrada fue anulada.</p>
-                </div>
-                ${filasComunes}
-              `;
-            } else if (!info.existe) {
-              // La entrada no existe en la BD (QR con folio no registrado).
-              resultadoCard.className = 'resultado-card error';
-              resultadoTitulo.textContent = '⚠ ENTRADA NO REGISTRADA';
-              resultadoContenido.innerHTML = `
-                <div style="background:#fef2f2; border:2px solid #e74c3c; border-radius:8px; padding:16px; text-align:center;">
-                  <p style="font-size:1.05rem; font-weight:700; color:#e74c3c; margin:0;">El folio ${serial} no está registrado.</p>
-                </div>
+                ${listadoBloquesHtml}
+                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
               `;
             } else {
               // TICKET VÁLIDO (activa) — mostrar datos y botón VALIDAR
               resultadoCard.className = 'resultado-card';
               resultadoTitulo.textContent = '✅ Entrada válida';
               resultadoContenido.innerHTML = `
-                ${filasComunes}
+                ${listadoBloquesHtml}
+                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
+                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
                 <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
                 <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
                   🎫 VALIDAR ENTRADA

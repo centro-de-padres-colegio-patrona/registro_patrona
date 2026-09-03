@@ -2592,7 +2592,7 @@ router.delete('/entradas', apiKeyAuth, async (req, res) => {
   }
 });
 
-async function enviarEntradasAlEmail(email_destinatario, asuntoCorreo, mensajeCorreo, tickets, save_file, tipo_attachment = 'png') {
+async function enviarEntradasAlCorreo(email_destinatario, asuntoCorreo, mensajeCorreo, tickets, save_file, tipo_attachment = 'png') {
   const tag = '';
 
   try {
@@ -2683,9 +2683,20 @@ async function enviarEntradasAlEmail(email_destinatario, asuntoCorreo, mensajeCo
       // para que el mantenedor de Apoderados refleje el estado correcto.
       // Se busca por email de forma case-insensitive (mismo criterio que /api/reenviar_entradas).
       try {
+        const registroHistorial = {
+          accion: 'envio_entradas',
+          detalles: `Entradas enviadas exitosamente a ${email_destinatario}`,
+          id_evento: tickets[0].id_evento,
+          id_organizacion: tickets[0].id_organizacion,
+          folios: tickets.map(ticket => ticket.folio),
+          // Puedes adjuntar datos adicionales según tu caso de uso:
+          // folios: arrayDeFolios, 
+          // enviado_por: sessionEmail 
+        };
+
         const updateResult = await db_support.usersDB.updateOne(
           { email: email_destinatario },
-          { $set: { entradas_enviadas: true, fecha_envio_entradas: new Date() } }
+          { $push: { historial: registroHistorial } }
         );
         if (updateResult.matchedCount === 0) {
           console.log(`${tag} Envio OK pero no se encontro usuario con email ${email_destinatario} para marcar entradas_enviadas`);
@@ -2703,7 +2714,7 @@ async function enviarEntradasAlEmail(email_destinatario, asuntoCorreo, mensajeCo
     console.log(`${tag} Error: `, err);
     res.status(500).json({message: 'Unexpected error', err});
   }
-});
+};
 
 
 
@@ -3247,6 +3258,19 @@ async function obtenerEntradasFamilia(id_organizacion, id_evento, estudiante) {
   return null;
 }
 
+async function obtenerCorreoRepresentanteFamilia(estudiante) {
+  const tag = '[obtenerCorreoRepresentanteFamilia]';
+  try {
+    const info = await db_support.hermanosMapDB.findOne({ id: estudiante });
+    const lista_correos = info ? info.map(item => item.correo_representante_familia) : null;
+    
+    return info ? info.correo_representante_familia : null;
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    return null;
+  }
+}
+
 async function enviarEntradasHuilen(id_organizacion, id_evento, estudiantes) {
   const tag = '[enviarEntradasHuilen]';
 
@@ -3262,6 +3286,13 @@ async function enviarEntradasHuilen(id_organizacion, id_evento, estudiantes) {
 
         const correoTipo = await db_support.correosTipoDB.findOne({ id_organizacion, id_evento });
         const { asuntoCorreo, mensajeCorreo, tipo_attachment } = correoTipo;
+        console.log(`${tag} Enviando entradas al correo del estudiante ${estudiante}`);
+        const correo_representante_familia = await obtenerCorreoRepresentanteFamilia(estudiante);
+        if (correo_representante_familia) {
+          await enviarEntradasAlCorreo(correo_representante_familia, asuntoCorreo, mensajeCorreo, entradas, true, 'pdf');
+        } else {
+          console.warn(`${tag} No se pudo obtener el correo del representante de la familia para el estudiante ${estudiante}`);
+        }
       }
     }
     return entradasPorFamilia;

@@ -2332,7 +2332,51 @@ app.get('/api/buscar_apoderados', async (req, res) => {
 
     // Retornar solo los que tienen padres registrados
     const apoderados = resultados.filter(u => u.padres && u.padres.length > 0);
-    res.json(apoderados);
+
+    // Deduplicar por email: la colección users puede tener documentos
+    // duplicados con el mismo correo (no hay índice único por email). Para la
+    // vista de Apoderados se muestra solo el registro más reciente por correo.
+    // "Más reciente" se determina por fechaRegistro y, en su defecto/empate,
+    // por el timestamp embebido en el _id (ObjectId).
+    const tiempoDoc = (u) => {
+      const fReg = u.fechaRegistro ? new Date(u.fechaRegistro).getTime() : 0;
+      let fId = 0;
+      try {
+        if (u._id && typeof u._id.getTimestamp === 'function') {
+          fId = u._id.getTimestamp().getTime();
+        }
+      } catch (e) { /* ignorar _id sin timestamp */ }
+      return Math.max(fReg, fId);
+    };
+
+    // La familia se identifica por los RUT de los hijos (únicos por estudiante),
+    // no por el email de la cuenta: una misma familia puede registrarse con dos
+    // cuentas de Google distintas (p. ej. padre y madre), generando documentos
+    // con emails diferentes pero los mismos hijos. Se agrupa por el conjunto de
+    // RUT de hijos y se conserva el documento más reciente. Si un documento no
+    // tiene hijos con RUT, se usa el email como respaldo y, en su defecto, no
+    // se agrupa (se conserva).
+    const claveFamilia = (u) => {
+      const ruts = (u.hijos || [])
+        .map(h => (h.rut || '').replace(/[.\s]/g, '').toLowerCase().trim())
+        .filter(Boolean)
+        .sort();
+      if (ruts.length > 0) return 'hijos:' + ruts.join('|');
+      const email = (u.email || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      if (email) return 'email:' + email;
+      return '__unico__' + u._id;
+    };
+
+    const porFamilia = new Map();
+    for (const u of apoderados) {
+      const key = claveFamilia(u);
+      const existente = porFamilia.get(key);
+      if (!existente || tiempoDoc(u) >= tiempoDoc(existente)) {
+        porFamilia.set(key, u);
+      }
+    }
+
+    res.json(Array.from(porFamilia.values()));
   } catch (error) {
     console.error('[/api/buscar_apoderados] Error:', error);
     res.status(500).json({ error: 'Error al buscar apoderados' });

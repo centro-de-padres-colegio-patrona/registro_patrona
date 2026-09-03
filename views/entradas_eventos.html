@@ -174,6 +174,7 @@
       box-shadow: none;
     }
     .mensaje-respuesta {
+      margin-top: 12px;
       margin-bottom: 12px;
       font-size: 0.95rem;
       font-weight: bold;
@@ -225,17 +226,17 @@
       <p>Entradas asociadas a tu grupo familiar para esta actividad.</p>
     </div>
 
+    <!-- Boton para enviar las entradas al correo, ubicado arriba del listado -->
+    <div class="acciones-footer">
+      <button id="btn-enviar-correo" class="btn-enviar-correo" onclick="enviarEntradasCorreo()" disabled>
+        Cargando entradas...
+      </button>
+      <div id="mensaje-envio" class="mensaje-respuesta"></div>
+    </div>
+
     <div id="contenedor-entradas" class="mensaje-info">
       Cargando entradas...
     </div>
-  </div>
-
-  <!-- Seccion del boton al final de la pagina -->
-  <div class="acciones-footer">
-    <div id="mensaje-envio" class="mensaje-respuesta"></div>
-    <button id="btn-enviar-correo" class="btn-enviar-correo" onclick="enviarEntradasCorreo()" disabled>
-      Cargando entradas...
-    </button>
   </div>
 
   <div id="branchBanner" class="branch-banner"></div>
@@ -973,7 +974,7 @@
 
         if (response.ok) {
           mensajeDiv.className = 'mensaje-respuesta mensaje-exito';
-          mensajeDiv.textContent = 'Entradas enviadas con exito a tu correo!';
+          mensajeDiv.textContent = 'Entradas enviadas con éxito a tu correo!';
         } else {
           mensajeDiv.className = 'mensaje-respuesta mensaje-error';
           mensajeDiv.textContent = data.error || 'Ocurrio un error al intentar enviar el correo.';
@@ -1013,7 +1014,12 @@
       return false;
     }
 
-    window.addEventListener('beforeunload', () => {
+    // Limpieza de la bandera anti-duplicados. Se usa 'pagehide' ademas de
+    // 'beforeunload' porque en navegadores moviles 'beforeunload' no se dispara
+    // de forma fiable al reasignar el src de un iframe; si la bandera queda
+    // "pegada", la proxima visita en movil abortaria la inicializacion y no se
+    // activarian las entradas inactivas.
+    function limpiarBanderaPagina() {
       try {
         if (window.top) {
           delete window.top[id_pagina];
@@ -1021,7 +1027,9 @@
       } catch (e) {
         delete window.top[id_pagina];
       }
-    });
+    }
+    window.addEventListener('beforeunload', limpiarBanderaPagina);
+    window.addEventListener('pagehide', limpiarBanderaPagina);
 
     async function getFeatureOptions(feature) {
       try {

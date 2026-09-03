@@ -474,17 +474,61 @@
       fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
       .then ( res => res.json() )
       .then ( async config_json => {
+        const apiKey = config_json.apiKey;
+
+        // Obtener la composicion de la familia (integrantes e invitados) a
+        // partir del folio escaneado. Devuelve todos los tickets de la familia.
+        let integrantesFamilia = [];  // estudiantes + apoderados (nombres)
+        let cantidadInvitados = 0;    // total de entradas tipo invitado
+        try {
+          const respFamilia = await fetch(`/api/entrada/familia?id_organizacion=cpa_patrona&id_evento=fiesta_chilena_2026&folio=${encodeURIComponent(folio)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+          });
+          if (respFamilia.ok) {
+            const ticketsFamilia = await respFamilia.json();
+            if (Array.isArray(ticketsFamilia)) {
+              integrantesFamilia = ticketsFamilia
+                .filter(t => t.tipo === 'estudiante' || t.tipo === 'apoderado')
+                .map(t => t.nombre_completo)
+                .filter(Boolean);
+              cantidadInvitados = ticketsFamilia.filter(t => t.tipo === 'invitado').length;
+            }
+          }
+        } catch (e) {
+          console.warn('No se pudo obtener la composicion de la familia:', e);
+        }
+
+        const listaIntegrantes = integrantesFamilia.length
+          ? integrantesFamilia.map(n => `<div>${n}</div>`).join('')
+          : (nombre || '—');
+
+        // Filas comunes de presentacion: se oculta "Tipo"; "Nombre" pasa a
+        // "Integrante de la familia" (lista estudiantes y apoderados) y
+        // "N° Entrada" pasa a "Invitados (N)".
+        const filasComunes = `
+                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
+                <div class="dato-row"><span class="dato-label">Integrante de la familia</span><span class="dato-value">${listaIntegrantes}</span></div>
+                <div class="dato-row"><span class="dato-label">Invitados</span><span class="dato-value">${cantidadInvitados}</span></div>
+        `;
+
         fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}`,{
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': config_json.apiKey
+            'x-api-key': apiKey
           }
         })
           .then(res => res.json())
           .then(info => {
-            if (info.usado || info.estado != 'activa') {
-              // TICKET YA FUE USADO
+            // Determinar el estado real de la entrada.
+            const estadoBD = (info.estado || '').toLowerCase();
+            const yaUsada = info.usado === true || estadoBD === 'usada';
+            const inactiva = estadoBD === 'inactiva';
+            const anulada = estadoBD === 'anulada';
+
+            if (yaUsada) {
+              // TICKET YA FUE USADO / ESCANEADO
               resultadoCard.className = 'resultado-card error';
               resultadoTitulo.textContent = '⚠ ENTRADA YA UTILIZADA';
               resultadoContenido.innerHTML = `
@@ -493,25 +537,44 @@
                   <p style="font-size:0.85rem; color:#666; margin:0;">Validado por: <strong>${info.validado_por || '—'}</strong></p>
                   <p style="font-size:0.85rem; color:#666; margin:4px 0 0 0;">Fecha: <strong>${info.fecha_uso ? new Date(info.fecha_uso).toLocaleString('es-CL') : '—'}</strong></p>
                 </div>
-                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
-                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
-                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
+                ${filasComunes}
+              `;
+            } else if (inactiva) {
+              // ENTRADA INACTIVA (no habilitada aun): NO es lo mismo que usada.
+              resultadoCard.className = 'resultado-card error';
+              resultadoTitulo.textContent = '⚠ ENTRADA INACTIVA';
+              resultadoContenido.innerHTML = `
+                <div style="background:#f5f5f5; border:2px solid #9e9e9e; border-radius:8px; padding:16px; margin-bottom:14px; text-align:center;">
+                  <p style="font-size:1.05rem; font-weight:700; color:#616161; margin:0;">⚪ Entrada inactiva</p>
+                  <p style="font-size:0.85rem; color:#666; margin:6px 0 0 0;">Esta entrada no está habilitada. Debe activarse antes de validar.</p>
+                </div>
+                ${filasComunes}
+              `;
+            } else if (anulada) {
+              resultadoCard.className = 'resultado-card error';
+              resultadoTitulo.textContent = '🚫 ENTRADA ANULADA';
+              resultadoContenido.innerHTML = `
+                <div style="background:#fff3e0; border:2px solid #e65100; border-radius:8px; padding:16px; margin-bottom:14px; text-align:center;">
+                  <p style="font-size:1.05rem; font-weight:700; color:#e65100; margin:0;">Esta entrada fue anulada.</p>
+                </div>
+                ${filasComunes}
+              `;
+            } else if (!info.existe) {
+              // La entrada no existe en la BD (QR con folio no registrado).
+              resultadoCard.className = 'resultado-card error';
+              resultadoTitulo.textContent = '⚠ ENTRADA NO REGISTRADA';
+              resultadoContenido.innerHTML = `
+                <div style="background:#fef2f2; border:2px solid #e74c3c; border-radius:8px; padding:16px; text-align:center;">
+                  <p style="font-size:1.05rem; font-weight:700; color:#e74c3c; margin:0;">El folio ${serial} no está registrado.</p>
+                </div>
               `;
             } else {
-              // TICKET VÁLIDO — mostrar datos y botón VALIDAR QR
+              // TICKET VÁLIDO (activa) — mostrar datos y botón VALIDAR
               resultadoCard.className = 'resultado-card';
               resultadoTitulo.textContent = '✅ Entrada válida';
               resultadoContenido.innerHTML = `
-                <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
-                <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-                <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+                ${filasComunes}
                 <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
-                <div class="dato-row"><span class="dato-label">Bloque</span><span class="dato-value">${bloques}</span></div>
-                <div class="dato-row"><span class="dato-label">Curso</span><span class="dato-value">${curso}</span></div>
-                <div class="dato-row"><span class="dato-label">N° Listado</span><span class="dato-value">${numListado}</span></div>
-                <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
-                <div class="dato-row"><span class="dato-label">Total Entradas</span><span class="dato-value">${total}</span></div>
                 <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
                   🎫 VALIDAR ENTRADA
                 </button>
@@ -524,11 +587,8 @@
             resultadoCard.className = 'resultado-card';
             resultadoTitulo.textContent = '✅ Entrada (sin verificar en BD)';
             resultadoContenido.innerHTML = `
-              <div class="dato-row"><span class="dato-label">Tipo</span><span class="dato-value">${tipo}</span></div>
-              <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-              <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-value">${nombre}</span></div>
+              ${filasComunes}
               <div class="dato-row"><span class="dato-label">Jornada</span><span class="dato-value">${jornadaDisplay}</span></div>
-              <div class="dato-row"><span class="dato-label">N° Entrada</span><span class="dato-value">${serial}</span></div>
               <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
                 🎫 VALIDAR ENTRADA
               </button>

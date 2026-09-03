@@ -293,6 +293,7 @@
         <th>Curso</th>
         <th>Estado</th>
         <th>Acción</th>
+        <th>Validador</th>
       </tr>
     </thead>
     <tbody id="tabla-body"></tbody>
@@ -316,6 +317,7 @@
         <th>Curso</th>
         <th>Estado</th>
         <th>Acción</th>
+        <th>Validador</th>
       </tr>
     </thead>
     <tbody id="tabla-all-body"></tbody>
@@ -481,13 +483,14 @@
         <td>${t.tipo || '—'}</td>
         <td>${jornadaDisplay}</td>
         <td>${t.curso || '—'}</td>
-        <td><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
+        <td id="estado-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
         <td id="accion-${t.folio}">
           ${esUsado
-            ? `<span class="btn-validado">✓ Validado</span>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
             : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
           }
         </td>
+        <td id="validador-${t.folio}">${t.validado_por_nombre || '—'}</td>
       `;
       tbody.appendChild(row);
     });
@@ -513,10 +516,11 @@
         <div class="card-row"><span class="card-label">Tipo</span><span class="card-value">${t.tipo || '—'}</span></div>
         <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
         <div class="card-row"><span class="card-label">Curso</span><span class="card-value">${t.curso || '—'}</span></div>
-        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-estado-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-validador-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
         <div class="card-actions" id="card-accion-${t.folio}">
           ${esUsado
-            ? `<span class="btn-validado">✓ Validado</span>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
             : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
           }
         </div>
@@ -525,8 +529,26 @@
     });
   }
 
+  // Ajusta en linea los contadores "Entradas Validadas" y "Entradas por
+  // Validar" sumando 'delta' a validadas (y restandolo a por validar).
+  // delta positivo = se validaron; delta negativo = se revirtieron.
+  function ajustarContadores(delta) {
+    const elVal = document.getElementById('contador-validadas');
+    const elPend = document.getElementById('contador-porvalidar');
+    if (elVal) {
+      const nodo = elVal.querySelector('div:last-child');
+      const actual = parseInt((nodo.textContent || '0').replace(/\D/g, '')) || 0;
+      nodo.textContent = Math.max(0, actual + delta);
+    }
+    if (elPend) {
+      const nodo = elPend.querySelector('div:last-child');
+      const actual = parseInt((nodo.textContent || '0').replace(/\D/g, '')) || 0;
+      nodo.textContent = Math.max(0, actual - delta);
+    }
+  }
+
   async function validarDesdeTabla(folio, btn) {
-    if (!confirm(`¿Confirma validar la entrada N° ${String(folio).padStart(4, '0')}?`)) return;
+    if (!confirm(`¿Confirma validar la entrada N° ${String(folio).padStart(4, '0')} y de su familia?`)) return;
 
     btn.disabled = true;
     btn.textContent = '...';
@@ -547,13 +569,68 @@
         const data = await res.json();
 
         if (res.ok) {
-          // Actualizar en tabla desktop
-          const tdAccion = document.getElementById(`accion-${folio}`);
-          if (tdAccion) tdAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
+          const nombreValidador = data.validado_por_nombre || '—';
+          // Al validar una entrada se validan todas las de la familia. El
+          // backend devuelve los folios afectados; se actualizan todas sus filas.
+          const foliosAfectados = Array.isArray(data.folios_validados) && data.folios_validados.length
+            ? data.folios_validados
+            : [parseInt(folio)];
 
-          // Actualizar en card mobile
-          const cardAccion = document.getElementById(`card-accion-${folio}`);
-          if (cardAccion) cardAccion.innerHTML = '<span class="btn-validado">✓ Validado</span>';
+          // Marca el badge de Estado como USADO en la celda indicada por id.
+          const marcarEstadoUsado = (id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.classList && el.classList.contains('badge-estado')) {
+              // Card: el propio elemento es el badge
+              el.classList.remove('badge-pendiente');
+              el.classList.add('badge-usado');
+              el.textContent = 'USADO';
+            } else {
+              // Tabla: el badge esta dentro de la celda (td)
+              el.innerHTML = '<span class="badge-estado badge-usado">USADO</span>';
+            }
+          };
+
+          foliosAfectados.forEach(f => {
+            // Tabla desktop (resultados de busqueda). El boton queda reversible.
+            const tdAccion = document.getElementById(`accion-${f}`);
+            if (tdAccion) tdAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
+            const tdValidador = document.getElementById(`validador-${f}`);
+            if (tdValidador) tdValidador.textContent = nombreValidador;
+            marcarEstadoUsado(`estado-${f}`);
+
+            // Card mobile (resultados de busqueda)
+            const cardAccion = document.getElementById(`card-accion-${f}`);
+            if (cardAccion) cardAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
+            const cardValidador = document.getElementById(`card-validador-${f}`);
+            if (cardValidador) cardValidador.textContent = nombreValidador;
+            marcarEstadoUsado(`card-estado-${f}`);
+
+            // Tabla desktop (listado completo)
+            const tdAllAccion = document.getElementById(`all-accion-${f}`);
+            if (tdAllAccion) tdAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
+            const tdAllValidador = document.getElementById(`all-validador-${f}`);
+            if (tdAllValidador) tdAllValidador.textContent = nombreValidador;
+            marcarEstadoUsado(`all-estado-${f}`);
+
+            // Card mobile (listado completo)
+            const cardAllAccion = document.getElementById(`card-all-accion-${f}`);
+            if (cardAllAccion) cardAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
+            const cardAllValidador = document.getElementById(`card-all-validador-${f}`);
+            if (cardAllValidador) cardAllValidador.textContent = nombreValidador;
+            marcarEstadoUsado(`card-all-estado-${f}`);
+          });
+
+          // Actualizar contadores en linea (sin recargar el listado).
+          ajustarContadores(foliosAfectados.length);
+
+          if (data.entradas_familia_validadas > 0) {
+            const estadoMsg = document.getElementById('estado-msg');
+            if (estadoMsg) {
+              estadoMsg.textContent = `Se validaron ${data.entradas_familia_validadas} entrada(s) adicional(es) de la familia ${data.familia || ''}.`;
+              estadoMsg.style.color = '#2e7d32';
+            }
+          }
         } else if (res.status === 409) {
           btn.textContent = 'YA USADO';
           btn.disabled = true;
@@ -626,13 +703,14 @@
         <td>${t.tipo || '—'}</td>
         <td>${jornadaDisplay}</td>
         <td>${t.curso || '—'}</td>
-        <td><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
+        <td id="all-estado-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
         <td id="all-accion-${t.folio}">
           ${esUsado
             ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
             : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
           }
         </td>
+        <td id="all-validador-${t.folio}">${t.validado_por_nombre || '—'}</td>
       `;
       tbody.appendChild(row);
     });
@@ -655,7 +733,8 @@
         <div class="card-row"><span class="card-label">Familia</span><span class="card-value">${t.familia || '—'}</span></div>
         <div class="card-row"><span class="card-label">Tipo</span><span class="card-value">${t.tipo || '—'}</span></div>
         <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
-        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-all-estado-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-all-validador-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
         <div class="card-actions" id="card-all-accion-${t.folio}">
           ${esUsado
             ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
@@ -752,8 +831,51 @@
       const data = await res.json();
 
       if (res.ok) {
-        // Recargar la página actual para actualizar contadores y estado
-        cargarTodasEntradas(paginaActual);
+        // Marca el badge de Estado como PENDIENTE en la celda indicada por id.
+        const marcarEstadoPendiente = (id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (el.classList && el.classList.contains('badge-estado')) {
+            el.classList.remove('badge-usado');
+            el.classList.add('badge-pendiente');
+            el.textContent = 'PENDIENTE';
+          } else {
+            el.innerHTML = '<span class="badge-estado badge-pendiente">PENDIENTE</span>';
+          }
+        };
+
+        // Al revertir una entrada se revierte toda la familia. El backend
+        // devuelve los folios afectados; se actualizan todas sus filas.
+        const foliosAfectados = Array.isArray(data.folios_revertidos) && data.folios_revertidos.length
+          ? data.folios_revertidos
+          : [parseInt(folio)];
+
+        foliosAfectados.forEach(f => {
+          // Vista de BUSQUEDA (no se recarga sola): boton vuelve a VALIDAR,
+          // se limpia Validador y el estado vuelve a PENDIENTE.
+          const tdAccion = document.getElementById(`accion-${f}`);
+          if (tdAccion) tdAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${f}, this)">VALIDAR</button>`;
+          const tdValidador = document.getElementById(`validador-${f}`);
+          if (tdValidador) tdValidador.textContent = '—';
+          marcarEstadoPendiente(`estado-${f}`);
+
+          const cardAccion = document.getElementById(`card-accion-${f}`);
+          if (cardAccion) cardAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${f}, this)">VALIDAR</button>`;
+          const cardValidador = document.getElementById(`card-validador-${f}`);
+          if (cardValidador) cardValidador.textContent = '—';
+          marcarEstadoPendiente(`card-estado-${f}`);
+        });
+
+        // Actualizar contadores en linea (sin recargar el listado).
+        ajustarContadores(-foliosAfectados.length);
+
+        if (data.entradas_familia_revertidas > 0) {
+          const estadoMsg = document.getElementById('estado-msg');
+          if (estadoMsg) {
+            estadoMsg.textContent = `Se revirtieron ${data.entradas_familia_revertidas} entrada(s) adicional(es) de la familia ${data.familia || ''}.`;
+            estadoMsg.style.color = '#c0392b';
+          }
+        }
       } else {
         alert(`Error: ${data.error}`);
         btn.disabled = false;

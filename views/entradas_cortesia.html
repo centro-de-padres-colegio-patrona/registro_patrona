@@ -29,7 +29,8 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.08);
       padding: 24px;
       margin-bottom: 20px;
-      max-width: 600px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .card h3 {
@@ -62,8 +63,8 @@
       margin-bottom: 5px;
     }
 
-    .form-field input,
-    .form-field select {
+    .form-field input[type="text"],
+    .form-field input[type="email"] {
       width: 100%;
       padding: 8px 12px;
       border: 1.5px solid #ddd;
@@ -75,11 +76,33 @@
       transition: border-color 0.2s;
     }
 
-    .form-field input:focus,
-    .form-field select:focus {
-      border-color: #4A90E2;
-      background: white;
+    .form-field input:focus { border-color: #4A90E2; background: white; }
+
+    /* Grupo de checkboxes de bloques */
+    .bloques-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
+
+    .bloque-chk {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      background: #fafafa;
+      font-size: 0.9rem;
+      color: #333;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .bloque-chk:hover { border-color: #4A90E2; }
+    .bloque-chk input { width: 16px; height: 16px; cursor: pointer; }
+    .bloque-chk.marcado { border-color: #4A90E2; background: #e8f4fd; font-weight: 600; }
 
     .btn-generar {
       width: 100%;
@@ -104,7 +127,6 @@
       padding: 12px 14px;
       border-radius: 8px;
       display: none;
-      max-width: 600px;
     }
 
     .estado.ok { display: block; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
@@ -112,7 +134,6 @@
     .estado.info { display: block; background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
 
     .aviso-acceso {
-      max-width: 600px;
       background: #fff3cd;
       color: #856404;
       border: 1px solid #ffeeba;
@@ -122,15 +143,58 @@
       display: none;
     }
 
+    /* Tabla de entradas de cortesía enviadas */
+    #card-tabla { display: none; }
+
+    .tabla-cortesia {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .tabla-cortesia th {
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 12px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tabla-cortesia td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      color: #333;
+    }
+
+    .tabla-cortesia tr:hover td { background: #f9fbfe; }
+
+    .btn-eliminar {
+      padding: 5px 12px;
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-eliminar:hover:not(:disabled) { background: #c0392b; }
+    .btn-eliminar:disabled { background: #95a5a6; cursor: not-allowed; }
+
     @media screen and (max-width: 768px) {
       body { padding: 12px; }
       .page-title { font-size: 1.05rem; }
-      .card { padding: 16px; max-width: 100%; }
+      .card { padding: 16px; }
       .form-row { flex-direction: column; gap: 0; }
       .form-field { min-width: 100%; }
-      .form-field input,
-      .form-field select { font-size: 1rem; padding: 10px 12px; }
+      .form-field input { font-size: 1rem; padding: 10px 12px; }
       .btn-generar { padding: 14px; font-size: 1rem; }
+      .tabla-cortesia { font-size: 0.82rem; }
+      .tabla-cortesia th, .tabla-cortesia td { padding: 8px 6px; }
     }
   </style>
 </head>
@@ -154,20 +218,18 @@
 
   <div class="form-row">
     <div class="form-field">
-      <label>Jornada</label>
-      <select id="jornada">
-        <option value="" disabled selected>Seleccione jornada</option>
-        <option value="manana">AM</option>
-        <option value="tarde">PM</option>
-      </select>
-    </div>
-    <div class="form-field">
-      <label>Curso</label>
-      <input type="text" id="curso" placeholder="Ej: 3° Básico A">
-    </div>
-    <div class="form-field">
-      <label>Bloque</label>
-      <input type="text" id="bloques" placeholder="Ej: Amarillo">
+      <label>Bloques</label>
+      <div class="bloques-group" id="bloques-group">
+        <label class="bloque-chk"><input type="checkbox" value="1"> 1</label>
+        <label class="bloque-chk"><input type="checkbox" value="2"> 2</label>
+        <label class="bloque-chk"><input type="checkbox" value="3"> 3</label>
+        <label class="bloque-chk"><input type="checkbox" value="4"> 4</label>
+        <label class="bloque-chk"><input type="checkbox" value="5"> 5</label>
+        <label class="bloque-chk"><input type="checkbox" value="6"> 6</label>
+        <label class="bloque-chk"><input type="checkbox" value="7"> 7</label>
+        <label class="bloque-chk"><input type="checkbox" value="8"> 8</label>
+        <label class="bloque-chk"><input type="checkbox" value="Huilen"> Huilen</label>
+      </div>
     </div>
   </div>
 
@@ -181,9 +243,29 @@
   <button class="btn-generar" id="btn-crear" onclick="crearCortesia()">
     Crear y Enviar Entrada
   </button>
+
+  <p class="estado" id="estado"></p>
 </div>
 
-<p class="estado" id="estado"></p>
+<!-- Tabla con las entradas de cortesía enviadas correctamente -->
+<div class="card" id="card-tabla">
+  <h3>Entradas de cortesía enviadas</h3>
+  <div style="overflow-x:auto;">
+    <table class="tabla-cortesia">
+      <thead>
+        <tr>
+          <th>N°</th>
+          <th>Nombre</th>
+          <th>Bloques</th>
+          <th>Correo</th>
+          <th>Enviado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-cortesia-body"></tbody>
+    </table>
+  </div>
+</div>
 
 <script>
   const ID_ORGANIZACION = 'cpa_patrona';
@@ -191,15 +273,18 @@
 
   let userEmail = null;
 
+  // Resaltar visualmente los checkboxes marcados
+  document.getElementById('bloques-group').addEventListener('change', (e) => {
+    const label = e.target.closest('.bloque-chk');
+    if (label) label.classList.toggle('marcado', e.target.checked);
+  });
+
   async function getUserEmail() {
     try {
-      // 1. Intentar obtener de los parámetros de la URL del panel (window.parent)
       const urlParams = new URLSearchParams(window.parent.location.search);
       let email = urlParams.get('user_email');
       if (email && email.trim() !== '') return email;
-    } catch (e) {
-      // Puede fallar por cross-origin; se continúa con las otras estrategias
-    }
+    } catch (e) { /* cross-origin: continuar */ }
 
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -225,6 +310,36 @@
     if (!userEmail) {
       document.getElementById('card-form').style.display = 'none';
       document.getElementById('aviso-acceso').style.display = 'block';
+      return;
+    }
+    // Cargar el historial de entradas de cortesía ya enviadas.
+    await cargarHistorial();
+  }
+
+  // Consulta al backend las entradas de cortesía existentes y llena la tabla.
+  async function cargarHistorial() {
+    try {
+      const configRes = await fetch(`/api/config?email=${encodeURIComponent(userEmail)}`);
+      if (!configRes.ok) return;
+      const config = await configRes.json();
+
+      const res = await fetch(`/api/entrada/cortesia/listar?id_organizacion=${encodeURIComponent(ID_ORGANIZACION)}&id_evento=${encodeURIComponent(ID_EVENTO)}&user_email=${encodeURIComponent(userEmail)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const entradas = (data && data.entradas) || [];
+      if (entradas.length > 0) {
+        // El backend las devuelve de mas reciente a mas antigua; se agregan en
+        // orden para que la mas reciente quede arriba.
+        const tbody = document.getElementById('tabla-cortesia-body');
+        tbody.innerHTML = '';
+        entradas.forEach(e => agregarFilaTabla(e, false));
+        document.getElementById('card-tabla').style.display = 'block';
+      }
+    } catch (err) {
+      console.error('Error al cargar el historial de cortesías:', err);
     }
   }
 
@@ -236,17 +351,100 @@
     estado.className = 'estado ' + tipo;
   }
 
+  function getBloquesSeleccionados() {
+    return Array.from(document.querySelectorAll('#bloques-group input:checked'))
+      .map(chk => chk.value);
+  }
+
+  // Agrega una fila a la tabla de entradas enviadas.
+  // alInicio=true (por defecto) coloca la fila arriba (para envios en vivo);
+  // alInicio=false la agrega al final (usado al cargar el historial ya ordenado
+  // de mas reciente a mas antiguo).
+  function agregarFilaTabla(entrada, alInicio = true) {
+    const cardTabla = document.getElementById('card-tabla');
+    const tbody = document.getElementById('tabla-cortesia-body');
+    cardTabla.style.display = 'block';
+
+    const fechaTxt = entrada.fecha_envio
+      ? new Date(entrada.fecha_envio).toLocaleString('es-CL', { timeZone: 'America/Santiago' })
+      : new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' });
+
+    const folioNum = parseInt(entrada.folio) || entrada.folio;
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-folio', folioNum);
+    tr.innerHTML = `
+      <td><strong>${entrada.folio || '—'}</strong></td>
+      <td>${entrada.nombre_completo || '—'}</td>
+      <td>${entrada.bloques || '—'}</td>
+      <td>${entrada.correo || '—'}</td>
+      <td>${fechaTxt}</td>
+      <td><button class="btn-eliminar" onclick="eliminarCortesia(${folioNum}, this)">Eliminar</button></td>
+    `;
+    if (alInicio) tbody.prepend(tr);
+    else tbody.appendChild(tr);
+  }
+
+  // Elimina una entrada de cortesía (por folio) tras confirmar.
+  async function eliminarCortesia(folio, btn) {
+    if (!confirm(`¿Confirma eliminar la entrada de cortesía N° ${String(folio).padStart(4, '0')}?`)) return;
+
+    if (!userEmail) {
+      mostrarEstado('No se pudo determinar su usuario. Vuelva a iniciar sesión.', 'error');
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Eliminando...'; }
+
+    try {
+      const configRes = await fetch(`/api/config?email=${encodeURIComponent(userEmail)}`);
+      if (!configRes.ok) {
+        mostrarEstado('No tiene permisos para realizar esta acción.', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+        return;
+      }
+      const config = await configRes.json();
+
+      const res = await fetch('/api/entrada/cortesia', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
+        body: JSON.stringify({ folio, user_email: userEmail })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        mostrarEstado(data.error || 'No se pudo eliminar la entrada.', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+        return;
+      }
+
+      // Quitar la fila de la tabla.
+      const tbody = document.getElementById('tabla-cortesia-body');
+      const fila = tbody.querySelector(`tr[data-folio="${folio}"]`);
+      if (fila) fila.remove();
+
+      // Si ya no quedan filas, ocultar la tabla.
+      if (!tbody.querySelector('tr')) {
+        document.getElementById('card-tabla').style.display = 'none';
+      }
+
+      mostrarEstado(`Entrada de cortesía N° ${String(folio).padStart(4, '0')} eliminada.`, 'ok');
+    } catch (err) {
+      console.error('Error al eliminar la entrada de cortesía:', err);
+      mostrarEstado('Error inesperado al eliminar la entrada de cortesía.', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+    }
+  }
+
   async function crearCortesia() {
     const btn = document.getElementById('btn-crear');
     const nombre_completo = document.getElementById('nombre_completo').value.trim();
-    const jornada = document.getElementById('jornada').value;
-    const curso = document.getElementById('curso').value.trim();
-    const bloques = document.getElementById('bloques').value.trim();
+    const bloquesSeleccionados = getBloquesSeleccionados();
+    const bloques = bloquesSeleccionados.join(', ');
     const correo = document.getElementById('correo').value.trim();
 
     // Validaciones básicas del formulario
     if (!nombre_completo) { mostrarEstado('Ingrese el nombre completo.', 'error'); return; }
-    if (!jornada) { mostrarEstado('Seleccione la jornada.', 'error'); return; }
+    if (bloquesSeleccionados.length === 0) { mostrarEstado('Seleccione al menos un bloque.', 'error'); return; }
     if (!correo) { mostrarEstado('Ingrese el correo del destinatario.', 'error'); return; }
 
     if (!userEmail) {
@@ -259,7 +457,6 @@
     mostrarEstado('Creando la entrada y enviando el correo...', 'info');
 
     try {
-      // Obtener la API Key asociada al usuario autenticado
       const configRes = await fetch(`/api/config?email=${encodeURIComponent(userEmail)}`);
       if (!configRes.ok) {
         mostrarEstado('No tiene permisos para realizar esta acción.', 'error');
@@ -276,8 +473,6 @@
           id_organizacion: ID_ORGANIZACION,
           id_evento: ID_EVENTO,
           nombre_completo,
-          jornada,
-          curso,
           bloques,
           correo,
           user_email: userEmail
@@ -292,12 +487,20 @@
         mostrarEstado(data.mensaje || 'La entrada se creó, pero el correo no pudo enviarse.', 'error');
       } else {
         mostrarEstado(data.mensaje || 'Entrada de cortesía creada y enviada correctamente.', 'ok');
+
+        // Agregar a la tabla de resultados (solo al enviarse correctamente).
+        if (data.entrada) {
+          agregarFilaTabla(data.entrada);
+        }
+
         // Limpiar el formulario para la próxima entrada
         document.getElementById('nombre_completo').value = '';
-        document.getElementById('jornada').value = '';
-        document.getElementById('curso').value = '';
-        document.getElementById('bloques').value = '';
         document.getElementById('correo').value = '';
+        document.querySelectorAll('#bloques-group input:checked').forEach(chk => {
+          chk.checked = false;
+          const label = chk.closest('.bloque-chk');
+          if (label) label.classList.remove('marcado');
+        });
       }
     } catch (err) {
       console.error('Error al crear entrada de cortesía:', err);

@@ -2592,7 +2592,7 @@ router.delete('/entradas', apiKeyAuth, async (req, res) => {
   }
 });
 
-async function enviarEntradasAlEmail() {
+async function enviarEntradasAlEmail(email_destinatario, asuntoCorreo, mensajeCorreo, tickets, save_file, tipo_attachment = 'png') {
   const tag = '';
 
   try {
@@ -2683,9 +2683,8 @@ async function enviarEntradasAlEmail() {
       // para que el mantenedor de Apoderados refleje el estado correcto.
       // Se busca por email de forma case-insensitive (mismo criterio que /api/reenviar_entradas).
       try {
-        const emailRegex = new RegExp('^' + email_destinatario.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
         const updateResult = await db_support.usersDB.updateOne(
-          { email: { $regex: emailRegex } },
+          { email: email_destinatario },
           { $set: { entradas_enviadas: true, fecha_envio_entradas: new Date() } }
         );
         if (updateResult.matchedCount === 0) {

@@ -1981,6 +1981,28 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
   }
 });
 
+async function activarEntradaParaHuilen(id_organizacion, id_evento) {
+  const tag = '[/api/entradas/huilen/activar]';
+  try {
+    if (!id_organizacion || !id_evento) {
+      console.log(`${tag} Faltan parámetros id_organizacion o id_evento`);
+      return false;
+    }
+    // Lógica para activar la entrada para Huilen
+    console.log(`${tag} Activando entrada para Huilen en el evento ${id_evento}`);
+    // Aquí iría la implementación específica para activar la entrada
+    const result_activar = await db_support.TicketEventoDB.updateMany(
+        { id_evento, estado: { $eq: "inactiva" } },
+        { $set: { estado: "activa" } }
+    );
+    
+    
+    return true;
+  } catch (error) {
+    console.error(`${tag} Error al activar entrada para Huilen:`, error);
+    return false;
+  }
+}
 
 router.get('/entradas/huilen/pre_generar', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entradas/huilen/pre_generar]';

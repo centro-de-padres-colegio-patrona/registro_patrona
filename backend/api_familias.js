@@ -100,12 +100,6 @@ router.post('/familias/merge', apiKeyAuth, async (req, res) => {
             return res.status(400).json({ error: 'El campo "user_email" es obligatorio.' });
         }
 
-        // Solo para pruebas
-        await db_support.TicketEventoDB.updateMany(
-            { estado: { $ne: "activa" } },
-            { $set: { estado: "activa" } }
-        );
-
         //return res.status(200).json({ message: 'Entradas activadas para pruebas.' });
 
         // Verificar que son estudiantes previamente no relacionados

@@ -200,6 +200,34 @@ router.get('/estado_cpa_curso', async (req, res) => {
     const listaAlumnos = cursoDB.listaCurso;
     console.log(`${tag} Total alumnos en ${cursoId}: ${listaAlumnos.length}`);
 
+    // Helper para normalizar nombres (sin acentos, minúsculas, espacios simples)
+    const normalizarNombre = (str) => (str || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ').trim().toLowerCase();
+
+    // Precargar todas las entradas de estudiante para no consultar por cada alumno.
+    // Los bloques asignados al estudiante provienen de su grupo familiar (entradas).
+    let entradasEstudiante = [];
+    try {
+      entradasEstudiante = await db_support.TicketEventoDB.find({ tipo: 'estudiante' }).lean();
+    } catch (e) {
+      console.warn(`${tag} No se pudieron cargar entradas de estudiante:`, e.message);
+    }
+    // Indexar bloques por nombre_completo normalizado (combinando si hay varias entradas)
+    const bloquesPorAlumno = {};
+    for (const ent of (entradasEstudiante || [])) {
+      const clave = normalizarNombre(ent.nombre_completo);
+      if (!clave) continue;
+      let valor = ent.bloques;
+      if (Array.isArray(valor)) valor = valor.join('/');
+      valor = (valor == null ? '' : String(valor)).trim();
+      if (!valor) continue;
+      // Unir los bloques de todas las entradas del alumno sin duplicar
+      const setBloques = bloquesPorAlumno[clave] || new Set();
+      valor.split(/[\/,]/).map(b => b.trim()).filter(Boolean).forEach(b => setBloques.add(b));
+      bloquesPorAlumno[clave] = setBloques;
+    }
+
     // 2. Para cada alumno, verificar si tiene pago CPA y buscar apoderado
     const alumnos = [];
     for (const nombreAlumno of listaAlumnos) {
@@ -207,6 +235,11 @@ router.get('/estado_cpa_curso', async (req, res) => {
       const nombreRegex = new RegExp('^' + nombreAlumno.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
       const pagos = await db_support.pagosDB.find({ id: { $regex: nombreRegex } });
       const cpaPagado = Array.isArray(pagos) && pagos.some(p => p.cuota_cpa === true || p.tipo === 'cuota_cpa');
+
+      // Bloques del estudiante (desde sus entradas / grupo familiar).
+      // Si no tiene entradas registradas, queda vacío y el frontend muestra "----".
+      const setBloques = bloquesPorAlumno[normalizarNombre(nombreAlumno)];
+      const bloques = setBloques ? Array.from(setBloques).join('/') : '';
 
       // Buscar apoderado (desde hermanosMapDB o users)
       let apoderado = '—';
@@ -230,7 +263,8 @@ router.get('/estado_cpa_curso', async (req, res) => {
         seccion: seccion || '',
         apoderado,
         apoderado_email,
-        cpa_pagado: cpaPagado
+        cpa_pagado: cpaPagado,
+        bloques
       });
     }
 

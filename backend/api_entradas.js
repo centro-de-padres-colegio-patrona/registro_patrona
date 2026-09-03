@@ -234,7 +234,9 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
 
     const normalizar = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const busqueda = normalizar(q.trim());
-    const todos = await db_support.TicketEventoDB.find({});
+    // Se excluyen las entradas anuladas (borrado lógico): no deben aparecer en
+    // los resultados de búsqueda.
+    const todos = await db_support.TicketEventoDB.find({ estado: { $ne: 'anulada' } });
 
     const resultados = todos.filter(ticket => {
       const campos = [
@@ -262,10 +264,13 @@ router.get('/entrada/listar', apiKeyAuth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const total = await db_support.TicketEventoDB.countDocuments({});
-    const validadas = await db_support.TicketEventoDB.countDocuments({ usado: true });
+    // Se excluyen las entradas anuladas (borrado lógico) del listado y de los
+    // conteos, para que no se muestren ni se cuenten como vigentes.
+    const filtroVigentes = { estado: { $ne: 'anulada' } };
+    const total = await db_support.TicketEventoDB.countDocuments(filtroVigentes);
+    const validadas = await db_support.TicketEventoDB.countDocuments({ ...filtroVigentes, usado: true });
     const porValidar = total - validadas;
-    const entradas = await db_support.TicketEventoDB.find({})
+    const entradas = await db_support.TicketEventoDB.find(filtroVigentes)
       .sort({ folio: 1, familia: 1, nombre_completo: 1 })
       .skip(skip)
       .limit(limit)
@@ -297,12 +302,25 @@ router.get('/entrada/consultar', async (req, res) => {
       if (!ticket) {
         return res.json({ existe: false, mensaje: 'Ticket no registrado en el sistema' });
       }
+      const [ticketConNombre] = await agregarNombreValidador([ticket]);
+      // Contar las entradas de tipo invitado de la misma familia/evento.
+      // Se usa rxFamilia para tolerar diferencias de mayus/minus y espacios en
+      // el campo 'familia' (mismo criterio que /entrada/familia).
+      let cantidad_invitados = 0;
+      try {
+        const filtroInvitados = { familia: rxFamilia(ticket.familia), tipo: 'invitado' };
+        if (ticket.id_organizacion) filtroInvitados.id_organizacion = ticket.id_organizacion;
+        if (ticket.id_evento) filtroInvitados.id_evento = ticket.id_evento;
+        cantidad_invitados = await db_support.TicketEventoDB.countDocuments(filtroInvitados);
+      } catch (e) { /* si falla el conteo, se deja en 0 */ }
       return res.json({
         existe: true,
         usado: ticket.usado || false,
         fecha_uso: ticket.fecha_uso || null,
         validado_por: ticket.validado_por || null,
+        validado_por_nombre: (ticketConNombre && ticketConNombre.validado_por_nombre) || '',
         familia: ticket.familia,
+        cantidad_invitados,
         nombre_completo: ticket.nombre_completo,
         tipo: ticket.tipo,
         jornada: ticket.jornada,
@@ -2713,6 +2731,7 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
       nombre_completo,
       bloques,
       correo,
+      cantidad,
       user_email
     } = req.body;
 
@@ -2732,6 +2751,13 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
       return res.status(400).json({ error: 'Debe seleccionar al menos un bloque' });
     }
 
+    // Cantidad de entradas a crear (por defecto 1). Debe ser un entero >= 1.
+    const cantidadEntradas = parseInt(cantidad, 10);
+    if (cantidad !== undefined && (!Number.isInteger(cantidadEntradas) || cantidadEntradas < 1)) {
+      return res.status(400).json({ error: 'La cantidad de entradas debe ser un número entero mayor o igual a 1' });
+    }
+    const totalEntradas = Number.isInteger(cantidadEntradas) && cantidadEntradas >= 1 ? cantidadEntradas : 1;
+
     // Control de acceso: solo administrador o supervisor
     if (!user_email) {
       return res.status(400).json({ error: 'Falta user_email para validar permisos' });
@@ -2741,77 +2767,96 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
       return res.status(403).json({ error: 'Acceso denegado. Se requiere perfil de Administrador o Supervisor' });
     }
 
-    // El esquema de TicketEvento exige 'familia' (required). Las entradas de
-    // cortesía no tienen familia asociada; se usa un valor temporal para pasar
-    // la validación y luego se reasigna a "Cortesía-<folio>" (familia única por
-    // entrada). Esto evita que la validación por QR (que marca como usadas todas
-    // las entradas de una misma familia) afecte a otras entradas de cortesía.
-    const ticket = await db_support.TicketEventoDB.create({
-      id_organizacion,
-      id_evento,
-      familia: 'Cortesía',
-      nombre_completo: nombre_completo.trim(),
-      tipo: 'cortesia',
-      jornada: jornada || '',
-      curso: curso || '',
-      bloques: bloques || '',
-      num_listado: 0,
-      fecha_generacion: new Date(),
-      usado: false,
-      estado: 'activa',
-      validado_por: null,
-      correo_destinatario: correo.trim(),
-      historial: [{ accion: 'creacion', descripcion: `entrada de cortesía creada por ${user_email}` }]
-    });
-
-    const folio = ticket.folio || '';
-
-    // Reasignar la familia a un valor único por entrada para aislar la
-    // validación familiar de otras entradas de cortesía.
-    const familia = `Cortesía-${String(folio).padStart(4, '0')}`;
-    await db_support.TicketEventoDB.updateOne({ folio }, { $set: { familia } });
-
-    // Obtener la imagen de fondo del ticket configurada para el evento
+    // Obtener la imagen de fondo del ticket configurada para el evento (una vez)
     const eventInfo = await db_support.EventDB.findOne({ id_evento });
     const imagen_ticket_path = eventInfo ? eventInfo.imagen_ticket_path : '';
 
-    const ticketInfo = {
-      url_server,
-      id_organizacion,
-      id_evento,
-      imagen_ticket_path,
-      familia,
-      nombre_completo: nombre_completo.trim(),
-      folio,
-      num_listado: 0,
-      curso: curso || '',
-      jornada: jornada || '',
-      tipo: 'cortesia',
-      bloques: bloques || ''
-    };
-
-    // Generar la imagen del ticket y guardar el qr_str en la entrada (para que
-    // la entrada quede válida en el flujo de validación por QR).
-    const [buffer, qr_str] = await genEntradaCanvas(ticketInfo);
-    if (!buffer) {
-      console.log(`${tag} image buffer null`);
-      return res.status(500).json({ error: 'No se pudo generar la imagen de la entrada' });
-    }
-    await db_support.TicketEventoDB.findOneAndUpdate(
-      { folio, id_evento, nombre_completo: nombre_completo.trim() },
-      { $set: { qr_str } }
-    );
-
-    // Adjuntar la imagen del ticket al correo enviado desde la cuenta del CGPA.
-    const nombreArchivo = `${id_evento.replace(/ /g, '_')}_${String(folio).padStart(4, '0')}_${nombre_completo.trim().replace(/ /g, '_')}.png`;
-    const attachments = [
-      { filename: nombreArchivo, content: buffer, contentType: 'image/png' }
-    ];
-
-    const asuntoCorreo = 'Entrada de Cortesía';
-    const folioSerial = String(folio).padStart(4, '0');
-    const bloquesTexto = String(bloques || '').trim() || '—';
     const nombreTexto = nombre_completo.trim();
+    const bloquesTexto = String(bloques || '').trim() || '—';
+
+    // Crear 'totalEntradas' entradas de cortesía. Cada una es un ticket
+    // independiente (folio y familia únicos) para que la validación por QR de
+    // una no afecte a las demás. Se adjuntan todas en un solo correo.
+    const attachments = [];
+    const entradasCreadas = [];
+
+    for (let i = 0; i < totalEntradas; i++) {
+      // El esquema de TicketEvento exige 'familia' (required). Las entradas de
+      // cortesía no tienen familia asociada; se usa un valor temporal para pasar
+      // la validación y luego se reasigna a "Cortesía-<folio>" (familia única por
+      // entrada). Esto evita que la validación por QR (que marca como usadas todas
+      // las entradas de una misma familia) afecte a otras entradas de cortesía.
+      const ticket = await db_support.TicketEventoDB.create({
+        id_organizacion,
+        id_evento,
+        familia: 'Cortesía',
+        nombre_completo: nombreTexto,
+        tipo: 'cortesia',
+        jornada: jornada || '',
+        curso: curso || '',
+        bloques: bloques || '',
+        num_listado: 0,
+        fecha_generacion: new Date(),
+        usado: false,
+        estado: 'activa',
+        validado_por: null,
+        correo_destinatario: correo.trim(),
+        historial: [{ accion: 'creacion', descripcion: `entrada de cortesía creada por ${user_email}` }]
+      });
+
+      const folio = ticket.folio || '';
+      const folioSerialItem = String(folio).padStart(4, '0');
+
+      // Reasignar la familia a un valor único por entrada para aislar la
+      // validación familiar de otras entradas de cortesía.
+      const familia = `Cortesía-${folioSerialItem}`;
+      await db_support.TicketEventoDB.updateOne({ folio }, { $set: { familia } });
+
+      const ticketInfo = {
+        url_server,
+        id_organizacion,
+        id_evento,
+        imagen_ticket_path,
+        familia,
+        nombre_completo: nombreTexto,
+        folio,
+        num_listado: 0,
+        curso: curso || '',
+        jornada: jornada || '',
+        tipo: 'cortesia',
+        bloques: bloques || ''
+      };
+
+      // Generar la imagen del ticket y guardar el qr_str en la entrada (para que
+      // la entrada quede válida en el flujo de validación por QR).
+      const [buffer, qr_str] = await genEntradaCanvas(ticketInfo);
+      if (!buffer) {
+        console.log(`${tag} image buffer null (folio ${folio})`);
+        return res.status(500).json({ error: 'No se pudo generar la imagen de la entrada' });
+      }
+      await db_support.TicketEventoDB.findOneAndUpdate(
+        { folio, id_evento, nombre_completo: nombreTexto },
+        { $set: { qr_str } }
+      );
+
+      const nombreArchivo = `${id_evento.replace(/ /g, '_')}_${folioSerialItem}_${nombreTexto.replace(/ /g, '_')}.png`;
+      attachments.push({ filename: nombreArchivo, content: buffer, contentType: 'image/png' });
+
+      entradasCreadas.push({
+        folio: folioSerialItem,
+        nombre_completo: nombreTexto,
+        bloques: bloquesTexto,
+        correo: correo.trim(),
+        fecha_envio: new Date().toISOString()
+      });
+    }
+
+    // Datos de la primera entrada (para mensajes y compatibilidad de respuesta).
+    const folioSerial = entradasCreadas[0].folio;
+    const foliosSeriales = entradasCreadas.map(e => e.folio);
+    const asuntoCorreo = totalEntradas > 1
+      ? `Entradas de Cortesía (${totalEntradas})`
+      : 'Entrada de Cortesía';
 
     // Cuerpo del correo en HTML, con un diseño coherente con la página del
     // sistema (tarjeta con encabezado y filas de datos ingresados en pantalla).
@@ -2819,11 +2864,11 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
       <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f1f4f9; padding:24px;">
         <div style="max-width:520px; margin:0 auto; background:#ffffff; border-radius:10px; border-left:5px solid #4A90E2; box-shadow:0 2px 10px rgba(0,0,0,0.08); overflow:hidden;">
           <div style="background:linear-gradient(135deg,#4A90E2,#357abd); padding:20px 24px; color:#ffffff;">
-            <h1 style="margin:0; font-size:1.25rem;">🎫 Entrada de Cortesía</h1>
+            <h1 style="margin:0; font-size:1.25rem;">🎫 ${totalEntradas > 1 ? 'Entradas de Cortesía' : 'Entrada de Cortesía'}</h1>
             <p style="margin:4px 0 0; font-size:0.85rem; opacity:0.9;">Fiesta a la Chilena · Colegio Patrona de Lourdes</p>
           </div>
           <div style="padding:24px;">
-            <p style="font-size:0.95rem; color:#333; margin:0 0 16px;">Estimado(a) <strong>${nombreTexto}</strong>, adjuntamos su entrada de cortesía. Presente el código QR al momento de ingresar al evento.</p>
+            <p style="font-size:0.95rem; color:#333; margin:0 0 16px;">Estimado(a) <strong>${nombreTexto}</strong>, ${totalEntradas > 1 ? `adjuntamos sus ${totalEntradas} entradas de cortesía` : 'adjuntamos su entrada de cortesía'}. Presente el código QR al momento de ingresar al evento.</p>
             <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
               <tr>
                 <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#888; font-weight:600; text-transform:uppercase; font-size:0.75rem;">Nombre</td>
@@ -2834,8 +2879,8 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
                 <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#333; text-align:right; font-weight:600;">${bloquesTexto}</td>
               </tr>
               <tr>
-                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#888; font-weight:600; text-transform:uppercase; font-size:0.75rem;">N° Entrada</td>
-                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#333; text-align:right; font-weight:600;">${folioSerial}</td>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#888; font-weight:600; text-transform:uppercase; font-size:0.75rem;">${totalEntradas > 1 ? 'N° Entradas' : 'N° Entrada'}</td>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#333; text-align:right; font-weight:600;">${foliosSeriales.join(', ')}</td>
               </tr>
             </table>
             <p style="font-size:0.85rem; color:#666; margin:20px 0 0;">Saludos cordiales,<br><strong>Centro General de Padres y Apoderados (CGPA)</strong></p>
@@ -2852,28 +2897,31 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
     });
 
     if (send_email_result.status !== 'ok') {
-      console.log(`${tag} Entrada ${folio} creada pero fallo el envio de correo:`, send_email_result.message);
+      console.log(`${tag} Entradas ${foliosSeriales.join(', ')} creadas pero fallo el envio de correo:`, send_email_result.message);
       return res.status(200).json({
         status: 'partial',
-        folio,
-        mensaje: 'La entrada se creó, pero no se pudo enviar el correo.',
+        folio: folioSerial,
+        folios: foliosSeriales,
+        entradas: entradasCreadas,
+        mensaje: totalEntradas > 1
+          ? 'Las entradas se crearon, pero no se pudo enviar el correo.'
+          : 'La entrada se creó, pero no se pudo enviar el correo.',
         email_error: send_email_result.message
       });
     }
 
-    console.log(`${tag} Entrada de cortesía ${folio} creada y enviada a ${correo}`);
+    console.log(`${tag} ${totalEntradas} entrada(s) de cortesía (${foliosSeriales.join(', ')}) creadas y enviadas a ${correo}`);
     return res.status(200).json({
       status: 'ok',
-      folio,
-      mensaje: `Entrada de cortesía N° ${folioSerial} creada y enviada a ${correo.trim()}`,
-      // Datos de la entrada para mostrar en la tabla de resultados de la página.
-      entrada: {
-        folio: folioSerial,
-        nombre_completo: nombreTexto,
-        bloques: bloquesTexto,
-        correo: correo.trim(),
-        fecha_envio: new Date().toISOString()
-      }
+      folio: folioSerial,
+      folios: foliosSeriales,
+      mensaje: totalEntradas > 1
+        ? `${totalEntradas} entradas de cortesía (N° ${foliosSeriales.join(', ')}) creadas y enviadas a ${correo.trim()}`
+        : `Entrada de cortesía N° ${folioSerial} creada y enviada a ${correo.trim()}`,
+      // Datos de las entradas para mostrar en la tabla de resultados de la página.
+      entradas: entradasCreadas,
+      // Compatibilidad: primera entrada creada.
+      entrada: entradasCreadas[0]
     });
 
   } catch (err) {
@@ -2963,10 +3011,13 @@ router.get('/entrada/cortesia/listar', apiKeyAuth, async (req, res) => {
       return res.status(403).json({ error: 'Acceso denegado. Se requiere perfil de Administrador o Supervisor' });
     }
 
+    // Se excluyen las entradas anuladas (borrado lógico): no deben mostrarse en
+    // el historial de cortesías vigentes.
     const tickets = await db_support.TicketEventoDB.find({
       id_organizacion,
       id_evento,
-      tipo: 'cortesia'
+      tipo: 'cortesia',
+      estado: { $ne: 'anulada' }
     }).sort({ folio: -1 }).lean();
 
     const entradas = (tickets || []).map(t => ({
@@ -3013,9 +3064,18 @@ router.delete('/entrada/cortesia', apiKeyAuth, async (req, res) => {
       return res.status(400).json({ error: 'Solo se pueden eliminar entradas de cortesía' });
     }
 
-    await db_support.TicketEventoDB.deleteOne({ folio: folioNum });
-    console.log(`${tag} Entrada de cortesía ${folioNum} eliminada por ${user_email}`);
-    return res.status(200).json({ status: 'ok', folio: folioNum });
+    // Borrado lógico: en vez de eliminar el registro, se marca el folio como
+    // ANULADO para conservar la trazabilidad. Una entrada anulada no debe poder
+    // validarse por QR.
+    await db_support.TicketEventoDB.updateOne(
+      { folio: folioNum },
+      {
+        $set: { estado: 'anulada', usado: false, fecha_uso: null, validado_por: null },
+        $push: { historial: { accion: 'anulacion', descripcion: `entrada de cortesía anulada por ${user_email}` } }
+      }
+    );
+    console.log(`${tag} Entrada de cortesía ${folioNum} anulada por ${user_email}`);
+    return res.status(200).json({ status: 'ok', folio: folioNum, estado: 'anulada' });
   } catch (err) {
     console.error(`${tag} Error:`, err);
     res.status(500).json({ error: 'Error al eliminar la entrada de cortesía' });

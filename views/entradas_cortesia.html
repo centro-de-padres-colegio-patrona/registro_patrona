@@ -235,6 +235,15 @@
 
   <div class="form-row">
     <div class="form-field">
+      <label>Cantidad de entradas</label>
+      <input type="number" id="cantidad" min="1" step="1" value="1" placeholder="1"
+             inputmode="numeric"
+             oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-field">
       <label>Correo (destinatario)</label>
       <input type="email" id="correo" placeholder="correo@ejemplo.com">
     </div>
@@ -441,10 +450,12 @@
     const bloquesSeleccionados = getBloquesSeleccionados();
     const bloques = bloquesSeleccionados.join(', ');
     const correo = document.getElementById('correo').value.trim();
+    const cantidad = parseInt(document.getElementById('cantidad').value, 10);
 
     // Validaciones básicas del formulario
     if (!nombre_completo) { mostrarEstado('Ingrese el nombre completo.', 'error'); return; }
     if (bloquesSeleccionados.length === 0) { mostrarEstado('Seleccione al menos un bloque.', 'error'); return; }
+    if (!Number.isInteger(cantidad) || cantidad < 1) { mostrarEstado('Ingrese una cantidad de entradas válida (número mayor o igual a 1).', 'error'); return; }
     if (!correo) { mostrarEstado('Ingrese el correo del destinatario.', 'error'); return; }
 
     if (!userEmail) {
@@ -475,6 +486,7 @@
           nombre_completo,
           bloques,
           correo,
+          cantidad,
           user_email: userEmail
         })
       });
@@ -489,13 +501,17 @@
         mostrarEstado(data.mensaje || 'Entrada de cortesía creada y enviada correctamente.', 'ok');
 
         // Agregar a la tabla de resultados (solo al enviarse correctamente).
-        if (data.entrada) {
+        // El backend puede devolver una lista (varias entradas) o una sola.
+        if (Array.isArray(data.entradas)) {
+          data.entradas.forEach(e => agregarFilaTabla(e));
+        } else if (data.entrada) {
           agregarFilaTabla(data.entrada);
         }
 
         // Limpiar el formulario para la próxima entrada
         document.getElementById('nombre_completo').value = '';
         document.getElementById('correo').value = '';
+        document.getElementById('cantidad').value = '1';
         document.querySelectorAll('#bloques-group input:checked').forEach(chk => {
           chk.checked = false;
           const label = chk.closest('.bloque-chk');

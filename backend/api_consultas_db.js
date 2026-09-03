@@ -205,19 +205,26 @@ router.get('/estado_cpa_curso', async (req, res) => {
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, ' ').trim().toLowerCase();
 
-    // Precargar todas las entradas de estudiante para no consultar por cada alumno.
-    // Los bloques asignados al estudiante provienen de su grupo familiar (entradas).
-    let entradasEstudiante = [];
+    // Precargar todas las entradas (vigentes, no anuladas) para no consultar por
+    // cada alumno. Se usan para: (a) los bloques del estudiante y (b) el conteo
+    // de entradas del grupo familiar.
+    let todasEntradas = [];
     try {
-      entradasEstudiante = await db_support.TicketEventoDB.find({ tipo: 'estudiante' }).lean();
+      todasEntradas = await db_support.TicketEventoDB.find({ estado: { $ne: 'anulada' } }).lean();
     } catch (e) {
-      console.warn(`${tag} No se pudieron cargar entradas de estudiante:`, e.message);
+      console.warn(`${tag} No se pudieron cargar entradas:`, e.message);
     }
+
+    const entradasEstudiante = (todasEntradas || []).filter(e => e.tipo === 'estudiante');
+
     // Indexar bloques por nombre_completo normalizado (combinando si hay varias entradas)
+    // y la familia del alumno (para poder contar sus entradas familiares).
     const bloquesPorAlumno = {};
-    for (const ent of (entradasEstudiante || [])) {
+    const familiaPorAlumno = {};
+    for (const ent of entradasEstudiante) {
       const clave = normalizarNombre(ent.nombre_completo);
       if (!clave) continue;
+      if (!familiaPorAlumno[clave] && ent.familia) familiaPorAlumno[clave] = ent.familia;
       let valor = ent.bloques;
       if (Array.isArray(valor)) valor = valor.join('/');
       valor = (valor == null ? '' : String(valor)).trim();
@@ -226,6 +233,17 @@ router.get('/estado_cpa_curso', async (req, res) => {
       const setBloques = bloquesPorAlumno[clave] || new Set();
       valor.split(/[\/,]/).map(b => b.trim()).filter(Boolean).forEach(b => setBloques.add(b));
       bloquesPorAlumno[clave] = setBloques;
+    }
+
+    // Conteo de entradas por familia (todas: estudiante, apoderado, invitado),
+    // usando el nombre de familia normalizado como clave para tolerar
+    // diferencias de mayúsculas/espacios entre entradas del mismo grupo.
+    const conteoEntradasPorFamilia = {};
+    for (const ent of (todasEntradas || [])) {
+      if (!ent.familia) continue;
+      const claveFam = normalizarNombre(ent.familia);
+      if (!claveFam) continue;
+      conteoEntradasPorFamilia[claveFam] = (conteoEntradasPorFamilia[claveFam] || 0) + 1;
     }
 
     // 2. Para cada alumno, verificar si tiene pago CPA y buscar apoderado
@@ -238,8 +256,15 @@ router.get('/estado_cpa_curso', async (req, res) => {
 
       // Bloques del estudiante (desde sus entradas / grupo familiar).
       // Si no tiene entradas registradas, queda vacío y el frontend muestra "----".
-      const setBloques = bloquesPorAlumno[normalizarNombre(nombreAlumno)];
+      const claveAlumno = normalizarNombre(nombreAlumno);
+      const setBloques = bloquesPorAlumno[claveAlumno];
       const bloques = setBloques ? Array.from(setBloques).join('/') : '';
+
+      // Cantidad total de entradas del grupo familiar del alumno.
+      const familiaAlumno = familiaPorAlumno[claveAlumno];
+      const entradas = familiaAlumno
+        ? (conteoEntradasPorFamilia[normalizarNombre(familiaAlumno)] || 0)
+        : 0;
 
       // Buscar apoderado (desde hermanosMapDB o users)
       let apoderado = '—';
@@ -264,7 +289,8 @@ router.get('/estado_cpa_curso', async (req, res) => {
         apoderado,
         apoderado_email,
         cpa_pagado: cpaPagado,
-        bloques
+        bloques,
+        entradas
       });
     }
 

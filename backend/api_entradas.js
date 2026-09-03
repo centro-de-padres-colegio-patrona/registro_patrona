@@ -2592,6 +2592,121 @@ router.delete('/entradas', apiKeyAuth, async (req, res) => {
   }
 });
 
+async function enviarEntradasAlEmail() {
+  const tag = '';
+
+  try {
+    let attachments = null;
+
+    if ( tipo_attachment === 'png') {
+      attachments = await Promise.all(
+        tickets.map(async (ticket_info) => {
+          const eventInfo = await db_support.EventDB.findOne({id_evento: ticket_info.id_evento});
+          const imagen_ticket_path = eventInfo ? eventInfo.imagen_ticket_path : '';
+          //console.log(`${tag} imagen_ticket_path: `, imagen_ticket_path);
+          //const {ticket_info} = entrada
+          //console.log(`ticket_info: ${JSON.stringify(ticket_info)}`);
+          const [buffer, qr_str] = await genEntradaCanvas({...ticket_info, imagen_ticket_path, url_server});
+          const {nombre_completo, jornada, tipo, folio, id_evento, familia} = ticket_info;
+          //seriales.push(folio)
+          //const nombreArchivo = `${id_evento.replace(/ /g, "_")}_${jornada}_${String(folio).padStart(4, '0')}.png`;
+          const tailoredName = tipo === 'estudiante' ? nombre_completo : `${familia.replace(/ /g, "_")}_${tipo}` ;
+          const nombreArchivo = `${id_evento.replace(/ /g, "_")}_${String(folio).padStart(4, '0')}_${tailoredName}.png`;
+
+          /*if (qr_str && buffer)
+            console.log(`${tag} save_file: ${save_file}, qr_str: `, qr_str);
+          if (save_file)
+            await save_png(buffer, `f${folio.toString().padStart(4,'0')}_${familia.replace(' ', '_')}`);*/
+
+          if (save_file) {
+            //await save_png(buffer, `f${folio.toString().padStart(4,'0')}_${familia.replace(' ', '_')}`);
+            await save_png(buffer, nombreArchivo);
+            await append_qr_data(qr_str, 'qr_send_email_png.txt');
+          }
+          return {
+            filename: nombreArchivo,
+            content: buffer,
+            contentType: 'image/png'
+          };
+        })
+      );
+    }
+    if ( tipo_attachment === 'pdf' ) {
+      let id_evento = null;
+      let familia = null;
+      // 1. Generar los Buffers PNG de cada entrada a partir de genEntradaCanvas
+      const buffersPNG = await Promise.all(
+        tickets.map(async (ticket_info) => {
+          if (!id_evento) id_evento = ticket_info.id_evento;
+          if (!familia) familia = ticket_info.id_evento;
+          const eventInfo = await db_support.EventDB.findOne({id_evento: ticket_info.id_evento});
+          const imagen_ticket_path = eventInfo ? eventInfo.imagen_ticket_path : '';
+          const [resultadoCanvas, qr_str] = await genEntradaCanvas({...ticket_info, imagen_ticket_path, url_server});
+          if ( save_file ) {
+            await append_qr_data(qr_str, 'qr_send_email_pdf.txt');
+          }
+          // genEntradaCanvas retorna un arreglo [bufferPNG, qrData]
+          return resultadoCanvas;
+        })
+      );
+
+      // Filtrar buffers nulos si ocurrió algún error en la generación individual
+      const buffersValidos = buffersPNG.filter(buf => buf !== null);
+
+      if (buffersValidos.length === 0) {
+        return { status: 'error', message: 'No se pudieron generar las entradas.' };
+      }
+
+      // 2. Generar el documento PDF compilado directamente en memoria (Buffer)
+      const pdfBuffer = await generarPdfDesdeBuffers(buffersValidos);
+
+      // 3. Formatear el adjunto según las especificaciones de nodemailer / send_email_from_cpa_account
+      const nombreArchivo = `${id_evento.replace(/ /g, "_")}_${familia.replace(/ /g, "_")}.pdf`;
+      attachments = [
+        {
+          filename: nombreArchivo,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ];
+      if ( save_file ) {
+        console.log(`${tag} pdf: ${nombreArchivo}`)
+        await save_pdf(pdfBuffer, nombreArchivo);
+      }
+    }
+
+    const email_body = {email_destinatario, asuntoCorreo, mensajeCorreo, attachments};
+    const send_email_result = await send_email_from_cpa_account(email_body);
+
+    if (send_email_result.status === 'ok') {
+      // Registrar en el usuario que sus entradas ya fueron enviadas por correo,
+      // para que el mantenedor de Apoderados refleje el estado correcto.
+      // Se busca por email de forma case-insensitive (mismo criterio que /api/reenviar_entradas).
+      try {
+        const emailRegex = new RegExp('^' + email_destinatario.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+        const updateResult = await db_support.usersDB.updateOne(
+          { email: { $regex: emailRegex } },
+          { $set: { entradas_enviadas: true, fecha_envio_entradas: new Date() } }
+        );
+        if (updateResult.matchedCount === 0) {
+          console.log(`${tag} Envio OK pero no se encontro usuario con email ${email_destinatario} para marcar entradas_enviadas`);
+        }
+      } catch (e) {
+        // No se debe fallar el envio por un problema al actualizar el estado
+        console.log(`${tag} Envio OK pero fallo al marcar entradas_enviadas: `, e.message || e);
+      }
+      res.status(200).json(send_email_result);
+    } else {
+      res.status(400).json(send_email_result);
+    }
+
+  } catch (err) {
+    console.log(`${tag} Error: `, err);
+    res.status(500).json({message: 'Unexpected error', err});
+  }
+});
+
+
 
 
 router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
@@ -3082,10 +3197,75 @@ router.delete('/entrada/cortesia', apiKeyAuth, async (req, res) => {
   }
 });
 
+async function obtenerAndActivarEntradasFamilia(id_organizacion, id_evento, familia) {
+  const tag = '[obtenerAndActivarEntradasFamilia]';
+
+  try {
+
+    console.log(`${tag} Activando entradas para la familia: `, familia);
+    // Activar Entradas
+    const update = await db_support.TicketEventoDB.updateMany(
+      { id_organizacion, id_evento, familia, estado: 'inactiva' },
+      { $set: { estado: 'activa' } }
+    );
+
+    const result_entradas = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia, estado: 'activa' }).lean();
+    if (!result_entradas || result_entradas.length === 0) {
+      return null;
+    }
+    return result_entradas;
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+  }
+  return null;
+}
+
+async function obtenerEntradasFamilia(id_organizacion, id_evento, estudiante) {
+  const tag = '[obtenerEntradasFamilia]';
+
+  try {
+    console.log(`${tag} Obteniendo entradas para el estudiante: `, estudiante);
+    console.log(`${tag} Parametros de entradas: `, {id_organizacion, id_evento, estudiante});
+    // Obtener nombre familia
+    const info = await db_support.hermanosMapDB.findOne({ id: estudiante });
+    console.log(`${tag} info: `, info);
+    const familia = info ? info.nombre_familia : null;
+
+    if (!familia) {
+      console.log(`${tag} No se pudo determinar la familia del estudiante.`);
+      return null;
+    }
+
+    console.log(`${tag} Datos ingresados: `, {id_organizacion, id_evento, estudiante});
+
+    // Activar entradas para la familia y obtenerlas
+    const result_entradas = await obtenerAndActivarEntradasFamilia(id_organizacion, id_evento, familia);
+
+    return result_entradas;
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+  }
+  return null;
+}
+
 async function enviarEntradasHuilen(id_organizacion, id_evento, estudiantes) {
   const tag = '[enviarEntradasHuilen]';
 
   try {
+
+    // Obtener entradas de la Familia
+    const entradasPorFamilia = [];
+    for (const estudiante of estudiantes) {
+      console.log(`${tag} Obteneniendo entradas para familia de estudiante: `, estudiante)
+      const entradas = await obtenerEntradasFamilia(id_organizacion, id_evento, estudiante);
+      if (entradas) {
+        console.log(`${tag} Entradas obtenidas para el estudiante ${estudiante}:`, entradas);
+
+        const correoTipo = await db_support.correosTipoDB.findOne({ id_organizacion, id_evento });
+        const { asuntoCorreo, mensajeCorreo, tipo_attachment } = correoTipo;
+      }
+    }
+    return entradasPorFamilia;
 
   } catch (err) {
     console.error(`${tag} Error:`, err);

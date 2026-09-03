@@ -220,6 +220,18 @@
       const activo = movil ? mobileVisor : visor;
       const inactivo = movil ? visor : mobileVisor;
 
+      // Limpiar la bandera anti-duplicados que las vistas guardan en window.top
+      // (p. ej. entradas_eventos.html usa window.top[<archivo>]). En movil el
+      // evento beforeunload/pagehide del iframe no siempre se dispara al
+      // reasignar el src, dejando la bandera "pegada" y provocando que la vista
+      // aborte su inicializacion (no activaria las entradas inactivas). Se borra
+      // aqui explicitamente por el nombre de archivo de la URL a cargar.
+      try {
+        const rutaSinQuery = String(fullUrl).split('?')[0];
+        const archivo = rutaSinQuery.split('/').pop();
+        if (archivo && window[archivo]) delete window[archivo];
+      } catch (e) { /* no bloquear la carga por esto */ }
+
       if (activo && !activo.src.endsWith(fullUrl)) activo.src = fullUrl;
       // El iframe inactivo se limpia para no ejecutar la vista en paralelo.
       if (inactivo && !inactivo.src.endsWith('about:blank')) inactivo.src = 'about:blank';
@@ -421,6 +433,7 @@
         { label: '🎉 Actividades y Eventos', url: 'entradas_eventos.html' + query },
         { label: '💃🕺Huilen', url: 'entradas_eventos.html' + queryHuilen },
         { label: '🎟 Probar Ticket', url: 'test_ticket.html' },
+        { label: '🎫 Entradas Cortesía', url: 'entradas_cortesia.html' + query },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
         { label: '---', url: '' },
@@ -457,6 +470,7 @@
       ],
       supervisor: [
         { label: '📋 Buscar Entradas', url: 'buscar_entradas.html' },
+        { label: '🎫 Entradas Cortesía', url: 'entradas_cortesia.html' + query },
         { label: '🔍 Validar QR', url: 'validar_qr.html' },
         { label: '📋 Mis datos', url: 'mis_datos.html' },
         { label: '💰 Mis Pagos al CGPA', url: 'pagos_cpa.html' + query },

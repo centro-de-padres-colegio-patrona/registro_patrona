@@ -175,6 +175,43 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
   }
 });
 
+// Enriquecer una lista de tickets con el nombre del validador.
+// El ticket guarda 'validado_por' como email; aqui se resuelve a nombre y
+// apellido consultando perfilesDB una sola vez por cada email distinto.
+// Devuelve objetos planos (lean) con un campo extra 'validado_por_nombre'.
+async function agregarNombreValidador(tickets) {
+  const lista = (tickets || []).map(t => (typeof t.toObject === 'function' ? t.toObject() : t));
+
+  // Recolectar emails distintos de validadores (ignorando vacios/'desconocido')
+  const emails = [...new Set(
+    lista
+      .map(t => (t.validado_por || '').trim())
+      .filter(e => e && e.toLowerCase() !== 'desconocido')
+  )];
+
+  if (emails.length === 0) {
+    return lista.map(t => ({ ...t, validado_por_nombre: '' }));
+  }
+
+  // Mapear email -> nombre_completo desde perfilesDB. La comparacion se hace
+  // case-insensitive porque el email guardado en el ticket (validado_por) puede
+  // tener distinta capitalizacion que el registrado en el perfil.
+  const escaparRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regexEmails = emails.map(e => new RegExp('^' + escaparRegex(e.trim()) + '$', 'i'));
+  const perfiles = await db_support.perfilesDB.find({ email: { $in: regexEmails } });
+  const nombrePorEmail = {};
+  for (const p of perfiles) {
+    if (p.email) nombrePorEmail[p.email.toLowerCase().trim()] = p.nombre_completo || '';
+  }
+
+  return lista.map(t => {
+    const emailVal = (t.validado_por || '').toLowerCase().trim();
+    // Si no hay perfil, se usa el email como respaldo para no dejar vacio
+    const nombre = nombrePorEmail[emailVal] || (emailVal && emailVal !== 'desconocido' ? t.validado_por : '');
+    return { ...t, validado_por_nombre: nombre };
+  });
+}
+
 // 2. GET: Buscar Entradas (Supervisor)
 router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
   try {
@@ -198,7 +235,8 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
       return campos.includes(busqueda);
     });
 
-    res.json(resultados);
+    const resultadosConNombre = await agregarNombreValidador(resultados);
+    res.json(resultadosConNombre);
   } catch (error) {
     console.error('[/api/entrada/buscar] Error:', error);
     res.status(500).json({ error: 'Error al buscar entradas' });
@@ -221,7 +259,9 @@ router.get('/entrada/listar', apiKeyAuth, async (req, res) => {
       .limit(limit)
       .lean();
 
-    res.json({ entradas, total, validadas, porValidar, page, totalPages: Math.ceil(total / limit) });
+    const entradasConNombre = await agregarNombreValidador(entradas);
+
+    res.json({ entradas: entradasConNombre, total, validadas, porValidar, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('[/api/entrada/listar] Error:', error);
     res.status(500).json({ error: 'Error al listar entradas' });
@@ -509,12 +549,14 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
       });
     }
 
+    const fechaUso = new Date();
+
     await db_support.TicketEventoDB.findOneAndUpdate(
       { folio: parseInt(folio) },
       { 
         $set: { 
           usado: true, 
-          fecha_uso: new Date(), 
+          fecha_uso: fechaUso, 
           validado_por: email || 'desconocido',
           estado: 'usada'
         },
@@ -528,7 +570,78 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
     );
 
     console.log(`[/api/entrada/validar] Ticket ${folio} marcado como usado por ${email}`);
-    res.json({ status: 'ok', mensaje: 'Ticket validado correctamente' });
+
+    // Marcar como usados el resto de tickets de la misma familia en este evento.
+    // Al validar una entrada, toda la familia queda con sus entradas validadas.
+    // Las entradas de cortesía quedan EXCLUIDAS de la validación familiar: son
+    // individuales y no pertenecen a una familia real, por lo que validar una
+    // cortesía no arrastra a otras entradas, ni la validación de una entrada
+    // normal marca entradas de cortesía.
+    let entradasFamilia = 0;
+    // Folios afectados por esta validacion: siempre incluye el escaneado y, si
+    // corresponde, los del resto de la familia. Permite al frontend actualizar
+    // todas las filas involucradas sin recargar.
+    let foliosValidados = [parseInt(folio)];
+    if (ticket.familia && ticket.id_evento && ticket.tipo !== 'cortesia') {
+      const filtroFamilia = {
+        id_organizacion: ticket.id_organizacion,
+        id_evento: ticket.id_evento,
+        familia: ticket.familia,
+        folio: { $ne: parseInt(folio) },
+        tipo: { $ne: 'cortesia' },
+        usado: { $ne: true },
+        estado: 'activa'
+      };
+
+      // Capturar los folios que se van a validar antes de actualizarlos.
+      const pendientes = await db_support.TicketEventoDB.find(filtroFamilia).select('folio').lean();
+      const foliosFamilia = (pendientes || []).map(t => t.folio);
+
+      const resultadoFamilia = await db_support.TicketEventoDB.updateMany(
+        filtroFamilia,
+        {
+          $set: {
+            usado: true,
+            fecha_uso: fechaUso,
+            validado_por: email || 'desconocido',
+            estado: 'usada'
+          },
+          $push: {
+            historial: {
+              accion: 'ingreso',
+              descripcion: `ingreso validado por ${email} (validación familiar desde folio ${folio})`
+            }
+          }
+        }
+      );
+      entradasFamilia = resultadoFamilia.modifiedCount || 0;
+      foliosValidados = foliosValidados.concat(foliosFamilia);
+      if (entradasFamilia > 0) {
+        console.log(`[/api/entrada/validar] ${entradasFamilia} entrada(s) adicional(es) de la familia "${ticket.familia}" marcadas como usadas`);
+      }
+    }
+
+    // Resolver el nombre y apellido del validador para mostrarlo en el listado.
+    // Busqueda case-insensitive: el email de la sesion puede venir con distinta
+    // capitalizacion que el registrado en el perfil.
+    let validado_por_nombre = '';
+    try {
+      if (email && email.toLowerCase().trim() !== 'desconocido') {
+        const emailRegex = new RegExp('^' + email.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+        const perfilValidador = await db_support.perfilesDB.findOne({ email: emailRegex });
+        validado_por_nombre = (perfilValidador && perfilValidador.nombre_completo) ? perfilValidador.nombre_completo : email;
+      }
+    } catch (e) { /* si falla la consulta, se deja el nombre vacio */ }
+
+    res.json({
+      status: 'ok',
+      mensaje: 'Ticket validado correctamente',
+      familia: ticket.familia,
+      validado_por: email || 'desconocido',
+      validado_por_nombre,
+      entradas_familia_validadas: entradasFamilia,
+      folios_validados: foliosValidados
+    });
   } catch (error) {
     console.error('[/api/entrada/validar] Error:', error);
     res.status(500).json({ error: 'Error al validar entrada' });
@@ -538,7 +651,9 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
 // 4b. POST: Revertir validación (marcar como pendiente)
 router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
   try {
-    const { folio, email } = req.body;
+    // El frontend puede enviar el usuario como 'revertido_por' o 'email'.
+    const { folio } = req.body;
+    const revertido_por = req.body.revertido_por || req.body.email || 'desconocido';
     if (!folio) return res.status(400).json({ error: 'Falta folio' });
 
     const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
@@ -547,7 +662,7 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
       return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
     }
 
-    if (!ticket.usado || ticket.estado === 'activo') {
+    if (!ticket.usado || ticket.estado === 'activa') {
       return res.status(409).json({ error: 'Este ticket ya está pendiente' });
     }
 
@@ -563,14 +678,59 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
         $push: {
           historial: {
             accion: 'reversion',
-            descripcion: `revertido por ${email}`
+            descripcion: `revertido por ${revertido_por}`
           }
         }
       }
     );
 
     console.log(`[/api/entrada/revertir] Ticket ${folio} revertido a pendiente por ${revertido_por}`);
-    res.json({ status: 'ok', mensaje: 'Ticket revertido a pendiente' });
+
+    // Revertir tambien el resto de tickets usados de la misma familia en este
+    // evento (simetrico a la validacion familiar). Las entradas de cortesía
+    // quedan EXCLUIDAS: son individuales y no pertenecen a una familia real.
+    let entradasFamilia = 0;
+    let foliosRevertidos = [parseInt(folio)];
+    if (ticket.familia && ticket.id_evento && ticket.tipo !== 'cortesia') {
+      const filtroFamilia = {
+        id_organizacion: ticket.id_organizacion,
+        id_evento: ticket.id_evento,
+        familia: ticket.familia,
+        folio: { $ne: parseInt(folio) },
+        tipo: { $ne: 'cortesia' },
+        usado: true,
+        estado: 'usada'
+      };
+
+      const usados = await db_support.TicketEventoDB.find(filtroFamilia).select('folio').lean();
+      const foliosFamilia = (usados || []).map(t => t.folio);
+
+      const resultadoFamilia = await db_support.TicketEventoDB.updateMany(
+        filtroFamilia,
+        {
+          $set: { usado: false, fecha_uso: null, validado_por: null, estado: 'activa' },
+          $push: {
+            historial: {
+              accion: 'reversion',
+              descripcion: `revertido por ${revertido_por} (reversión familiar desde folio ${folio})`
+            }
+          }
+        }
+      );
+      entradasFamilia = resultadoFamilia.modifiedCount || 0;
+      foliosRevertidos = foliosRevertidos.concat(foliosFamilia);
+      if (entradasFamilia > 0) {
+        console.log(`[/api/entrada/revertir] ${entradasFamilia} entrada(s) adicional(es) de la familia "${ticket.familia}" revertidas a pendiente`);
+      }
+    }
+
+    res.json({
+      status: 'ok',
+      mensaje: 'Ticket revertido a pendiente',
+      familia: ticket.familia,
+      entradas_familia_revertidas: entradasFamilia,
+      folios_revertidos: foliosRevertidos
+    });
   } catch (error) {
     console.error('[/api/entrada/revertir] Error:', error);
     res.status(500).json({ error: 'Error al revertir entrada' });
@@ -2503,6 +2663,189 @@ router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
 });
 
 
+// Crear una entrada de cortesía y enviarla por correo desde la cuenta del CGPA.
+// Solo pueden usarlo perfiles administrador o supervisor.
+// La entrada se crea con tipo 'cortesia' y estado 'activa' (lista para validar).
+router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entrada/cortesia]';
+  const url_server = config_env.URL_SERVER || BASEURL;
+  try {
+    const {
+      id_organizacion = 'cpa_patrona',
+      id_evento = 'fiesta_chilena_2026',
+      nombre_completo,
+      bloques,
+      correo,
+      user_email
+    } = req.body;
+
+    // Jornada y curso ya no se solicitan en la pagina de Entradas Cortesía;
+    // se guardan vacíos en el ticket.
+    const jornada = '';
+    const curso = '';
+
+    // Validar campos obligatorios del formulario.
+    if (!nombre_completo || !nombre_completo.trim()) {
+      return res.status(400).json({ error: 'Falta el nombre completo' });
+    }
+    if (!correo || !correo.trim()) {
+      return res.status(400).json({ error: 'Falta el correo del destinatario' });
+    }
+    if (!bloques || !String(bloques).trim()) {
+      return res.status(400).json({ error: 'Debe seleccionar al menos un bloque' });
+    }
+
+    // Control de acceso: solo administrador o supervisor
+    if (!user_email) {
+      return res.status(400).json({ error: 'Falta user_email para validar permisos' });
+    }
+    const autorizado = await hasSupervisorAccessRights(user_email);
+    if (!autorizado) {
+      return res.status(403).json({ error: 'Acceso denegado. Se requiere perfil de Administrador o Supervisor' });
+    }
+
+    // El esquema de TicketEvento exige 'familia' (required). Las entradas de
+    // cortesía no tienen familia asociada; se usa un valor temporal para pasar
+    // la validación y luego se reasigna a "Cortesía-<folio>" (familia única por
+    // entrada). Esto evita que la validación por QR (que marca como usadas todas
+    // las entradas de una misma familia) afecte a otras entradas de cortesía.
+    const ticket = await db_support.TicketEventoDB.create({
+      id_organizacion,
+      id_evento,
+      familia: 'Cortesía',
+      nombre_completo: nombre_completo.trim(),
+      tipo: 'cortesia',
+      jornada: jornada || '',
+      curso: curso || '',
+      bloques: bloques || '',
+      num_listado: 0,
+      fecha_generacion: new Date(),
+      usado: false,
+      estado: 'activa',
+      validado_por: null,
+      correo_destinatario: correo.trim(),
+      historial: [{ accion: 'creacion', descripcion: `entrada de cortesía creada por ${user_email}` }]
+    });
+
+    const folio = ticket.folio || '';
+
+    // Reasignar la familia a un valor único por entrada para aislar la
+    // validación familiar de otras entradas de cortesía.
+    const familia = `Cortesía-${String(folio).padStart(4, '0')}`;
+    await db_support.TicketEventoDB.updateOne({ folio }, { $set: { familia } });
+
+    // Obtener la imagen de fondo del ticket configurada para el evento
+    const eventInfo = await db_support.EventDB.findOne({ id_evento });
+    const imagen_ticket_path = eventInfo ? eventInfo.imagen_ticket_path : '';
+
+    const ticketInfo = {
+      url_server,
+      id_organizacion,
+      id_evento,
+      imagen_ticket_path,
+      familia,
+      nombre_completo: nombre_completo.trim(),
+      folio,
+      num_listado: 0,
+      curso: curso || '',
+      jornada: jornada || '',
+      tipo: 'cortesia',
+      bloques: bloques || ''
+    };
+
+    // Generar la imagen del ticket y guardar el qr_str en la entrada (para que
+    // la entrada quede válida en el flujo de validación por QR).
+    const [buffer, qr_str] = await genEntradaCanvas(ticketInfo);
+    if (!buffer) {
+      console.log(`${tag} image buffer null`);
+      return res.status(500).json({ error: 'No se pudo generar la imagen de la entrada' });
+    }
+    await db_support.TicketEventoDB.findOneAndUpdate(
+      { folio, id_evento, nombre_completo: nombre_completo.trim() },
+      { $set: { qr_str } }
+    );
+
+    // Adjuntar la imagen del ticket al correo enviado desde la cuenta del CGPA.
+    const nombreArchivo = `${id_evento.replace(/ /g, '_')}_${String(folio).padStart(4, '0')}_${nombre_completo.trim().replace(/ /g, '_')}.png`;
+    const attachments = [
+      { filename: nombreArchivo, content: buffer, contentType: 'image/png' }
+    ];
+
+    const asuntoCorreo = 'Entrada de Cortesía';
+    const folioSerial = String(folio).padStart(4, '0');
+    const bloquesTexto = String(bloques || '').trim() || '—';
+    const nombreTexto = nombre_completo.trim();
+
+    // Cuerpo del correo en HTML, con un diseño coherente con la página del
+    // sistema (tarjeta con encabezado y filas de datos ingresados en pantalla).
+    const mensajeCorreo = `
+      <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f1f4f9; padding:24px;">
+        <div style="max-width:520px; margin:0 auto; background:#ffffff; border-radius:10px; border-left:5px solid #4A90E2; box-shadow:0 2px 10px rgba(0,0,0,0.08); overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#4A90E2,#357abd); padding:20px 24px; color:#ffffff;">
+            <h1 style="margin:0; font-size:1.25rem;">🎫 Entrada de Cortesía</h1>
+            <p style="margin:4px 0 0; font-size:0.85rem; opacity:0.9;">Fiesta a la Chilena · Colegio Patrona de Lourdes</p>
+          </div>
+          <div style="padding:24px;">
+            <p style="font-size:0.95rem; color:#333; margin:0 0 16px;">Estimado(a) <strong>${nombreTexto}</strong>, adjuntamos su entrada de cortesía. Presente el código QR al momento de ingresar al evento.</p>
+            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#888; font-weight:600; text-transform:uppercase; font-size:0.75rem;">Nombre</td>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#333; text-align:right; font-weight:600;">${nombreTexto}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#888; font-weight:600; text-transform:uppercase; font-size:0.75rem;">Bloques</td>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#333; text-align:right; font-weight:600;">${bloquesTexto}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#888; font-weight:600; text-transform:uppercase; font-size:0.75rem;">N° Entrada</td>
+                <td style="padding:10px 0; border-bottom:1px solid #f0f0f0; color:#333; text-align:right; font-weight:600;">${folioSerial}</td>
+              </tr>
+            </table>
+            <p style="font-size:0.85rem; color:#666; margin:20px 0 0;">Saludos cordiales,<br><strong>Centro General de Padres y Apoderados (CGPA)</strong></p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const send_email_result = await send_email_from_cpa_account({
+      email_destinatario: correo.trim(),
+      asuntoCorreo,
+      mensajeCorreo,
+      attachments
+    });
+
+    if (send_email_result.status !== 'ok') {
+      console.log(`${tag} Entrada ${folio} creada pero fallo el envio de correo:`, send_email_result.message);
+      return res.status(200).json({
+        status: 'partial',
+        folio,
+        mensaje: 'La entrada se creó, pero no se pudo enviar el correo.',
+        email_error: send_email_result.message
+      });
+    }
+
+    console.log(`${tag} Entrada de cortesía ${folio} creada y enviada a ${correo}`);
+    return res.status(200).json({
+      status: 'ok',
+      folio,
+      mensaje: `Entrada de cortesía N° ${folioSerial} creada y enviada a ${correo.trim()}`,
+      // Datos de la entrada para mostrar en la tabla de resultados de la página.
+      entrada: {
+        folio: folioSerial,
+        nombre_completo: nombreTexto,
+        bloques: bloquesTexto,
+        correo: correo.trim(),
+        fecha_envio: new Date().toISOString()
+      }
+    });
+
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al crear la entrada de cortesía' });
+  }
+});
+
+
 // Generar y devolver el PDF de las entradas de un apoderado (para abrir en una
 // nueva pestaña, sin enviarlo por correo). Reutiliza el mismo flujo de
 // generacion que /entradas/send_email cuando tipo_attachment === 'pdf'.
@@ -2560,6 +2903,85 @@ router.get('/entradas/pdf', async (req, res) => {
   } catch (err) {
     console.log(`${tag} Error: `, err);
     res.status(500).json({ error: 'Error al generar el PDF de las entradas' });
+  }
+});
+
+
+// Listar el historial de entradas de cortesía creadas para un evento.
+// Solo para perfiles administrador o supervisor.
+router.get('/entrada/cortesia/listar', apiKeyAuth, async (req, res) => {
+  const tag = '[GET /api/entrada/cortesia/listar]';
+  try {
+    const {
+      id_organizacion = 'cpa_patrona',
+      id_evento = 'fiesta_chilena_2026',
+      user_email
+    } = req.query;
+
+    if (!user_email) {
+      return res.status(400).json({ error: 'Falta user_email para validar permisos' });
+    }
+    const autorizado = await hasSupervisorAccessRights(user_email);
+    if (!autorizado) {
+      return res.status(403).json({ error: 'Acceso denegado. Se requiere perfil de Administrador o Supervisor' });
+    }
+
+    const tickets = await db_support.TicketEventoDB.find({
+      id_organizacion,
+      id_evento,
+      tipo: 'cortesia'
+    }).sort({ folio: -1 }).lean();
+
+    const entradas = (tickets || []).map(t => ({
+      folio: String(t.folio).padStart(4, '0'),
+      nombre_completo: t.nombre_completo || '—',
+      bloques: t.bloques || '—',
+      correo: t.correo_destinatario || '—',
+      fecha_envio: t.fecha_generacion || null
+    }));
+
+    return res.status(200).json({ status: 'ok', entradas });
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al listar las entradas de cortesía' });
+  }
+});
+
+
+// Eliminar una entrada de cortesía por folio. Solo administrador o supervisor.
+// Por seguridad, solo permite eliminar tickets cuyo tipo sea 'cortesia'.
+router.delete('/entrada/cortesia', apiKeyAuth, async (req, res) => {
+  const tag = '[DELETE /api/entrada/cortesia]';
+  try {
+    const { folio, user_email } = req.body;
+
+    if (!folio) {
+      return res.status(400).json({ error: 'Falta el folio de la entrada a eliminar' });
+    }
+    if (!user_email) {
+      return res.status(400).json({ error: 'Falta user_email para validar permisos' });
+    }
+    const autorizado = await hasSupervisorAccessRights(user_email);
+    if (!autorizado) {
+      return res.status(403).json({ error: 'Acceso denegado. Se requiere perfil de Administrador o Supervisor' });
+    }
+
+    const folioNum = parseInt(folio);
+    const ticket = await db_support.TicketEventoDB.findOne({ folio: folioNum });
+    if (!ticket) {
+      return res.status(404).json({ error: 'Entrada no encontrada' });
+    }
+    // Solo se pueden eliminar entradas de cortesía desde este endpoint.
+    if (ticket.tipo !== 'cortesia') {
+      return res.status(400).json({ error: 'Solo se pueden eliminar entradas de cortesía' });
+    }
+
+    await db_support.TicketEventoDB.deleteOne({ folio: folioNum });
+    console.log(`${tag} Entrada de cortesía ${folioNum} eliminada por ${user_email}`);
+    return res.status(200).json({ status: 'ok', folio: folioNum });
+  } catch (err) {
+    console.error(`${tag} Error:`, err);
+    res.status(500).json({ error: 'Error al eliminar la entrada de cortesía' });
   }
 });
 

@@ -413,6 +413,8 @@ const ticketEventoSchema = new mongoose.Schema({
   validado_por: String,
   //imagen_ticket: Buffer,
   qr_str: String,
+  // Correo del destinatario (usado por entradas de cortesía para el historial).
+  correo_destinatario: String,
   historial: [ticketAccionSchema]
 });
 

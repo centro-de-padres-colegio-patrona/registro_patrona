@@ -356,7 +356,10 @@
         html += `
           <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; flex-wrap:wrap; gap:8px;">
             <span id="estado-envio-${idx}" style="font-size:0.82rem; color:#888;">Verificando estado de envío...</span>
-            <button id="btn-reenviar-${idx}" onclick="reenviarEntradas('${correo}', ${idx})" style="padding:5px 14px; background:#4A90E2; color:white; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;" disabled>Reenviar</button>
+            <span style="display:flex; gap:8px;">
+              <button id="btn-pdf-${idx}" onclick="verPdfEntradas('${correo}', ${idx})" style="padding:5px 14px; background:#7f8c8d; color:white; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;" disabled>PDF</button>
+              <button id="btn-reenviar-${idx}" onclick="reenviarEntradas('${correo}', ${idx})" style="padding:5px 14px; background:#4A90E2; color:white; border:none; border-radius:5px; font-size:0.78rem; font-weight:700; cursor:pointer;" disabled>Reenviar</button>
+            </span>
           </div>
         `;
       }
@@ -394,6 +397,7 @@
           const dataEnvio = await resEnvio.json();
           const estadoSpan = document.getElementById(`estado-envio-${idx}`);
           const btnReenviar = document.getElementById(`btn-reenviar-${idx}`);
+          const btnPdf = document.getElementById(`btn-pdf-${idx}`);
           if (estadoSpan) {
             if (dataEnvio.entradas_enviadas) {
               const fecha = dataEnvio.fecha_envio_entradas ? new Date(dataEnvio.fecha_envio_entradas).toLocaleString('es-CL') : '';
@@ -403,11 +407,14 @@
             }
           }
           if (btnReenviar) btnReenviar.disabled = false;
+          if (btnPdf) btnPdf.disabled = false;
         } catch (err) {
           const estadoSpan = document.getElementById(`estado-envio-${idx}`);
           if (estadoSpan) estadoSpan.innerHTML = '<span style="color:#888;">No se pudo verificar el envío</span>';
           const btnReenviar = document.getElementById(`btn-reenviar-${idx}`);
           if (btnReenviar) btnReenviar.disabled = false;
+          const btnPdf = document.getElementById(`btn-pdf-${idx}`);
+          if (btnPdf) btnPdf.disabled = false;
         }
       }
     });
@@ -425,6 +432,22 @@
     const win = (window.top || window);
     const nuevaPestana = win.open(url, '_blank', 'noopener');
     // Si el navegador bloqueó la apertura (popup blocker), avisar al usuario.
+    if (!nuevaPestana) {
+      alert('El navegador bloqueó la apertura de la nueva pestaña. Permita las ventanas emergentes para este sitio.');
+    }
+  }
+
+  // Abrir el PDF de las entradas del apoderado en una nueva pestaña
+  function verPdfEntradas(correo, idx) {
+    if (!correo || correo === '—') {
+      alert('Este apoderado no tiene un correo asociado para generar el PDF.');
+      return;
+    }
+    const url = `/api/entradas/pdf?user_email=${encodeURIComponent(correo)}`;
+    // Esta vista puede cargarse dentro de un iframe del panel; usar window.top
+    // para asegurar que la pestaña se abra en el navegador y no dentro del iframe.
+    const win = (window.top || window);
+    const nuevaPestana = win.open(url, '_blank', 'noopener');
     if (!nuevaPestana) {
       alert('El navegador bloqueó la apertura de la nueva pestaña. Permita las ventanas emergentes para este sitio.');
     }

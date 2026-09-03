@@ -630,18 +630,18 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
     // transitorio provoque una sincronizacion incorrecta de las entradas.
     let ok = false;
     const tag = '[obtenerPagosEntradas]';
-    console.log(`${tag} Obteniendo pagos de entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    //console.log(`${tag} Obteniendo pagos de entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
     const url_server = current_server;
     const local_port = config_env.LOCAL_PORT;
-    console.log(`${tag} current_server:`, url_server, 'local_port:', local_port);
+    //console.log(`${tag} current_server:`, url_server, 'local_port:', local_port);
     try {
       
-      console.log(`${tag} Llamando a ${url_server}/api/evento/estado_de_pago`);
+      //console.log(`${tag} Llamando a ${url_server}/api/evento/estado_de_pago`);
       const result = await fetch(`${url_server}/api/evento/estado_de_pago?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_email=${encodeURIComponent(user_email)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
       });
-      console.log(`${tag} Resultado de /api/evento/estado_de_pago: status=${result.status}`);
+      //console.log(`${tag} Resultado de /api/evento/estado_de_pago: status=${result.status}`);
       if ( result.status === 200 ) {
         ok = true;
         const pago_entradas = await result.json();
@@ -654,13 +654,13 @@ router.get('/entrada/historial', apiKeyAuth, async (req, res) => {
           }
         }
       } else {
-        console.warn(`${tag} estado_de_pago respondio status ${result.status}; no se considera una consulta exitosa`);
+        //console.warn(`${tag} estado_de_pago respondio status ${result.status}; no se considera una consulta exitosa`);
       }
-      console.log(`${tag} Resultado /api/evento/estado_de_pago: ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+      //console.log(`${tag} Resultado /api/evento/estado_de_pago: ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
     } catch (err) {
       // Fallo de red/timeout: ok permanece en false para que el llamador no
       // sincronice las entradas a la baja por un error transitorio.
-      console.log(`${tag} Error obteniendo pagos entradas:`, err);
+      //console.log(`${tag} Error obteniendo pagos entradas:`, err);
     }
     return { ok, compromiso_maximo_alcanzado, numero_entradas };
   }
@@ -695,37 +695,207 @@ async function obtenerMaxInvitados(id_organizacion, id_evento, hijos) {
   return 0;
 }
 
+router.get('/entrada/consolidar', apiKeyAuth, async (req, res) => {
+  const tag = '[GET /api/entrada/consolidar]';
+  try {
+    const { id_organizacion, id_evento, user_email = null} = req.query;
+    const user_emails_list_str = req.query.user_emails_list || null;
+    if (!id_organizacion || !id_evento) {
+      return res.status(400).json({ por_consolidar: -1, error: 'Faltan parámetros requeridos: id_organizacion o id_evento' });
+    }
+    if (!user_email && !user_emails_list_str) {
+      return res.status(400).json({ por_consolidar: -1, error: 'Faltan parámetros requeridos: user_email o user_emails_list' });
+    }
+    let user_emails_list = null;
+    if (user_emails_list_str) {
+      try {
+        user_emails_list = JSON.parse(user_emails_list_str);
+        if (!Array.isArray(user_emails_list)) {
+          return res.status(400).json({ por_consolidar: -1, error: 'user_emails_list debe ser un array JSON' });
+        }
+      } catch (err) {
+        return res.status(400).json({ por_consolidar: -1, error: 'user_emails_list no es un JSON válido' });
+      }
+    }
+    //console.log(`${tag} id_organizacion=${id_organizacion}, id_evento=${id_evento}, user_email=${user_email}, user_emails_list=${JSON.stringify(user_emails_list)}`);
+    let result = await consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email, user_emails_list);
+    //console.log(`${tag} Resultado de la consulta de consolidación: `, result);
+    if (result) {
+      res.status(200).json(result);
+    } else {
+      res.status(500).json({ por_consolidar: -1, error: 'Error durante la consolidación de entradas' });
+    }
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ por_consolidar: -1, error: 'Error consolidando entradas' });
+  }
+});
+
+
 router.post('/entrada/consolidar', apiKeyAuth, async (req, res) => {
   const tag = '[POST /api/entrada/consolidar]';
   try {
     const { id_organizacion, id_evento, user_email } = req.body;
-    let result = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
-    if (result > 0) {
-      res.status(200).json({ message: 'Entradas consolidadas correctamente' });
-    } else if (result === 0) {
-      res.status(200).json({ message: 'No se requieren cambios en las entradas' });
-    } else if (result === -1) {
-      res.status(400).json({ error: 'Error consolidando entradas: datos insuficientes' });
-    } else {
-      res.status(500).json({ error: 'Error consolidando entradas' });
+    let user_emails_list = req.body.user_emails_list || null;
+
+    // Safely parse user_emails_list if it is provided as a string
+    if (typeof user_emails_list === 'string') {
+      try {
+        user_emails_list = JSON.parse(user_emails_list);
+      } catch (e) {
+        // Fallback for comma-separated email strings
+        user_emails_list = user_emails_list.split(',').map(e => e.trim()).filter(Boolean);
+      }
     }
+    if (!user_email && !user_emails_list) {
+      return res.status(400).json({ error: 'Faltan parámetros requeridos: user_email o user_emails_list' });
+    }
+    let result = {};
+    if (user_email) {
+      const num_entradas_consolidadas = await consolidarEntradasInvitados(id_organizacion, id_evento, user_email);
+      result[user_email] = num_entradas_consolidadas;
+    }
+    if (user_emails_list)
+      for (const email of user_emails_list) {
+        result[email] = await consolidarEntradasInvitados(id_organizacion, id_evento, email);
+      }
+    res.status(200).json(result);
   } catch (error) {
     console.error(`${tag} Error:`, error);
     res.status(500).json({ error: 'Error consolidando entradas' });
   }
 });
 
+async function consultarConsolidarEntradasInvitadosByUser(id_organizacion, id_evento, user_email = null) {
+  const tag = '[consultarConsolidarEntradasInvitadosByUser]';
+  if (!user_email) {
+    console.log(`${tag} user_email is required`);
+    return { user_email: null, invitados: -1, por_consolidar: -1, message: null, error: 'user_email is required' };
+  }
+  try {
+      //console.log(`${tag} Consultando si se deben consolidar entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+      const { compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
+      //console.log(`${tag} compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+
+      const userInfo = await db_support.usersDB.findOne({email: user_email});
+      if (!userInfo) {
+        return { user_email, invitados: -1, por_consolidar: -1, message: 'Usuario no encontrado en la base de datos' };
+      }
+      const { hijos, padres, invitados } = userInfo;
+      if ( !hijos || !hijos.length) {
+        return { user_email, invitados: -1, por_consolidar: -1, message: 'No tiene hijos registrados' };
+      }
+
+      //const num_entradas_esperadas = 
+      let tickets = null;
+      let tickets_estudiantes = [];
+      let tickets_apoderados = [];
+      let tickets_invitados = [];
+
+      let activaciones_pendientes = 0;
+      
+      const nombre_hijo = hijos[0].nombre;
+      const hijoInfo = await db_support.hermanosMapDB.findOne({id: nombre_hijo});
+      if (hijoInfo) {
+        const id_familia = hijoInfo.nombre_familia;
+        tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: id_familia}).sort({ folio: 1 }).lean();
+        tickets_estudiantes = tickets.filter(ticket => ticket.tipo === 'estudiante' && ticket.estado === 'activa');
+        tickets_apoderados = tickets.filter(ticket => ticket.tipo === 'apoderado' && ticket.estado === 'activa');
+        tickets_invitados = tickets.filter(ticket => ticket.tipo === 'invitado' && ticket.estado === 'activa');
+        activaciones_pendientes = Math.max(0, hijos.length - tickets_estudiantes.length) + Math.max(0, padres.length - tickets_apoderados.length);
+      }
+      
+      let num_invitados = 0
+      if (compromiso_maximo_alcanzado) {
+        //console.log(`${tag} compromiso_maximo_alcanzado is true, no se pueden agregar más entradas`);
+        const nombre_hijos = hijos.map(hijo => hijo.nombre);
+        num_invitados = await obtenerMaxInvitados(id_organizacion, id_evento, nombre_hijos);
+      } else {
+        num_invitados = numero_entradas;
+      }
+      if (num_invitados > 0 && invitados && invitados.length < num_invitados) {
+        //console.log(`${tag} numero_invitados pagados=${numero_entradas}, invitados registrados.length=${invitados.length}`);
+        activaciones_pendientes += Math.max(0, num_invitados - invitados.length);
+        return { user_email, invitados: invitados.length, por_consolidar: num_invitados, activaciones_pendientes, message: 'Si se requieren cambios en las entradas' };
+      }
+      activaciones_pendientes += Math.max(0, invitados.length - tickets_invitados.length);
+      return { user_email, invitados: invitados.length, por_consolidar: 0, activaciones_pendientes, message: 'No se requieren cambios en las entradas' };
+
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    return { user_email, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'Error consultando consolidación de entradas' };
+  }
+}
+
+async function consultarConsolidarEntradasInvitadosByBundle(id_organizacion, id_evento, user_emails_list = null) {
+  const tag = '[consultarConsolidarEntradasInvitadosByBundle]';
+  const respuesta = []
+  let current_email = null;
+  try {
+    if (!user_emails_list) {
+      console.log(`${tag} user_emails_list is required`);
+      return [{ user_email: null, invitados: -1, por_consolidar: -1, message: null, error: 'user_emails_list is required' }];
+    }
+
+    let total_por_consolidar = 0;
+
+    for (const email of user_emails_list) {
+      current_email = email;
+      //console.log(`${tag} Processing email: ${email}`);
+      const result = await consultarConsolidarEntradasInvitadosByUser(id_organizacion, id_evento, email);
+      if (result) {
+        //console.log(`${tag} email ${email} has result`);
+        if (result.por_consolidar > 0) {
+          total_por_consolidar += result.por_consolidar;
+        }
+        respuesta.push(result);
+      } else {
+        console.log(`${tag} No result for email ${email}`);
+      }
+    }
+    return respuesta;
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    respuesta.push({ user_email: current_email, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'Error consultando consolidación de entradas por bundle' });
+    return respuesta;
+  }
+  return respuesta;
+}
+
+async function consultarConsolidarEntradasInvitados(id_organizacion, id_evento, user_email = null, user_emails_list = null) {
+  const tag = '[consultarConsolidarEntradasInvitados]';
+  let result = null;
+  //console.log(`${tag} id_organizacion=${id_organizacion}, id_evento=${id_evento}, user_email=${user_email}, user_emails_list=${JSON.stringify(user_emails_list)}`);
+  try {
+    if (!user_email && !user_emails_list) {
+      console.log(`${tag} user_email or user_emails_list is required`);
+      return { user_email: null, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'user_email or user_emails_list is required' };
+    }
+
+    if (user_email) {
+      result = await consultarConsolidarEntradasInvitadosByUser(id_organizacion, id_evento, user_email);
+    } else if (user_emails_list) {
+      result = await consultarConsolidarEntradasInvitadosByBundle(id_organizacion, id_evento, user_emails_list);
+    }
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    return { user_email: null, invitados: -1, por_consolidar: -1, activaciones_pendientes: -1, message: null, error: 'Error consultando consolidación de entradas' };
+  }
+  //console.log(`${tag} Resultado final de la consulta de consolidación: `, result);
+  return result;
+}
+
 async function consolidarEntradasInvitados(id_organizacion, id_evento, user_email) {
   const tag = '[consolidarEntradasInvitados]';
   try {
     if (!user_email) {
       console.log(`${tag} user_email is required`);
-      return -1;
+      return { user_email: null, por_consolidar: -1, message: null, error: 'user_email is required' };
     }
 
-    console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
+    //console.log(`${tag} Consolidando entradas para user_email=${user_email}, id_organizacion=${id_organizacion}, id_evento=${id_evento}`);
     const { ok, compromiso_maximo_alcanzado, numero_entradas } = await obtenerPagosEntradas(id_organizacion, id_evento, user_email);
-    console.log(`${tag} ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
+    //console.log(`${tag} ok=${ok}, compromiso_maximo_alcanzado=${compromiso_maximo_alcanzado}, numero_entradas=${numero_entradas}`);
 
     // Si la consulta del estado de pago no fue exitosa (fallo de red/timeout o
     // status != 200), NO consolidamos: preferimos no tocar el array de invitados
@@ -768,6 +938,138 @@ async function consolidarEntradasInvitados(id_organizacion, id_evento, user_emai
     return -1;
   }
 }
+
+
+async function activarEntradasByUserEmail(id_organizacion, id_evento, user_email) {
+  const tag = `[activarEntradasByUserEmail]`;
+  // Implementar la lógica de activación de entradas para el user_email
+      // Activacion en lote de la familia del user_email indicado. Aplica tanto
+      // al propio usuario (user_email === sessionEmail) como a un
+      // supervisor/admin que emula el acceso (admin_view=1) sobre ese usuario.
+  const userInfo = await db_support.usersDB.findOne({email: user_email});
+  if (!userInfo) {
+    return res.status(404).json({ error: 'usuario no encontrado' });
+  }
+  const { hijos, padres, invitados } = userInfo;
+  if ( !hijos || !hijos.length) {
+    return res.status(404).json({ error: 'usuario no tiene hijos enrolados' });
+  }
+
+  //console.log(`${tag} userInfo: `, userInfo);
+  //console.log(`${tag} `, { hijos, padres, invitados });
+  const nombres_hijos = hijos.flatMap(hijo => normalizarNombre(hijo.nombre));
+  //console.log(`${tag} nombres_hijos: `, nombres_hijos);
+
+  // Obteniendo la informacion de los hermanos
+  const hermanosInfo = await db_support.hermanosMapDB.findOne({id: hijos[0].nombre});
+  if ( !hermanosInfo || !hermanosInfo.nombre_familia) return res.status(404).json({ error: 'no se encuentra familia' });
+
+  const familia = hermanosInfo.nombre_familia;
+
+  // Searching for the tickets for the family
+  const ticketsFamilia = await db_support.TicketEventoDB.find({id_organizacion, id_evento, familia});
+
+  const tickets_estudiantes = ticketsFamilia.filter( ticket => ticket.tipo === 'estudiante' && nombres_hijos.includes(normalizarNombre(ticket.nombre_completo)));
+  const tickets_apoderados = ticketsFamilia.filter( ticket => ticket.tipo === 'apoderado');
+  const tickets_invitados = ticketsFamilia.filter( ticket => ticket.tipo === 'invitado');
+
+  const folios_to_update_estudiantes = tickets_estudiantes.filter(t => t.estado === 'inactiva')
+                                        .map(t => t.folio);
+  const folios_to_update_apoderados = tickets_apoderados.filter(t => t.estado === 'inactiva')
+                                        .map(t => t.folio);
+  const folios_to_update_invitados = tickets_invitados.filter(t => t.estado === 'inactiva')
+                                        .map(t => t.folio);
+
+  console.log(`${tag} `, {folios_to_update_estudiantes, folios_to_update_apoderados, folios_to_update_invitados});
+
+  // Si la cuota CGPA (cuota_cpa) esta pagada, las invitaciones vienen
+  // incluidas: se consideran cubiertos todos los pases de invitado de la
+  // familia, sin limitar por la cantidad de invitados registrados en el
+  // perfil del usuario.
+  const cpaPagada = await familiaTieneCuotaCpaPagada(nombres_hijos);
+
+  const cantidad_to_update_apoderados = Math.max(0, padres.length - (tickets_apoderados.length - folios_to_update_apoderados.length));
+  const cantidad_to_update_invitados = cpaPagada
+    ? folios_to_update_invitados.length
+    : Math.max(0, invitados.length - (tickets_invitados.length - folios_to_update_invitados.length));
+
+  console.log(`${tag} `, {padres:padres.length, invitados:invitados.length, cpaPagada});
+  console.log(`${tag} `, {tickets_apoderados:tickets_apoderados.length, tickets_invitados:tickets_invitados.length});
+  console.log(`${tag} `, {folios_to_update_apoderados:folios_to_update_apoderados.length, folios_to_update_invitados:folios_to_update_invitados.length});
+  console.log(`${tag} `, {cantidad_to_update_apoderados, cantidad_to_update_invitados});
+
+  const foliosToUpdate = [
+    ...folios_to_update_estudiantes,
+    ...folios_to_update_apoderados.slice(0, cantidad_to_update_apoderados),
+    ...folios_to_update_invitados.slice(0, cantidad_to_update_invitados)
+  ];
+  console.log(`${tag} foliosToUpdate: `, foliosToUpdate);
+
+  if (foliosToUpdate.length === 0) {
+    const exit_message = { status: 'ok', mensaje: 'No hay entrdas que requieran activaciom', activadas: 0 }
+    console.log(`${tag} `, exit_message);
+    return exit_message;
+  }
+
+  // Actualización masiva (Bulk) para garantizar rendimiento
+  const updateResult = await db_support.TicketEventoDB.updateMany(
+    { folio: { $in: foliosToUpdate } },
+    { 
+      $set: { 
+        usado: false, 
+        fecha_uso: null, 
+        validado_por: null,
+        estado: 'activa'
+      },
+      $push: {
+        historial: {
+          accion: 'activacion',
+          descripcion: `activado en lote por ${user_email}`
+        }
+      }
+    }
+  );
+
+  console.log(`${tag} Entradas de la familia ${familia} activadas correctamente. Total activadas: ${updateResult.modifiedCount}`);
+  return { status: 'ok', mensaje: 'Entradas activadas correctamente', activadas: updateResult.modifiedCount };
+}
+
+router.post('/entrada/masivo/activar', apiKeyAuth, async (req, res) => {
+  const tag = '[POST /api/entrada/masivo/activar]'
+  //console.log(`${tag} Starting ...`);
+  try {
+    const { id_organizacion, id_evento } = req.body;
+    //console.log(`${tag} Continue ...`, {id_organizacion, id_evento, folio, user_email});
+    let user_emails_list = req.body.user_emails_list || null;
+
+    if (!id_organizacion) return res.status(400).json({ error: 'Falta id_organizacion' });
+    if (!id_evento) return res.status(400).json({ error: 'Falta id_evento' });
+    if (!user_emails_list) return res.status(400).json({ error: 'Falta user_emails_list' });
+  
+
+    // Safely parse user_emails_list if it is provided as a string
+    if (typeof user_emails_list === 'string') {
+      try {
+        user_emails_list = JSON.parse(user_emails_list);
+      } catch (e) {
+        // Fallback for comma-separated email strings
+        user_emails_list = user_emails_list.split(',').map(e => e.trim()).filter(Boolean);
+      }
+    }
+
+    for (const user_email of user_emails_list) {
+      // Aquí puedes llamar a la función de activación para cada user_email
+      // Por ejemplo:
+      // await activarEntrada(id_organizacion, id_evento, user_email);
+      await activarEntradasByUserEmail(id_organizacion, id_evento, user_email);
+    }
+
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    return res.status(500).json({ error: 'Error inesperado' });
+  }
+  return res.status(200).json({ message: 'Validación exitosa' });
+});
 
 // Activar entradas:
 // Se activan las entradas de la familia del user_email
@@ -818,7 +1120,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       console.log(`${tag} activacion en modo admin_view por sesion ${sessionEmail} sobre user ${user_email}`);
     }
 
-    if ( user_email !== sessionEmail && !esSupervisor && !adminSesionSupervisor) {
+    if ( user_email !== sessionEmail && !esSupervisor && !adminSesionSupervisor && !adminViewFlag) {
       const err_msg = `unexpected email: ${JSON.stringify({user_email, sessionEmail, esSupervisor})}`;
       console.log(`${tag} ${err_msg} `);
       res.status(400).json({ error: err_msg });
@@ -865,7 +1167,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       if (result) {
         return res.status(200).json({status: 'updated'});
       }
-    } else if (user_email === sessionEmail || adminSesionSupervisor) {
+    } else if (user_email === sessionEmail || adminSesionSupervisor || (adminViewFlag || user_email)) {
       // Activacion en lote de la familia del user_email indicado. Aplica tanto
       // al propio usuario (user_email === sessionEmail) como a un
       // supervisor/admin que emula el acceso (admin_view=1) sobre ese usuario.
@@ -1100,7 +1402,7 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
       || 'unknown';
 
     // para efectos de debugging
-    console.log(`${tag} session comparison ${JSON.stringify({user_email, sessionEmail})}`);
+    //console.log(`${tag} session comparison ${JSON.stringify({user_email, sessionEmail})}`);
 
     const esSupervisor = await hasSupervisorAccessRights(user_email);
 
@@ -1679,6 +1981,220 @@ router.get('/entradas/pre_generar', apiKeyAuth, async (req, res) => {
   }
 });
 
+async function activarEntradaParaHuilen(id_organizacion, id_evento) {
+  const tag = '[/api/entradas/huilen/activar]';
+  try {
+    if (!id_organizacion || !id_evento) {
+      console.log(`${tag} Faltan parámetros id_organizacion o id_evento`);
+      return false;
+    }
+    // Lógica para activar la entrada para Huilen
+    console.log(`${tag} Activando entrada para Huilen en el evento ${id_evento}`);
+    // Aquí iría la implementación específica para activar la entrada
+    const result_activar = await db_support.TicketEventoDB.updateMany(
+        { id_evento, estado: { $eq: "inactiva" } },
+        { $set: { estado: "activa" } }
+    );
+    
+    
+    return true;
+  } catch (error) {
+    console.error(`${tag} Error al activar entrada para Huilen:`, error);
+    return false;
+  }
+}
+
+router.get('/entradas/huilen/pre_generar', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entradas/huilen/pre_generar]';
+  const nombres_estudiantes = [];
+  try {
+    const id_organizacion = req.query.id_organizacion;
+    const id_evento = req.query.id_evento;
+
+    //console.log(`${tag} ${JSON.stringify({id_organizacion, id_evento})}`);
+    // Corregir regla
+    try {
+      const indexes = await db_support.TicketEventoDB.collection.listIndexes().toArray();
+      const indexExists = indexes.some(idx => idx.name === "folio_1");
+
+      if (indexExists) {      
+        await db_support.TicketEventoDB.collection.dropIndex("folio_1");
+        await db_support.TicketEventoDB.collection.createIndex({ id_evento: 1, folio: 1 }, { unique: true });
+      }
+    } catch (error) {
+      console.error(`${tag} Indices already fixed:`, error);
+    }
+    // Obtener informacion del evento:
+    const infoEvento = await db_support.EventDB.findOne({id_evento});
+    const curso_bloques = infoEvento ? infoEvento.cursoBloqueMap : {};
+    //console.log(`${tag} infoEvento: `, infoEvento);
+    const imagen_ticket_path = infoEvento.imagen_ticket_path;
+
+    // Obtener listado de cursos desde la base de datos
+    const huilenInfo = await db_support.HuilenMapDB.find().lean();
+    const listadoEstudiantes = huilenInfo.map( item => item.id);
+    
+    for (const nombre_completo of listadoEstudiantes) {
+      //console.log(`${tag} nombre_completo: `, nombre_completo);
+      // Verificar si nombre_complete ya existe en nombres_estudiantes para evitar duplicados
+      if (!nombres_estudiantes.includes(nombre_completo)) {
+        // Generar entrada para la familia del estudiante
+        //console.log(`${tag} calling generarEntradaParaFamilia(${JSON.stringify({id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques})})`);
+        const nombres = await generarEntradaParaFamiliaHuilen(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, false);
+        if (!nombres || !nombres.length) {
+          console.log(`${tag} failed creating entradas para familia de ${nombres_estudiantes}`);
+          return;
+        }
+        // Agregar nombres generados a la lista de nombres_estudiantes
+        nombres_estudiantes.push(...nombres);
+        //break;  // jsut for debugging
+      }
+    }
+
+    console.log(`${tag} Pre-generación de entradas completada. Total estudiantes procesados: ${nombres_estudiantes.length}`);
+    res.json({ status: 'ok', total_estudiantes: nombres_estudiantes.length });
+  } catch (error) {
+    console.error(`${tag} Error:`, error);
+    res.status(500).json({ error: 'Error al pre-generar entradas' });
+  }
+});
+
+async function generarEntradaParaFamiliaHuilen(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, save_file, user_email) {
+  const tag = '[generarEntradaParaFamiliaHuilen]';
+  const lista_entradas = [];
+  // Detecta si está en producción según NODE_ENV o si existe URL_SERVER
+  const localPort = process.env.PORT || 5001;
+  const baseUrl = localPort !== 5001 
+    ? config_env.URL_SERVER
+    : `http://localhost:5001`;  
+  //console.log(`generarEntradaParaFamilia: ${JSON.stringify({id_evento, imagen_ticket_path, nombre_completo})}`);
+  //console.log(`${tag} url_server: ${baseUrl}`);
+  try {
+    console.log(`${tag} Generando entrada para la familia del estudiante: ${nombre_completo} en el evento: ${id_evento}`);
+    // Buscar la familia en la base de datos usando el nombre completo del estudiante
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ 'id': nombre_completo }).lean();
+    const { nombre_familia, hermanos } = familiaInfo || {};
+
+    console.log(`${tag}:1440 hermanos: `, hermanos);
+    // Arreglos
+    const cursos = new Set();
+    const jornadas = new Set();
+    const bloques = new Set();
+    const personas = [];
+    
+    let max_apoderados = 0;
+    let max_invitados = 0;
+    
+    //const jornadaMap = { manana: 'AM', tarde: 'PM'};
+
+    const infoPersona = {id_organizacion, id_evento, imagen_ticket_path, familia: nombre_familia, curso: '', num_listado: '', save_file};
+
+    // Buscar Cursos
+    for (const nombre_estudiante of hermanos || []) {
+      console.log(`${tag}:1455 nombre estudiante: `, nombre_estudiante)
+      const estudianteInfo = await db_support.nombreCursoMapDB.findOne({ 'id': nombre_estudiante });
+      const curso = estudianteInfo.value;
+      cursos.add(curso);
+      const bloqueInfo = curso_bloques['HI'];
+      jornadas.add(bloqueInfo.jornada);
+      bloques.add(bloqueInfo.bloque);
+      max_apoderados = Math.max(max_apoderados, bloqueInfo.pases_apoderados);
+      max_invitados = Math.max(max_invitados, bloqueInfo.pases_invitados);
+      const cursoInfo = await db_support.listadoCursosDB.findOne({ id: curso});
+      const num_listado = cursoInfo.estudiantesCurso[nombre_estudiante].no_lista;
+      const persona = { ...infoPersona, nombre_completo: nombre_estudiante, curso, num_listado};
+      console.log(`${tag}:1467 adding estudiante: `, persona);
+      personas.push(persona);
+    }
+
+    console.log(`${tag}:1470 largo hermanos: ${hermanos.length}, max_apoderados: ${max_apoderados}, max_invitados: ${max_invitados}, largo personas: ${personas.length}`);
+    const jornada = [...jornadas].join('/');
+    const bloque_str = [...bloques].toSorted().join('/').replaceAll('_', ' ');
+
+    for ( const estudiante of personas ) {
+      estudiante['tipo'] = 'estudiante';
+      estudiante['jornada'] = jornada;
+      estudiante['bloques'] = bloque_str;
+    }
+    
+    infoPersona['jornada'] = jornada;
+    infoPersona['bloques'] = bloque_str;
+
+    for ( let i = 1; i <= max_apoderados; i++ ) {
+      personas.push({...infoPersona, nombre_completo: `Apoderado ${i}`, tipo: 'apoderado'});
+    }
+    for ( let i = 1; i <= max_invitados; i++ ) {
+      personas.push({...infoPersona, nombre_completo: `Invitado ${i}`, tipo: 'invitado'});
+    }
+
+    for ( const entrada of personas ) {
+      console.log(`${tag}:1490 crear entrada para: `, entrada);
+      // Buscar si la entrada ya existe en la base de datos
+      const existingEntry = await db_support.TicketEventoDB.findOne({
+        id_organizacion: entrada.id_organizacion,
+        id_evento: entrada.id_evento,
+        familia: entrada.familia,
+        nombre_completo: entrada.nombre_completo,
+        tipo: entrada.tipo
+      });
+
+      if (existingEntry) {
+        if ((existingEntry.estado === 'anulada' || existingEntry.estado === 'inactiva') && ( await hasSupervisorAccessRights(user_email))){
+          const prev_estado = existingEntry.estado;
+          console.log(`${tag}:1503 La entrada para ${entrada.nombre_completo} estaba ${prev_estado}. Se reactivará. Folio: ${existingEntry.folio}`);
+          await db_support.TicketEventoDB.findOneAndUpdate(
+            { _id: existingEntry._id },
+            { 
+              $set: {
+                estado: 'inactiva',
+                bloques: entrada.bloques,
+                jornada: entrada.jornada,
+                curso: entrada.curso,
+                qr_str: genQrData(entrada),
+                usado: false,
+                fecha_uso: null,
+                validado_por: null
+              },
+              $push: {
+                historial: {
+                  accion: 'reactivacion',
+                  descripcion: `entrada reactivada (inactiva) durante creacion de entradas de la familia`
+                }
+              }
+            }
+          );
+        } else
+          console.log(`${tag}:1526 La entrada para ${entrada.nombre_completo} ya existe. Folio: ${existingEntry.folio}`);
+        if (entrada.tipo === 'estudiante') {
+          lista_entradas.push(entrada.nombre_completo);
+        }
+        continue; // Saltar a la siguiente entrada si ya existe
+      }
+
+      // Si la entrada no existe, crearla mediante la API
+      console.log(`${tag}:1534 Creando la entrada...`);
+      const result_create = await fetch(`${baseUrl}/api/entrada/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify(entrada)
+      });
+      if (result_create.status != 200 ) {
+        const errBody = await result_create.json().catch(() => ({ error: 'Error no especificado' }));
+        console.log(`${tag}:1542 La entrada para ${entrada.nombre_completo} no se pudo crear. status: ${result_create.status} | error: ${errBody.error}`);
+        continue;
+      }
+      if (entrada.tipo === 'estudiante') {
+        lista_entradas.push(entrada.nombre_completo);
+      }
+    }
+    return lista_entradas;
+    // Pending
+  } catch (error) {
+    console.error(`${tag} Error al generar entrada para la familia del estudiante ${nombre_completo}:`, error);
+  }
+  return [];
+}
+
 async function generarEntradaParaFamilia(id_organizacion, id_evento, imagen_ticket_path, nombre_completo, curso_bloques, save_file, user_email) {
   const tag = '[generarEntradaParaFamilia]';
   const lista_entradas = [];
@@ -1983,6 +2499,67 @@ router.post('/entradas/send_email', apiKeyAuth, async (req, res) => {
   } catch (err) {
     console.log(`${tag} Error: `, err);
     res.status(500).json({message: 'Unexpected error', err});
+  }
+});
+
+
+// Generar y devolver el PDF de las entradas de un apoderado (para abrir en una
+// nueva pestaña, sin enviarlo por correo). Reutiliza el mismo flujo de
+// generacion que /entradas/send_email cuando tipo_attachment === 'pdf'.
+router.get('/entradas/pdf', async (req, res) => {
+  const tag = '[GET /entradas/pdf]';
+  const url_server = config_env.URL_SERVER || BASEURL;
+  try {
+    const { user_email } = req.query;
+    if (!user_email) return res.status(400).json({ error: 'Falta user_email' });
+
+    const id_organizacion = 'cpa_patrona';
+    const id_evento = 'fiesta_chilena_2026';
+
+    // 1. Buscar el usuario y su primer hijo para determinar la familia
+    const emailRegex = new RegExp('^' + user_email.toLowerCase().trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    const user = await db_support.usersDB.findOne({ email: { $regex: emailRegex } });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user.hijos || user.hijos.length === 0) return res.status(400).json({ error: 'El usuario no tiene hijos registrados' });
+
+    const nombreHijo = user.hijos[0].nombre;
+    const familiaInfo = await db_support.hermanosMapDB.findOne({ id: nombreHijo });
+    if (!familiaInfo || !familiaInfo.nombre_familia) return res.status(404).json({ error: 'No se encontró la familia del usuario' });
+    const familia = familiaInfo.nombre_familia;
+
+    // 2. Obtener las entradas activas de la familia
+    const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia }).sort({ folio: 1 }).lean();
+    const ticketsActivos = (tickets || []).filter(t => t.estado === 'activa');
+    if (ticketsActivos.length === 0) return res.status(400).json({ error: 'No hay entradas activas para mostrar' });
+
+    // 3. Generar los buffers PNG de cada entrada (mismo flujo que send_email pdf)
+    let evento_id = null;
+    const buffersPNG = await Promise.all(
+      ticketsActivos.map(async (ticket_info) => {
+        if (!evento_id) evento_id = ticket_info.id_evento;
+        const eventInfo = await db_support.EventDB.findOne({ id_evento: ticket_info.id_evento });
+        const imagen_ticket_path = eventInfo ? eventInfo.imagen_ticket_path : '';
+        const [resultadoCanvas] = await genEntradaCanvas({ ...ticket_info, imagen_ticket_path, url_server });
+        return resultadoCanvas;
+      })
+    );
+
+    const buffersValidos = buffersPNG.filter(buf => buf !== null);
+    if (buffersValidos.length === 0) {
+      return res.status(500).json({ error: 'No se pudieron generar las entradas' });
+    }
+
+    // 4. Compilar el PDF en memoria y devolverlo inline para abrir en el navegador
+    const pdfBuffer = await generarPdfDesdeBuffers(buffersValidos);
+    const nombreArchivo = `${(evento_id || id_evento).replace(/ /g, '_')}_${familia.replace(/ /g, '_')}.pdf`;
+
+    console.log(`${tag} PDF generado para ${user_email} (familia: ${familia}, ${buffersValidos.length} entradas)`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.log(`${tag} Error: `, err);
+    res.status(500).json({ error: 'Error al generar el PDF de las entradas' });
   }
 });
 

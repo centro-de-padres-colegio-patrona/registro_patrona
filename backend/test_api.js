@@ -18,6 +18,7 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
 
   const test_array = [];
 
+  if (config_env.TEST_API_ENABLE_SMOKE_TESTS && config_env.TEST_API_ENABLE_SMOKE_TESTS === 'true') {
   test_array.push({test_fn: test_api_db_connection, delay: delay_ms, arguments: db_uri});
   test_array.push({test_fn: test_api_perfiles, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_curso, delay: delay_ms, arguments: url_server});
@@ -48,7 +49,11 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_api_branch, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_relacion, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_api_consulta_estudiantes_subpertenencia, delay: delay_ms, arguments: url_server});
-  //test_array.push({test_fn: test_api_entrada_consolidar, delay: delay_ms, arguments: url_server});
+  }
+
+  if ( config_env.TEST_API_CONSOLIDAR_ENTRADAS_INVITADOS && config_env.TEST_API_CONSOLIDAR_ENTRADAS_INVITADOS === 'true') {
+    test_array.push({test_fn: test_api_entrada_consolidar, delay: delay_ms, arguments: url_server});
+  }
 
   console.log(`config_env.TEST_API_DELETE_APODERADO_EMAIL: ${config_env.TEST_API_DELETE_APODERADO_EMAIL}`);
   if ( config_env.TEST_API_DELETE_APODERADO_EMAIL && config_env.TEST_API_DELETE_APODERADO_EMAIL === 'true') {
@@ -71,6 +76,14 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     test_array.push({test_fn: test_api_entradas_familia, delay: delay_ms, arguments: url_server});
   }
 
+  if ( config_env.TEST_API_PRE_GENERATE_ENTRADAS_FIESTA_CHILENA && config_env.TEST_API_PRE_GENERATE_ENTRADAS_FIESTA_CHILENA === 'true') {
+    test_array.push({test_fn: test_api_pre_generate_entradas, delay: delay_ms, arguments: url_server});
+  }
+
+  if ( config_env.TEST_API_PRE_GENERATE_ENTRADAS_HUILEN && config_env.TEST_API_PRE_GENERATE_ENTRADAS_HUILEN === 'true') {
+    test_array.push({test_fn: test_api_pre_generate_entradas_huilen, delay: delay_ms, arguments: url_server});
+  }
+
   console.log(`config_env.TEST_API_BORRAR_ENTRADAS: ${config_env.TEST_API_BORRAR_ENTRADAS}`);
   if ( config_env.TEST_API_BORRAR_ENTRADAS && config_env.TEST_API_BORRAR_ENTRADAS === 'true') {
     test_array.push({test_fn: test_api_borrar_entradas, delay: delay_ms, arguments: url_server});
@@ -78,6 +91,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
 
   if ( config_env.TEST_API_SEND_ENTRADAS_FAMILIA && config_env.TEST_API_SEND_ENTRADAS_FAMILIA === 'true') {
     test_array.push({test_fn: test_send_entradas, delay: delay_ms, arguments: url_server});
+  }
+
+  if ( config_env.TEST_API_MERGEAR_HERMANOS && config_env.TEST_API_MERGEAR_HERMANOS === 'true') {
+    test_array.push({test_fn: test_api_mergear_hermanos, delay: delay_ms, arguments: url_server});
   }
 
   let test_name = ''
@@ -444,6 +461,34 @@ async function test_api_pre_generate_entradas(url_server = 'http://localhost:500
     log_result(tag, 'fail');
   }
 }
+
+/// Testear pre-generacion de entradas Huilen
+async function test_api_pre_generate_entradas_huilen(url_server = 'http://localhost:5001') {
+  const tag = 'test /api/pre_generate_entradas Huilen';
+  try {
+    const infoOrganizacion = await db_support.infoOrganizacionDB.findOne({id_organizacion: 'cpa_patrona'});
+    const id_organizacion = infoOrganizacion.id_organizacion;
+    const id_evento = 'bloque_huilen_2026';
+
+    // Borrando Entradas anteriores
+    const drop_result = await fetch (`${url_server}/api/entradas?id_evento=${encodeURIComponent(id_evento)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+    });
+
+    // Pre generar entradas
+    const result = await fetch(`${url_server}/api/entradas/huilen/pre_generar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    const entradas = await result.json();
+    console.log('Entradas pre-generadas:', entradas);
+  } catch (error) {
+    console.error(`${tag} Error :`, error);
+    log_result(tag, 'fail');
+  }
+}
+
 
 async function test_api_entradas_familia(url_server = 'http://localhost:5001') {
   const tag = 'test /api/entradas/generar/familia';
@@ -1299,7 +1344,7 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
 async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
   const tag = '[test POST /api/enviarCorreo]';
-  const filename = 'respuestas_consultas_2026_08_26_v2';
+  const filename = 'consultas_2026_09_01';
   const file_correos = path.resolve(__dirname,`../tests/respuestas_consultas/${filename}.json`);
   const file_leidos = path.resolve(__dirname, '../tests/respuestas_consultas/archivos_leidos.json');
   try {
@@ -1329,6 +1374,7 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
     const nombre_key = "Nombre";
     const consulta_key = "Coméntanos cual es tu problema";
     const respuesta_key = "Respuesta";
+    const enviado = "respuesta enviada";
 
     const correo_verificacion = 'l.herreramena@gmail.com';
 
@@ -1338,9 +1384,15 @@ async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001
       const timestamp = correoData[timestamp_key];
       const consulta = correoData[consulta_key];
       const respuesta = correoData[respuesta_key];
+      const estado = correoData[enviado];
 
-      console.log(`${tag} Enviando correo a: ${correo_destinatario}, Respuesta: ${respuesta}`);
+      if ((estado && estado.toLowerCase().trim() === 'enviado') || !respuesta || respuesta.trim() === '') {
+        //console.log(`${tag} Omitiendo correo: ${correo_destinatario}, Estado: ${estado}, Respuesta: ${respuesta}`);
+        continue;
+      }
 
+      console.log(`${tag} ${timestamp} Enviando correo a: ${correo_destinatario}, Respuesta: ${respuesta}, Estado: ${estado}`);
+      //continue; // Skip sending email if already sent or response is empty
       const asunto = `Respuesta a tu consulta`;
 
       /*const mensaje_array = [`Hola ${nombre_destinatario}. Hemos recibido la siguiente consulta de parte tuya:`,
@@ -1533,23 +1585,112 @@ async function test_api_consulta_estudiantes_subpertenencia(url_server = 'http:/
 }
 
 async function test_api_entrada_consolidar(url_server = 'http://localhost:5001') {
-  const tag = '[test POST /api/entrada/consolidar]';
+  const tag = '[test_api_entrada_consolidar]';
   const id_organizacion = 'cpa_patrona';
   const id_evento = 'fiesta_chilena_2026';
-  const user_email = 'leo.herrera.mena@gmail.com';
-  const response = await fetch(`${url_server}/api/entrada/consolidar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
-    body: JSON.stringify({ id_organizacion, id_evento, user_email })
-  });
-  const result = await response.json();
-  console.log(`${tag} Response: `, result);
-  if (response.status === 200) {
-    log_result(tag, 'pass');
-  } else {
-    console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
+  //const user_email = 'leo.herrera.mena@gmail.com';
+  try {
+    const allUsersConHijosResponse = await fetch(`${url_server}/api/consulta/usuarios_con_hijos`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+    });
+    const allUsersConHijosResult = await allUsersConHijosResponse.json();
+    const allUserEmails = allUsersConHijosResult.map(user => user.email);
+    console.log(`${tag} All users with children: `, allUsersConHijosResult.length);
+
+    // Procesar cada 100 usuarios
+    for (let index = 0; index < allUsersConHijosResult.length; index += 100) {
+      const bunchOfUsers = allUsersConHijosResult.slice(index, index + 100);
+      //const user_email = user.email;
+      console.log(`${tag} Consolidando entradas para: ${bunchOfUsers.length} usuarios con hijos.`);
+
+      /*const response = await fetch(`${url_server}/api/entrada/consolidar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+        body: JSON.stringify({ id_organizacion, id_evento, user_email })
+      });*/
+      const response = await fetch(`${url_server}/api/entrada/consolidar?id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}&user_emails_list=${encodeURIComponent(JSON.stringify(bunchOfUsers.map(user => user.email)))}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+      });
+      const result = await response.json();
+      console.log(`${tag} Total: `, result.length);
+      if (response.status === 200) {
+        // Entradas Consolidadas Correctamente
+        const entradasConsolidadas = result.filter(entry => entry.por_consolidar === 0);
+        const entradasRequierenConsolidacion = result.filter(entry => entry.por_consolidar > 0);
+        const entradasConActivacionesPendientes = result.filter(entry => entry.activaciones_pendientes > 0);
+        // Entradas que requieren consolidacion
+        console.log(`${tag} Entradas que requieren consolidacion: `, entradasRequierenConsolidacion.length);
+        console.log(`${tag} Entradas consolidadas correctamente: `, entradasConsolidadas.length);
+        // Entradas con Activaciones Pendientes
+        console.log(`${tag} Entradas con Activaciones Pendientes: `, entradasConActivacionesPendientes.length);
+        // Detalle de resultados por entrada
+        // Entradas Consolidadas:
+        //console.log(`${tag} Detalle Entradas Consolidadas: `, entradasConsolidadas);
+        // Entradas que requieren consolidacion:
+        if (entradasRequierenConsolidacion.length > 0) {
+          console.log(`${tag} Detalle Entradas que requieren consolidacion: `, entradasRequierenConsolidacion);
+          const emailsRequierenConsolidacion = entradasRequierenConsolidacion.map(entry => entry.user_email);
+          console.log(`${tag} Consolidando los siguientes users: `, emailsRequierenConsolidacion);
+          const response = await fetch(`${url_server}/api/entrada/consolidar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+            body: JSON.stringify({ id_organizacion, id_evento, user_emails_list: emailsRequierenConsolidacion })
+          });
+          const resultPost = await response.json();
+          console.log(`${tag} Resultado consolidacion POST: `, resultPost);
+
+          const emailsConActivacionPendiente = entradasConActivacionesPendientes.map(entry => entry.user_email);
+          const result = await fetch(`${url_server}/api/entrada/masivo/activar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+            body: JSON.stringify({id_organizacion, id_evento, user_emails_list: emailsConActivacionPendiente})
+          });
+          const resultPostActivar = await result.json();
+          console.log(`${tag} Resultado activacion POST: `, resultPostActivar);
+          //break;
+
+        }
+        // Entradas con Activaciones Pendientes:
+        if (entradasConActivacionesPendientes.length > 0) {
+          console.log(`${tag} Detalle Entradas con Activaciones Pendientes: `, entradasConActivacionesPendientes);
+        }
+        log_result(tag, 'pass');
+      } else {
+        console.log(`${tag} Error al consolidar entradas. Status: ${response.status}, Error: ${JSON.stringify(result)}`);
+        log_result(tag, 'fail');
+      }
+    }
+  } catch (error) {
+    console.log(`${tag} Unexpected error: `, error);
     log_result(tag, 'fail');
   }
+}
+
+async function test_api_mergear_hermanos(url_server = 'http://localhost:5001') {
+    const tag = '[test_api_mergear_hermanos]';
+    const user_email = 'l.herreramena@gmail.com';
+    const lists_hermanos_para_mergear = [
+      ['tejeda morales sophia trinidad', 'tejeda morales maria jesus', 'hermosilla morales maximiliano emilio']
+    ];
+    try {
+        // Aquí iría la lógica para probar la API de mergear hermanos
+        console.log(`${tag} Iniciando prueba de mergear hermanos en: ${url_server}`);
+        for (const hermanos of lists_hermanos_para_mergear) {
+            console.log(`${tag} Mergeando hermanos: `, hermanos);
+            const response = await fetch(`${url_server}/api/familias/merge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+                body: JSON.stringify({ id_organizacion: 'cpa_patrona', id_evento: 'fiesta_chilena_2026', user_email: user_email, estudiantes: hermanos })
+            });
+            const result = await response.json();
+            console.log(`${tag} Resultado merge POST: `, result);
+        }
+        
+    } catch (error) {
+        console.error(`${tag} Error durante la prueba:`, error);
+    }
 }
 
 module.exports.lauch_test_api = lauch_test_api;

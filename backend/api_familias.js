@@ -12,10 +12,12 @@ const { BASEURL } = require('../backend/git_branch');
 
 const SECRET_API_KEY = config_env.API_KEY;
 
+const url_server = config_env.LOCAL_PORT === 5001 ? `http://localhost:${config_env.LOCAL_PORT}` : BASEURL;
 
-router.post('/api/familias/merge', apiKeyAuth, async (req, res) => {
+
+/*router.post('/api/familias/merge', apiKeyAuth, async (req, res) => {
     const tag = '[POST /api/familias/merge]';
-    const url_server = config_env.URL_SERVER || BASEURL;
+    //const url_server = config_env.URL_SERVER || BASEURL;
     try {
         const { id_organizacion, estudiantes , user_email} = req.body;
 
@@ -39,9 +41,6 @@ router.post('/api/familias/merge', apiKeyAuth, async (req, res) => {
         const listas_hermanos = [];
         const estudiantesAnalizados = new Set();
         for (const estudianteInfo of estudiantesInfo) {
-        
-
-
             // Anular todas las entradas de eventos.
             const id_evento = 'fiesta_chilena_2026';
             for (const estudiante of estudiantesInfo) {
@@ -60,6 +59,128 @@ router.post('/api/familias/merge', apiKeyAuth, async (req, res) => {
                 await result.json();
             }
         }
+        // Merging estudiantes as brothers
+
+        // Creating entradas for the new family
+        
+    } catch (error) {
+        console.error(`${tag} Error al procesar la solicitud:`, error);
+        res.status(500).json({ message: 'Error interno del servidor', error });
+    }
+});*/
+
+router.post('/familias/merge', apiKeyAuth, async (req, res) => {
+    const tag = '[POST /api/familias/merge]';
+    //const url_server = config_env.URL_SERVER || BASEURL;
+    try {
+        const { id_organizacion, id_evento, user_email} = req.body;
+        let estudiantes = req.body.estudiantes;
+
+        // Safely parse user_emails_list if it is provided as a string
+        if (typeof estudiantes === 'string') {
+            try {
+                estudiantes = JSON.parse(estudiantes);
+            } catch (e) {
+                // Fallback for comma-separated email strings
+                estudiantes = estudiantes.split(',').map(e => e.trim()).filter(Boolean);
+            }
+        }
+
+        // Validar que estudiantes sea un arreglo
+        if (!Array.isArray(estudiantes)) {
+            return res.status(400).json({ error: 'El campo "estudiantes" debe ser un arreglo.' });
+        }
+
+        // Verificar id_organizacion
+        if (!id_organizacion) {
+            return res.status(400).json({ error: 'El campo "id_organizacion" es obligatorio.' });
+        }
+
+        if (!user_email) {
+            return res.status(400).json({ error: 'El campo "user_email" es obligatorio.' });
+        }
+
+        //return res.status(200).json({ message: 'Entradas activadas para pruebas.' });
+
+        // Verificar que son estudiantes previamente no relacionados
+        // Obtener la información de los estudiantes desde la base de datos
+        const estudiantesInfo = await db_support.hermanosMapDB.find({ id: { $in: estudiantes } }).lean();
+
+        const listas_hermanos = estudiantesInfo.map(e => e.hermanos);
+        
+        console.log(`${tag} Listas de hermanos:`, listas_hermanos);
+        const hermanosIndexMap = {};
+        const indexMap = {};
+        estudiantes.forEach((estudiante) => {
+            const index = listas_hermanos.findIndex(lista => lista.includes(estudiante));
+            hermanosIndexMap[estudiante] = index;
+            if (!indexMap[index]) indexMap[index] = [];
+            indexMap[index].push(estudiante);
+        });
+
+        console.log(`${tag} Índice de hermanos:`, hermanosIndexMap);
+        console.log(`${tag} Mapa de índices:`, indexMap);
+
+        const hermanosDisjuntos = Object.values(indexMap);
+    
+        console.log(`${tag} Hermanos disjuntos:`, hermanosDisjuntos);
+
+        if (hermanosDisjuntos.length < 2) {
+            return res.status(400).json({ error: 'No hay suficientes hermanos disjuntos para realizar el merge.' });
+        }
+
+        //return res.status(200).json({ hermanosDisjuntos });
+
+        // Anular todas las entradas de eventos.
+        // const id_evento = 'fiesta_chilena_2026'; // Ya se obtiene de req.body
+        console.log(`${tag} Anulando entradas de eventos para los estudiantes:`, estudiantesInfo.map(e => e.nombre_familia));
+        for (const estudiante of estudiantesInfo) {
+            console.log(`${tag} Desactivando entradas para la familia:`, estudiante.nombre_familia);
+            const result = await fetch(`${url_server}/api/entrada/desactivar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': SECRET_API_KEY
+                },
+                body: JSON.stringify({
+                    id_organizacion,
+                    id_evento,
+                    familia: estudiante.nombre_familia,
+                    user_email,
+                    estado: 'anulada',
+                })
+            });
+            if (result.status !== 200) {
+                console.error(`${tag} Error desactivando entradas para la familia:`, estudiante.nombre_familia, 'Status:', result.status);
+            } else {
+                console.log(`${tag} Entradas desactivadas correctamente para la familia:`, estudiante.nombre_familia);
+            }
+            //await result.json();
+        }
+
+        // Merging estudiantes as brothers
+        const nuevosHermanos = hermanosDisjuntos.flat();
+        let lista_nombre_familia = estudiantesInfo.map(estudiante => estudiante.nombre_familia);
+        lista_nombre_familia = [...new Set(lista_nombre_familia)]; // Eliminar duplicados
+        const nuevoNombreFamilia = lista_nombre_familia.join('/');
+
+        console.log(`${tag} Nombres de hermanos a mergear:`, nuevosHermanos);
+        console.log(`${tag} Lista de nombres de familia:`, lista_nombre_familia);
+        console.log(`${tag} Nuevo nombre de familia:`, nuevoNombreFamilia);
+
+        //return res.status(200).json({ message: 'Hermanos Mergeados correctamente' });
+        for (const hermano of nuevosHermanos) {
+            console.log(`${tag} Procesando hermano:`, hermano);
+            const result_update = await db_support.hermanosMapDB.updateOne(
+                { id: hermano },
+                { $set: { nombre_familia: nuevoNombreFamilia , hermanos: nuevosHermanos } }
+            );
+        }
+
+
+        // Creating entradas for the new family
+        
+        return res.status(200).json({ message: 'Hermanos Mergeados correctamente' });
     } catch (error) {
         console.error(`${tag} Error al procesar la solicitud:`, error);
         res.status(500).json({ message: 'Error interno del servidor', error });

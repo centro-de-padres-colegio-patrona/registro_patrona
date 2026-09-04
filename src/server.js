@@ -1410,11 +1410,21 @@ app.post('/api/boton_pago_compromiso', async (req, res) => {
     //console.log('compromiso pago: ', compromiso_pago);
     console.log('monto_total: ', monto_total);
 
+    // Flow limita el largo del campo 'optional' (error 2002 "optional parameter
+    // is too long"). Con familias de varios hijos de nombre largo, concatenar
+    // todos los nombres desborda ese limite. Aguas abajo (confirmacion de pago)
+    // solo se usa nombres_hijos[0] como id del pago, por lo que basta con enviar
+    // el primer hijo. Los nombres completos siguen disponibles en users.hijos y
+    // en nombreHermanosMap, asi que no se pierde informacion del sistema.
+    const primerHijo = Array.isArray(nombres_hijos)
+      ? (nombres_hijos[0] || '')
+      : ((nombres_hijos || '').split(',')[0] || '').trim();
+
     optional = {
       rut: rut || "9999999-9",
       nombre: nombre || "Unknown",
       telefono: telefono || "",
-      nombres_hijos: Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
+      nombres_hijos: primerHijo,
       otroDato: "sin datos adicionales"
     };
 
@@ -2728,11 +2738,18 @@ app.post('/api/mp/create', async (req, res) => {
     });
     const glosa = glosaPartes.join(' + ');
 
+    // Se envia solo el primer hijo en 'optional' (mismo criterio que Flow): la
+    // confirmacion solo usa nombres_hijos[0] como id del pago, y asi se evita
+    // desbordar el limite de longitud del campo optional en la pasarela.
+    const primerHijoMp = Array.isArray(nombres_hijos)
+      ? (nombres_hijos[0] || '')
+      : ((nombres_hijos || '').split(',')[0] || '').trim();
+
     const optional = {
       rut: rut || '9999999-9',
       nombre: nombre || 'Unknown',
       telefono: telefono || '',
-      nombres_hijos: Array.isArray(nombres_hijos) ? nombres_hijos.join(',') : (nombres_hijos || ''),
+      nombres_hijos: primerHijoMp,
     };
 
     // Guardar la orden en BD (mismo modelo que Flow)

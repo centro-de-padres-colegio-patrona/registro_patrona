@@ -2705,15 +2705,16 @@ async function enviarEntradasAlCorreo(email_destinatario, asuntoCorreo, mensajeC
         // No se debe fallar el envio por un problema al actualizar el estado
         console.log(`${tag} Envio OK pero fallo al marcar entradas_enviadas: `, e.message || e);
       }
-      res.status(200).json(send_email_result);
+      return {status: 200, message: 'Email sent successfully', data: send_email_result};
     } else {
-      res.status(400).json(send_email_result);
+      return {status: 400, message: 'Error sending email', error: send_email_result};
     }
 
   } catch (err) {
     console.log(`${tag} Error: `, err);
-    res.status(500).json({message: 'Unexpected error', err});
+  return {status: 500, message: 'Unexpected error', error: err};
   }
+  return {status: 500, message: 'Unexpected error'};
 };
 
 
@@ -3261,10 +3262,14 @@ async function obtenerEntradasFamilia(id_organizacion, id_evento, estudiante) {
 async function obtenerCorreoRepresentanteFamilia(estudiante) {
   const tag = '[obtenerCorreoRepresentanteFamilia]';
   try {
-    const info = await db_support.hermanosMapDB.findOne({ id: estudiante });
-    const lista_correos = info ? info.map(item => item.correo_representante_familia) : null;
+    const userInfo = await db_support.usersDB.findOne({'hijos.nombre':RegExp(estudiante, 'i')});
+
+    if (!userInfo) {
+      console.log(`${tag} No se pudo encontrar información del usuario para el estudiante ${estudiante}`);
+      return null;
+    }
     
-    return info ? info.correo_representante_familia : null;
+    return userInfo ? userInfo.email : null;
   } catch (err) {
     console.error(`${tag} Error:`, err);
     return null;
@@ -3277,25 +3282,28 @@ async function enviarEntradasHuilen(id_organizacion, id_evento, estudiantes) {
   try {
 
     // Obtener entradas de la Familia
-    const entradasPorFamilia = [];
+    const result_map = {};
     for (const estudiante of estudiantes) {
       console.log(`${tag} Obteneniendo entradas para familia de estudiante: `, estudiante)
       const entradas = await obtenerEntradasFamilia(id_organizacion, id_evento, estudiante);
       if (entradas) {
         console.log(`${tag} Entradas obtenidas para el estudiante ${estudiante}:`, entradas);
+        result_map[estudiante] = {folios: entradas.map(e => e.folio)};
 
         const correoTipo = await db_support.correosTipoDB.findOne({ id_organizacion, id_evento });
         const { asuntoCorreo, mensajeCorreo, tipo_attachment } = correoTipo;
-        console.log(`${tag} Enviando entradas al correo del estudiante ${estudiante}`);
         const correo_representante_familia = await obtenerCorreoRepresentanteFamilia(estudiante);
+        console.log(`${tag} Enviando entradas del estudiante ${estudiante} al correo: `, correo_representante_familia);
         if (correo_representante_familia) {
-          await enviarEntradasAlCorreo(correo_representante_familia, asuntoCorreo, mensajeCorreo, entradas, true, 'pdf');
+          result_map[estudiante].correo_destinatario = correo_representante_familia;
+          const envio_result = await enviarEntradasAlCorreo(correo_representante_familia, asuntoCorreo, mensajeCorreo, entradas, true, 'pdf');
+          result_map[estudiante].envio = envio_result;
         } else {
           console.warn(`${tag} No se pudo obtener el correo del representante de la familia para el estudiante ${estudiante}`);
         }
       }
     }
-    return entradasPorFamilia;
+    return result_map;
 
   } catch (err) {
     console.error(`${tag} Error:`, err);

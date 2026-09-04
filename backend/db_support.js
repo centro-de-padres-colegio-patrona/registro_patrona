@@ -64,6 +64,16 @@ const userHistorialSchema = new mongoose.Schema({
   detalles: { type: Object, required: true }
 });
 
+const userHistorialEntradasSchema = new mongoose.Schema({
+  fecha: { type: Date, default: Date.now },
+  id_pagina: { type: String},
+  id_evento: { type: String, required: true },
+  id_organizacion: { type: String, required: true },
+  folios: { type: [Number], required: true },
+  accion: { type: String, required: true },
+  detalles: { type: Object, required: true }
+});
+
 const userDeliverySchema = new mongoose.Schema({
   fecha: { type: Date, default: Date.now },
   id_pagina: { type: String, required: true },
@@ -95,7 +105,9 @@ const userSchema = new mongoose.Schema({
   bloqueadoHasta: Date,
   passwordHash: String,
   historial: [userHistorialSchema],
-  entregas: [userDeliverySchema]
+  entregas: [userDeliverySchema],
+  historialEntradas: [userHistorialEntradasSchema],
+  historialEmail: [userHistorialSchema],
 });
 
 const testRunHistorialSchema = new mongoose.Schema({

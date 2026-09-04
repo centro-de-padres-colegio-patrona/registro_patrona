@@ -2595,6 +2595,9 @@ router.delete('/entradas', apiKeyAuth, async (req, res) => {
 async function enviarEntradasAlCorreo(email_destinatario, asuntoCorreo, mensajeCorreo, tickets, save_file, tipo_attachment = 'png') {
   const tag = '';
 
+  //const url_server = BASEURL;
+  const url_server = config_env.URL_SERVER || BASEURL;
+
   try {
     let attachments = null;
 
@@ -2696,7 +2699,7 @@ async function enviarEntradasAlCorreo(email_destinatario, asuntoCorreo, mensajeC
 
         const updateResult = await db_support.usersDB.updateOne(
           { email: email_destinatario },
-          { $push: { historial: registroHistorial } }
+          { $push: { historialEntradas: registroHistorial } }
         );
         if (updateResult.matchedCount === 0) {
           console.log(`${tag} Envio OK pero no se encontro usuario con email ${email_destinatario} para marcar entradas_enviadas`);
@@ -3296,7 +3299,7 @@ async function enviarEntradasHuilen(id_organizacion, id_evento, estudiantes) {
         console.log(`${tag} Enviando entradas del estudiante ${estudiante} al correo: `, correo_representante_familia);
         if (correo_representante_familia) {
           result_map[estudiante].correo_destinatario = correo_representante_familia;
-          const envio_result = await enviarEntradasAlCorreo(correo_representante_familia, asuntoCorreo, mensajeCorreo, entradas, true, 'pdf');
+          const envio_result = await enviarEntradasAlCorreo(correo_representante_familia, asuntoCorreo, mensajeCorreo, entradas, false, 'pdf');
           result_map[estudiante].envio = envio_result;
         } else {
           console.warn(`${tag} No se pudo obtener el correo del representante de la familia para el estudiante ${estudiante}`);
@@ -3332,10 +3335,10 @@ router.post('/entradas/huilen/enviar', apiKeyAuth, async (req, res) => {
     // Lógica para enviar entradas Huilen
     console.log(`${tag} Enviando entradas Huilen para estudiantes: `, estudiantes);
 
-    await enviarEntradasHuilen(id_organizacion, id_evento, estudiantes);
+    /*await*/ enviarEntradasHuilen(id_organizacion, id_evento, estudiantes);
 
     // Simulación de envío de entradas
-    const result = { status: 'ok', total_estudiantes: estudiantes.length };
+    const result = { status: 'sending', total_estudiantes: estudiantes.length };
     return res.status(200).json(result);
   } catch (err) {
     console.error(`${tag} Error:`, err);

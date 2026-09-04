@@ -387,14 +387,14 @@
       <td>${entrada.bloques || '—'}</td>
       <td>${entrada.correo || '—'}</td>
       <td>${fechaTxt}</td>
-      <td><button class="btn-eliminar" onclick="eliminarCortesia(${folioNum}, this)">Eliminar</button></td>
+      <td><button class="btn-eliminar" onclick="eliminarCortesia(${entrada.organizacion}, ${entrada.evento}, ${folioNum}, this)">Eliminar</button></td>
     `;
     if (alInicio) tbody.prepend(tr);
     else tbody.appendChild(tr);
   }
 
   // Elimina una entrada de cortesía (por folio) tras confirmar.
-  async function eliminarCortesia(folio, btn) {
+  async function eliminarCortesia(id_organizacion, id_evento, folio, btn) {
     if (!confirm(`¿Confirma eliminar la entrada de cortesía N° ${String(folio).padStart(4, '0')}?`)) return;
 
     if (!userEmail) {
@@ -416,7 +416,7 @@
       const res = await fetch('/api/entrada/cortesia', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-        body: JSON.stringify({ folio, user_email: userEmail })
+        body: JSON.stringify({ id_organizacion, id_evento, folio, user_email: userEmail })
       });
       const data = await res.json();
 

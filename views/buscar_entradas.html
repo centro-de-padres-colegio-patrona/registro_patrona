@@ -478,19 +478,21 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${serial}</td>
+        <td>${t.id_organizacion || '—'}</td>
+        <td>${t.id_evento || '—'}</td>
         <td>${t.nombre_completo || '—'}</td>
         <td>${t.familia || '—'}</td>
         <td>${t.tipo || '—'}</td>
         <td>${jornadaDisplay}</td>
         <td>${t.curso || '—'}</td>
-        <td id="estado-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
-        <td id="accion-${t.folio}">
+        <td id="estado-${t.id_organizacion}-${t.id_evento}-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
+        <td id="accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
           }
         </td>
-        <td id="validador-${t.folio}">${t.validado_por_nombre || '—'}</td>
+        <td id="validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</td>
       `;
       tbody.appendChild(row);
     });
@@ -510,18 +512,20 @@
       const card = document.createElement('div');
       card.className = `ticket-card-item ${esUsado ? 'usado' : ''}`;
       card.innerHTML = `
+        <div class="card-row"><span class="card-label">Organizacion</span><span class="card-value">${t.organizacion || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Evento</span><span class="card-value">${t.evento || '—'}</span></div>
         <div class="card-row"><span class="card-label">N° Entrada</span><span class="card-value">${serial}</span></div>
         <div class="card-row"><span class="card-label">Nombre</span><span class="card-value">${t.nombre_completo || '—'}</span></div>
         <div class="card-row"><span class="card-label">Familia</span><span class="card-value">${t.familia || '—'}</span></div>
         <div class="card-row"><span class="card-label">Tipo</span><span class="card-value">${t.tipo || '—'}</span></div>
         <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
         <div class="card-row"><span class="card-label">Curso</span><span class="card-value">${t.curso || '—'}</span></div>
-        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-estado-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
-        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-validador-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
-        <div class="card-actions" id="card-accion-${t.folio}">
+        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-estado-${t.organizacion}-${t.evento}-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-validador-${t.organizacion}-${t.evento}-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
+        <div class="card-actions" id="card-accion-${t.organizacion}-${t.evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.organizacion}, ${t.evento}, ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.organizacion}, ${t.evento}, ${t.folio}, this)">VALIDAR</button>`
           }
         </div>
       `;
@@ -547,7 +551,7 @@
     }
   }
 
-  async function validarDesdeTabla(folio, btn) {
+  async function validarDesdeTabla(id_organizacion, id_evento, folio, btn) {
     if (!confirm(`¿Confirma validar la entrada N° ${String(folio).padStart(4, '0')} y de su familia?`)) return;
 
     btn.disabled = true;
@@ -563,7 +567,7 @@
         const res = await fetch('/api/entrada/validar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey  },
-          body: JSON.stringify({ folio: parseInt(folio), email: supervisorEmail})
+          body: JSON.stringify({ id_organizacion, id_evento, folio: parseInt(folio), email: supervisorEmail})
         });
 
         const data = await res.json();
@@ -593,32 +597,32 @@
 
           foliosAfectados.forEach(f => {
             // Tabla desktop (resultados de busqueda). El boton queda reversible.
-            const tdAccion = document.getElementById(`accion-${f}`);
-            if (tdAccion) tdAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
-            const tdValidador = document.getElementById(`validador-${f}`);
+            const tdAccion = document.getElementById(`accion-${id_organizacion}-${id_evento}-${f}`);
+            if (tdAccion) tdAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
+            const tdValidador = document.getElementById(`validador-${id_organizacion}-${id_evento}-${f}`);
             if (tdValidador) tdValidador.textContent = nombreValidador;
-            marcarEstadoUsado(`estado-${f}`);
+            marcarEstadoUsado(`estado-${id_organizacion}-${id_evento}-${f}`);
 
             // Card mobile (resultados de busqueda)
             const cardAccion = document.getElementById(`card-accion-${f}`);
-            if (cardAccion) cardAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
+            if (cardAccion) cardAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
             const cardValidador = document.getElementById(`card-validador-${f}`);
             if (cardValidador) cardValidador.textContent = nombreValidador;
-            marcarEstadoUsado(`card-estado-${f}`);
+            marcarEstadoUsado(`card-estado-${id_organizacion}-${id_evento}-${f}`);
 
             // Tabla desktop (listado completo)
             const tdAllAccion = document.getElementById(`all-accion-${f}`);
-            if (tdAllAccion) tdAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
+            if (tdAllAccion) tdAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
             const tdAllValidador = document.getElementById(`all-validador-${f}`);
             if (tdAllValidador) tdAllValidador.textContent = nombreValidador;
-            marcarEstadoUsado(`all-estado-${f}`);
+            marcarEstadoUsado(`all-estado-${id_organizacion}-${id_evento}-${f}`);
 
             // Card mobile (listado completo)
             const cardAllAccion = document.getElementById(`card-all-accion-${f}`);
-            if (cardAllAccion) cardAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${f}, this)">✓ Validado</button>`;
+            if (cardAllAccion) cardAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
             const cardAllValidador = document.getElementById(`card-all-validador-${f}`);
             if (cardAllValidador) cardAllValidador.textContent = nombreValidador;
-            marcarEstadoUsado(`card-all-estado-${f}`);
+            marcarEstadoUsado(`card-all-estado-${id_organizacion}-${id_evento}-${f}`);
           });
 
           // Actualizar contadores en linea (sin recargar el listado).
@@ -663,7 +667,7 @@
       const configRes = await fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`);
       const config = await configRes.json();
 
-      const res = await fetch(`/api/entrada/listar?page=${page}&limit=${ITEMS_POR_PAGINA}`, {
+      const res = await fetch(`/api/entrada/listar?page=${page}&limit=${ITEMS_POR_PAGINA}&id_organizacion=${encodeURIComponent(organizacionId)}&id_evento=${encodeURIComponent(eventoId)}`, {
         headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
       });
 
@@ -703,14 +707,14 @@
         <td>${t.tipo || '—'}</td>
         <td>${jornadaDisplay}</td>
         <td>${t.curso || '—'}</td>
-        <td id="all-estado-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
-        <td id="all-accion-${t.folio}">
+        <td id="all-estado-${t.id_organizacion}-${t.id_evento}-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
+        <td id="all-accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
             ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
           }
         </td>
-        <td id="all-validador-${t.folio}">${t.validado_por_nombre || '—'}</td>
+        <td id="all-validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</td>
       `;
       tbody.appendChild(row);
     });
@@ -733,12 +737,12 @@
         <div class="card-row"><span class="card-label">Familia</span><span class="card-value">${t.familia || '—'}</span></div>
         <div class="card-row"><span class="card-label">Tipo</span><span class="card-value">${t.tipo || '—'}</span></div>
         <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
-        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-all-estado-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
-        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-all-validador-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
-        <div class="card-actions" id="card-all-accion-${t.folio}">
+        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-all-estado-${t.id_organizacion}-${t.id_evento}-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-all-validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
+        <div class="card-actions" id="card-all-accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
           }
         </div>
       `;
@@ -812,7 +816,7 @@
   // Cargar listado al iniciar (esperar a que init() termine)
   setTimeout(() => cargarTodasEntradas(1), 1000);
 
-  async function revertirDesdeTabla(folio, btn) {
+  async function revertirDesdeTabla(id_organizacion, id_evento, folio, btn) {
     if (!confirm(`¿Revertir entrada N° ${String(folio).padStart(4, '0')} a PENDIENTE?`)) return;
 
     btn.disabled = true;
@@ -825,7 +829,7 @@
       const res = await fetch('/api/entrada/revertir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
-        body: JSON.stringify({ folio: parseInt(folio), revertido_por: supervisorEmail })
+        body: JSON.stringify({ folio: parseInt(folio), id_organizacion: id_organizacion, id_evento: id_evento, revertido_por: supervisorEmail })
       });
 
       const data = await res.json();
@@ -853,17 +857,17 @@
         foliosAfectados.forEach(f => {
           // Vista de BUSQUEDA (no se recarga sola): boton vuelve a VALIDAR,
           // se limpia Validador y el estado vuelve a PENDIENTE.
-          const tdAccion = document.getElementById(`accion-${f}`);
-          if (tdAccion) tdAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${f}, this)">VALIDAR</button>`;
-          const tdValidador = document.getElementById(`validador-${f}`);
+          const tdAccion = document.getElementById(`accion-${id_organizacion}-${id_evento}-${f}`);
+          if (tdAccion) tdAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">VALIDAR</button>`;
+          const tdValidador = document.getElementById(`validador-${id_organizacion}-${id_evento}-${f}`);
           if (tdValidador) tdValidador.textContent = '—';
-          marcarEstadoPendiente(`estado-${f}`);
+          marcarEstadoPendiente(`estado-${id_organizacion}-${id_evento}-${f}`);
 
-          const cardAccion = document.getElementById(`card-accion-${f}`);
-          if (cardAccion) cardAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${f}, this)">VALIDAR</button>`;
-          const cardValidador = document.getElementById(`card-validador-${f}`);
+          const cardAccion = document.getElementById(`card-accion-${id_organizacion}-${id_evento}-${f}`);
+          if (cardAccion) cardAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">VALIDAR</button>`;
+          const cardValidador = document.getElementById(`card-validador-${id_organizacion}-${id_evento}-${f}`);
           if (cardValidador) cardValidador.textContent = '—';
-          marcarEstadoPendiente(`card-estado-${f}`);
+          marcarEstadoPendiente(`card-estado-${id_organizacion}-${id_evento}-${f}`);
         });
 
         // Actualizar contadores en linea (sin recargar el listado).

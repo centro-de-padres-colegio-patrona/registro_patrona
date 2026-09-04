@@ -313,6 +313,8 @@
     ⏹ Detener cámara
   </button>
 
+
+
   <p class="estado-msg" id="estado">Apunte la cámara al código QR...</p>
 </div>
 
@@ -323,6 +325,30 @@
     🔄 Escanear otro
   </button>
 </div>
+<hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+  <!-- Sección para simulación manual de QR -->
+  <div style="display: flex; gap: 8px; flex-direction: column;">
+    <label for="input-qr-simulado" style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase;">
+      Simular Escaneo Manual
+    </label>
+    <div style="display: flex; gap: 8px;">
+      <input 
+        type="text" 
+        id="input-qr-simulado" 
+        placeholder="Ej: https://midominio.com/validar?folio=123&familia=Perez" 
+        style="flex: 1; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9rem; outline: none;"
+      >
+      <button 
+        type="button" 
+        class="btn-principal" 
+        style="width: auto; margin-bottom: 0; padding: 10px 16px; white-space: nowrap;" 
+        onclick="simular_escanear_qr(document.getElementById('input-qr-simulado').value)"
+      >
+        Simular QR
+      </button>
+    </div>
+  </div>
 
 <!-- Librería jsQR para decodificar QR desde canvas -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -669,6 +695,21 @@
     estado.style.color = '#888';
   }
 
+  function simular_escanear_qr(textoQR) {
+    const valor = (textoQR || '').trim();
+
+    if (!valor) {
+      alert('Por favor ingrese la URL o texto del código QR a simular.');
+      return;
+    }
+
+    // Detener la cámara activa si está ejecutándose
+    detenerEscaneo();
+
+    // Procesar el texto del QR
+    procesarQR(valor);
+  }
+  
   function procesarQR(data) {
     const resultadoCard = document.getElementById('resultado-card');
     const resultadoTitulo = document.getElementById('resultado-titulo');
@@ -721,7 +762,7 @@
       .then ( res => res.json() )
       .then ( async config_json => {
         const apiKey = config_json.apiKey;
-        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}`,{
+        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}&id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`,{
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -762,7 +803,7 @@
                 ${listadoBloquesHtml}
                 <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
                 <div class="dato-row"><span class="dato-label">Invitados</span><span class="dato-value">${info.cantidad_invitados || 0}</span></div>
-                <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+                <button id="btn-validar-entrada" onclick="validarEntrada(${id_organizacion}, ${id_evento}, ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
                   🎫 VALIDAR ENTRADA
                 </button>
               `;
@@ -776,7 +817,7 @@
             resultadoTitulo.textContent = '✅ Entrada (sin verificar en BD)';
             resultadoContenido.innerHTML = `
               <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-              <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
+              <button id="btn-validar-entrada" onclick="validarEntrada(${id_organizacion}, ${id_evento}, ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
                 🎫 VALIDAR ENTRADA
               </button>
             `;
@@ -809,7 +850,7 @@
     }
   }
 
-  async function validarEntrada(folio) {
+  async function validarEntrada(id_organizacion, id_evento, folio) {
     const btn = document.getElementById('btn-validar-entrada');
     btn.disabled = true;
     btn.textContent = '⏳ Validando...';
@@ -822,7 +863,7 @@
         const res = await fetch('/api/entrada/validar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey },
-          body: JSON.stringify({ folio: parseInt(folio), email: userEmail })
+          body: JSON.stringify({ id_organizacion, id_evento, folio: parseInt(folio), email: userEmail })
         });
 
         const data = await res.json();

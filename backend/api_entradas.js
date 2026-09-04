@@ -2080,10 +2080,13 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
       // Preferir el conjunto de familias exactas (deriva de los hermanos reales).
       // Si no se pudo determinar, caer a un match tolerante a mayus/minus por el
       // nombre_familia canonico.
+      console.log(`${tag} id_familia: ${id_familia}, familiasExactas: ${familiasExactas}`);
       const filtroFamilia = familiasExactas
         ? { $in: familiasExactas }
         : rxFamilia(id_familia);
+      console.log(`${tag} filtroFamilia: ${JSON.stringify(filtroFamilia)}`);
       const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: filtroFamilia}).sort({ folio: 1 }).lean();
+      console.log(`${tag} tickets encontrados: ${JSON.stringify(tickets)}`);
       if (tickets) {
         console.log(`${tag} folios: ${tickets.map(t => t.folio)}`);
         res.status(200).json(tickets);

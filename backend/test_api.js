@@ -93,6 +93,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
     test_array.push({test_fn: test_send_entradas, delay: delay_ms, arguments: url_server});
   }
 
+  if ( config_env.TEST_API_ENVIAR_ENTRADAS_HUILEN && config_env.TEST_API_ENVIAR_ENTRADAS_HUILEN === 'true') {
+    test_array.push({test_fn: test_api_enviar_entradas_huilen, delay: delay_ms, arguments: url_server});
+  }
+
   if ( config_env.TEST_API_MERGEAR_HERMANOS && config_env.TEST_API_MERGEAR_HERMANOS === 'true') {
     test_array.push({test_fn: test_api_mergear_hermanos, delay: delay_ms, arguments: url_server});
   }
@@ -1344,7 +1348,7 @@ async function test_get_estado_pago_entradas(url_server = 'http://localhost:5001
 
 async function test_enviar_correos_de_prueba(url_server = 'http://localhost:5001') {
   const tag = '[test POST /api/enviarCorreo]';
-  const filename = 'consultas_2026_09_01';
+  const filename = 'consultas_2026_09_03';
   const file_correos = path.resolve(__dirname,`../tests/respuestas_consultas/${filename}.json`);
   const file_leidos = path.resolve(__dirname, '../tests/respuestas_consultas/archivos_leidos.json');
   try {
@@ -1688,6 +1692,30 @@ async function test_api_mergear_hermanos(url_server = 'http://localhost:5001') {
             console.log(`${tag} Resultado merge POST: `, result);
         }
         
+    } catch (error) {
+        console.error(`${tag} Error durante la prueba:`, error);
+    }
+}
+
+
+async function test_api_enviar_entradas_huilen(url_server = 'http://localhost:5001') {
+    const tag = '[test_api_enviar_entradas_huilen]';
+    const estudiantes_huilen = ['herrera messina florencia isidora'];
+    try {
+        console.log(`${tag} Iniciando prueba de enviar entradas Huilen en: ${url_server}`);
+        fetch(`${url_server}/api/estudiantes/huilen/lista`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY }
+        }).then(res => res.json())
+        .then(async lista_huilen => {
+          const response = await fetch(`${url_server}/api/entradas/huilen/enviar`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': SECRET_API_KEY },
+              body: JSON.stringify({ id_organizacion: 'cpa_patrona', id_evento: 'bloque_huilen_2026', estudiantes: lista_huilen })
+          });
+          const result = await response.json();
+          console.log(`${tag} Resultado enviar entradas Huilen POST: `, result);
+        });
     } catch (error) {
         console.error(`${tag} Error durante la prueba:`, error);
     }

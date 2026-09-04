@@ -657,5 +657,17 @@ router.get('/consulta/usuarios_con_hijos', async (req, res) => {
 });
 
 
+router.get('/estudiantes/huilen/lista', async (req, res) => {
+  const tag = '[GET /api/estudiantes/huilen/lista]';
+  try {
+    const estudiantesHuilen = await db_support.HuilenMapDB.find({}).lean();
+    res.json(estudiantesHuilen.map(entry => entry.id));
+  } catch (error) {
+    console.error(`${tag} Error: `, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 module.exports = router;
 

@@ -427,9 +427,78 @@
     }
   }
 
-  // Construye el HTML del listado de bloques por integrante, con su color según el curso.
-  function construirListadoBloques(integrantes, mapaCursos) {
-    if (!integrantes || integrantes.length === 0) return '';
+    async function getInfoBloques(id_curso, id_organizacion, id_evento) {
+      try {
+        fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
+        .then ( res => res.json() )
+        .then ( async config_json => {
+          const apiKey = config_json.apiKey;
+          const resEvento = await fetch(`/api/eventos/buscar?` + new URLSearchParams({id_organizacion, id_evento}), {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey}
+          });
+          if (!resEvento.ok) return null;
+          const infoEvento = await resEvento.json();
+          console.log('infoEvento:', infoEvento);
+          const bloques = infoEvento.cursoBloqueMap || [];
+          console.log('bloques:', bloques);
+          if (typeof bloques === 'object' && bloques !== null) {
+            if (bloques[id_curso])
+              return bloques[id_curso];
+            else 
+              return Object.values(bloques)[0];
+          }
+          return null;
+        });
+      } catch (err) {
+        console.error('Error obteniendo info de bloques:', err);
+        return null;
+      }
+    }
+
+    // Construye el HTML del listado de bloques por integrante, con su color según el curso.
+    async function construirListadoBloquesDeLaEntrada(integrantes, bloques_entrada, id_evento, id_organizacion) {
+      if (!integrantes || integrantes.length === 0) return '';
+
+    // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
+    const vistos = new Set();
+    const filas = [];
+    for (const t of integrantes) {
+      const nombre = (t.nombre_completo || '').trim();
+      const clave = nombre.toLowerCase();
+      if (!nombre || vistos.has(clave)) continue;
+      vistos.add(clave);
+
+      const evento = t.id_evento || '';
+      const curso = t.curso || '';
+      const infoBloques = await getInfoBloques(t.curso, t.organizacion, t.id_evento);
+      const bloque = t.bloques;
+      const colorReal = infoBloques.color || '';
+      const colorNombre = getColorNombre(colorCodigo);
+
+      filas.push(`
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+          <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
+          <span style="flex:1; font-weight:600; color:#333; font-size:0.95rem;">${nombre}</span>
+          ${evento ? `<span style="flex-shrink:0; font-size:0.8rem; color:#666; background:#e0e0e0; padding:2px 6px; border-radius:4px;">${evento}</span>` : ''}
+          <span style="flex-shrink:0; font-weight:700; color:#555; font-size:0.9rem;">${bloque}</span>
+        </div>
+      `);
+    }
+
+    if (filas.length === 0) return '';
+
+    return `
+      <div style="margin-bottom:16px;">
+        <div class="dato-label" style="margin-bottom:6px;">Bloques de la familia</div>
+        ${filas.join('')}
+      </div>
+    `;
+  }
+
+    // Construye el HTML del listado de bloques por integrante, con su color según el curso.
+    function construirListadoBloques(integrantes, mapaCursos) {
+      if (!integrantes || integrantes.length === 0) return '';
 
     // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
     const vistos = new Set();
@@ -626,6 +695,8 @@
         const bloques = params.get('bloques') || '—';
         const numListado = params.get('num_listado') || '—';
         const total = params.get('total') || '—';
+        const id_organizacion = params.get('organizacion') || '—';
+        const id_evento = params.get('evento') || '—';
 
         const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
         const jornadaDisplay = jornadaMap[jornada] || jornada;
@@ -665,7 +736,8 @@
               cargarMapaCursosBloque(),
               obtenerIntegrantesFamilia(familia, config_json.apiKey)
             ]);
-            const listadoBloquesHtml = construirListadoBloques(integrantes, mapaCursos);
+            //const listadoBloquesHtml = construirListadoBloques(integrantes, mapaCursos);
+            const listadoBloquesHtml = construirListadoBloquesDeLaEntrada(integrantes, bloques, id_evento, id_organizacion);
 
             if (info.usado || info.estado != 'activa') {
               // TICKET YA FUE USADO

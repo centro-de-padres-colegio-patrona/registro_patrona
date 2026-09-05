@@ -665,10 +665,13 @@
 
     try {
       const apiKey = await getApiKey();
-      const res = await fetch(`/api/update/user`, {
+      // El endpoint DELETE /api/update/user espera el correo en la query string
+      // como 'user_email' (no en el body). Al eliminar el usuario, el backend
+      // hace $pull del correo en hermanosMapDB, dejando a los estudiantes sin
+      // apoderado y disponibles para que otro los tome.
+      const res = await fetch(`/api/update/user?user_email=${encodeURIComponent(email)}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-        body: JSON.stringify({ email })
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
       });
       const data = await res.json();
       if (res.ok) {

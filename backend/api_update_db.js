@@ -160,10 +160,22 @@ router.delete('/update/user', apiKeyAuth, async (req, res) => {
       return;
     }
 
-    await db_support.hermanosMapDB.updateMany(
-      { apoderado_email: user_email },
-      { $pull: { apoderado_email: user_email } } // Remueve el email del arreglo
+    // Reunir TODOS los correos asociados al apoderado. Un usuario puede tener
+    // varios correos en padres[] (p.ej. cuenta principal + co-apoderado). Si solo
+    // removieramos user_email, los estudiantes quedarian aun vinculados al otro
+    // correo y no estarian disponibles para que otro apoderado los tome. Por eso
+    // se hace $pull de todos los correos del usuario.
+    const userInfo = await db_support.usersDB.findOne({ email: user_email }).lean();
+    const correosApoderado = [...new Set([
+      user_email,
+      ...((userInfo && Array.isArray(userInfo.padres)) ? userInfo.padres.map(p => p && p.correo).filter(Boolean) : [])
+    ])];
+
+    const pullResult = await db_support.hermanosMapDB.updateMany(
+      { apoderado_email: { $in: correosApoderado } },
+      { $pull: { apoderado_email: { $in: correosApoderado } } } // Remueve todos los correos del apoderado
     );
+    console.log(`${tag} desvinculados de hermanosMapDB: correos=${JSON.stringify(correosApoderado)}, docs actualizados=${pullResult.modifiedCount}`);
 
     const deletedResult = await db_support.usersDB.deleteOne({email: user_email});
 

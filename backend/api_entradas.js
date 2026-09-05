@@ -168,7 +168,7 @@ router.post('/entrada/create', apiKeyAuth, async (req, res) => {
     if (buffer) {
       // Update the ticket with the generated image
       await db_support.TicketEventoDB.findOneAndUpdate(
-        { folio, id_evento: id_evento, nombre_completo: nombre_completo },
+        { folio, id_organizacion, id_evento: id_evento, nombre_completo: nombre_completo },
         //{ $set: { imagen_ticket: buffer, qr_str } }
         { $set: { qr_str } }
       );
@@ -226,8 +226,14 @@ async function agregarNombreValidador(tickets) {
 
 // 2. GET: Buscar Entradas (Supervisor)
 router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entrada/buscar]';
+  console.log(tag, 'Iniciando búsqueda de entradas');
   try {
     const { q } = req.query;
+    //const id_organizacion = req.query.id_organizacion;
+    //const id_evento = req.query.id_evento;
+    console.log(tag, `Query: ${q}`);
+
     if (!q || q.trim().length < 2) {
       return res.status(400).json({ error: 'Ingrese al menos 2 caracteres para buscar' });
     }
@@ -236,7 +242,10 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
     const busqueda = normalizar(q.trim());
     // Se excluyen las entradas anuladas (borrado lógico): no deben aparecer en
     // los resultados de búsqueda.
-    const todos = await db_support.TicketEventoDB.find({ estado: { $ne: 'anulada' } });
+    const query = { estado: { $ne: 'anulada' } };
+    console.log(tag, `Buscando en la base de datos todos los tickets vigentes para la query: `, query);
+    const todos = await db_support.TicketEventoDB.find(query).lean();
+    console.log(tag, `Total de tickets vigentes encontrados: ${todos.length}`);
 
     const resultados = todos.filter(ticket => {
       const campos = [
@@ -249,7 +258,9 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
       return campos.includes(busqueda);
     });
 
+    console.log(tag, `Total de tickets que coinciden con la búsqueda: ${resultados.length}`);
     const resultadosConNombre = await agregarNombreValidador(resultados);
+    console.log(tag, `Total de tickets con nombre de validador agregado: ${resultadosConNombre.length}`);
     res.json(resultadosConNombre);
   } catch (error) {
     console.error('[/api/entrada/buscar] Error:', error);
@@ -260,13 +271,15 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
 // 2b. GET: Listar todas las entradas (paginado)
 router.get('/entrada/listar', apiKeyAuth, async (req, res) => {
   try {
+    const id_organizacion = req.query.id_organizacion;
+    const id_evento = req.query.id_evento;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
     // Se excluyen las entradas anuladas (borrado lógico) del listado y de los
     // conteos, para que no se muestren ni se cuenten como vigentes.
-    const filtroVigentes = { estado: { $ne: 'anulada' } };
+    const filtroVigentes = { estado: { $ne: 'anulada' }, id_organizacion, id_evento };
     const total = await db_support.TicketEventoDB.countDocuments(filtroVigentes);
     const validadas = await db_support.TicketEventoDB.countDocuments({ ...filtroVigentes, usado: true });
     const porValidar = total - validadas;
@@ -288,15 +301,30 @@ router.get('/entrada/listar', apiKeyAuth, async (req, res) => {
 // 3. GET: Consultar estado de una entrada. Endpoint Publico. No requiere autenticación. Se puede usar para validar QR.
 router.get('/entrada/consultar', async (req, res) => {
   try {
-    const { folio, familia, tipo_output = 'html' } = req.query;
+    const { organizacion, evento, folio, familia, tipo_output = 'html' } = req.query;
+    if (!organizacion) {
+      console.log('Falta el parámetro organizacion');
+      if (tipo_output === 'json') {
+        return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro organizacion' });
+      }
+      return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "organizacion" es requerido.</h2>');
+    }
+    if (!evento) {
+      console.log('Falta el parámetro evento');
+      if (tipo_output === 'json') {
+        return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro evento' });
+      }
+      return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "evento" es requerido.</h2>');
+    }
     if (!folio) {
+      console.log('Falta el parámetro folio');
       if (tipo_output === 'json') {
         return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro folio' });
       }
       return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "folio" es requerido.</h2>');
     }
 
-    const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
+    const ticket = await db_support.TicketEventoDB.findOne({ id_organizacion: organizacion, id_evento: evento ,folio: parseInt(folio) });
 
     if ( tipo_output === 'json' ) {
       if (!ticket) {
@@ -309,8 +337,8 @@ router.get('/entrada/consultar', async (req, res) => {
       let cantidad_invitados = 0;
       try {
         const filtroInvitados = { familia: rxFamilia(ticket.familia), tipo: 'invitado' };
-        if (ticket.id_organizacion) filtroInvitados.id_organizacion = ticket.id_organizacion;
-        if (ticket.id_evento) filtroInvitados.id_evento = ticket.id_evento;
+        if (ticket.id_organizacion) filtroInvitados.id_organizacion = organizacion;
+        if (ticket.id_evento) filtroInvitados.id_evento = evento;
         cantidad_invitados = await db_support.TicketEventoDB.countDocuments(filtroInvitados);
       } catch (e) { /* si falla el conteo, se deja en 0 */ }
       return res.json({
@@ -562,10 +590,10 @@ const serial = String(folio).padStart(4, '0');
 // 4. POST: Marcar ticket/entrada como usado (validar)
 router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
   try {
-    const { folio, email } = req.body;
+    const { folio, email , id_organizacion, id_evento } = req.body;
     if (!folio) return res.status(400).json({ error: 'Falta folio' });
 
-    const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
+    const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio), id_organizacion, id_evento });
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
@@ -582,7 +610,7 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
     const fechaUso = new Date();
 
     await db_support.TicketEventoDB.findOneAndUpdate(
-      { folio: parseInt(folio) },
+      { folio: parseInt(folio), id_organizacion, id_evento },
       { 
         $set: { 
           usado: true, 
@@ -614,8 +642,8 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
     let foliosValidados = [parseInt(folio)];
     if (ticket.familia && ticket.id_evento && ticket.tipo !== 'cortesia') {
       const filtroFamilia = {
-        id_organizacion: ticket.id_organizacion,
-        id_evento: ticket.id_evento,
+        id_organizacion,
+        id_evento,
         familia: ticket.familia,
         folio: { $ne: parseInt(folio) },
         tipo: { $ne: 'cortesia' },
@@ -682,11 +710,11 @@ router.post('/entrada/validar', apiKeyAuth, async (req, res) => {
 router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
   try {
     // El frontend puede enviar el usuario como 'revertido_por' o 'email'.
-    const { folio } = req.body;
+    const { folio, id_organizacion, id_evento } = req.body;
     const revertido_por = req.body.revertido_por || req.body.email || 'desconocido';
     if (!folio) return res.status(400).json({ error: 'Falta folio' });
 
-    const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
+    const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio), id_organizacion, id_evento });
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket no encontrado en el sistema' });
@@ -697,7 +725,7 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
     }
 
     await db_support.TicketEventoDB.findOneAndUpdate(
-      { folio: parseInt(folio) },
+      { folio: parseInt(folio), id_organizacion, id_evento },
       { 
         $set: { 
           usado: false, 
@@ -723,8 +751,8 @@ router.post('/entrada/revertir', apiKeyAuth, async (req, res) => {
     let foliosRevertidos = [parseInt(folio)];
     if (ticket.familia && ticket.id_evento && ticket.tipo !== 'cortesia') {
       const filtroFamilia = {
-        id_organizacion: ticket.id_organizacion,
-        id_evento: ticket.id_evento,
+        id_organizacion,
+        id_evento,
         familia: ticket.familia,
         folio: { $ne: parseInt(folio) },
         tipo: { $ne: 'cortesia' },
@@ -1203,7 +1231,7 @@ async function activarEntradasByUserEmail(id_organizacion, id_evento, user_email
 
   // Actualización masiva (Bulk) para garantizar rendimiento
   const updateResult = await db_support.TicketEventoDB.updateMany(
-    { folio: { $in: foliosToUpdate } },
+    { folio: { $in: foliosToUpdate }, id_organizacion, id_evento },
     { 
       $set: { 
         usado: false, 
@@ -1322,7 +1350,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
     }
 
     if (folio && (esSupervisor || adminSesionSupervisor)) {
-      const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio) });
+      const ticket = await db_support.TicketEventoDB.findOne({ folio: parseInt(folio), id_organizacion, id_evento });
 
       // El ticket debe existir.
       if (!ticket) {
@@ -1338,7 +1366,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
       }
 
       const result = await db_support.TicketEventoDB.findOneAndUpdate(
-        { folio: parseInt(folio), estado: 'inactiva' },
+        { folio: parseInt(folio), id_organizacion, id_evento, estado: 'inactiva' },
         { 
           $set: { 
             usado: false, 
@@ -1426,7 +1454,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
       // Actualización masiva (Bulk) para garantizar rendimiento
       const updateResult = await db_support.TicketEventoDB.updateMany(
-        { folio: { $in: foliosToUpdate } },
+        { folio: { $in: foliosToUpdate }, id_organizacion, id_evento },
         { 
           $set: { 
             usado: false, 
@@ -1536,7 +1564,7 @@ router.post('/entrada/activar', apiKeyAuth, async (req, res) => {
 
       // Actualización masiva (Bulk) para garantizar rendimiento
       const updateResult = await db_support.TicketEventoDB.updateMany(
-        { folio: { $in: foliosToUpdate } },
+        { folio: { $in: foliosToUpdate } , id_organizacion, id_evento },
         { 
           $set: { 
             usado: false, 
@@ -1697,7 +1725,7 @@ router.post('/entrada/desactivar', apiKeyAuth, async (req, res) => {
 
       // Actualización masiva (Bulk) para garantizar rendimiento
       const updateResult = await db_support.TicketEventoDB.updateMany(
-        { folio: { $in: foliosToUpdate } },
+        { folio: { $in: foliosToUpdate } , id_organizacion, id_evento},
         { 
           $set: { 
             usado: false, 
@@ -2080,10 +2108,13 @@ router.get('/entrada/familia', apiKeyAuth, async (req, res) => {
       // Preferir el conjunto de familias exactas (deriva de los hermanos reales).
       // Si no se pudo determinar, caer a un match tolerante a mayus/minus por el
       // nombre_familia canonico.
+      console.log(`${tag} id_familia: ${id_familia}, familiasExactas: ${familiasExactas}`);
       const filtroFamilia = familiasExactas
         ? { $in: familiasExactas }
         : rxFamilia(id_familia);
+      console.log(`${tag} filtroFamilia: ${JSON.stringify(filtroFamilia)}`);
       const tickets = await db_support.TicketEventoDB.find({ id_organizacion, id_evento, familia: filtroFamilia}).sort({ folio: 1 }).lean();
+      console.log(`${tag} tickets encontrados: ${JSON.stringify(tickets)}`);
       if (tickets) {
         console.log(`${tag} folios: ${tickets.map(t => t.folio)}`);
         res.status(200).json(tickets);
@@ -2207,7 +2238,7 @@ async function activarEntradaParaHuilen(id_organizacion, id_evento) {
     console.log(`${tag} Activando entrada para Huilen en el evento ${id_evento}`);
     // Aquí iría la implementación específica para activar la entrada
     const result_activar = await db_support.TicketEventoDB.updateMany(
-        { id_evento, estado: { $eq: "inactiva" } },
+        { id_organizacion, id_evento, estado: { $eq: "inactiva" } },
         { $set: { estado: "activa" } }
     );
     
@@ -2240,7 +2271,7 @@ router.get('/entradas/huilen/pre_generar', apiKeyAuth, async (req, res) => {
       console.error(`${tag} Indices already fixed:`, error);
     }
     // Obtener informacion del evento:
-    const infoEvento = await db_support.EventDB.findOne({id_evento});
+    const infoEvento = await db_support.EventDB.findOne({ id_organizacion, id_evento });
     const curso_bloques = infoEvento ? infoEvento.cursoBloqueMap : {};
     //console.log(`${tag} infoEvento: `, infoEvento);
     const imagen_ticket_path = infoEvento.imagen_ticket_path;
@@ -2571,15 +2602,18 @@ router.post('/entradas/generar/familia', apiKeyAuth, async (req, res) => {
 router.delete('/entradas', apiKeyAuth, async (req, res) => {
   // Drop ticketEventos collection
   try {
-    const { id_evento } = req.query;
-    const filter = id_evento ? { id_evento } : {};
+    const { id_evento, id_organizacion } = req.query;
+    if (!id_evento || !id_organizacion) {
+      return res.status(400).json({ error: 'Faltan parámetros: id_evento y id_organizacion son requeridos' });
+    }
+    const filter = { id_evento, id_organizacion };
     const drop_result = await db_support.TicketEventoDB.deleteMany(filter);
     // Modificar el numero total de entradas del evento id_evento
-    const eventos = await db_support.EventDB.find({id_evento}).lean();
+    const eventos = await db_support.EventDB.find({id_evento, id_organizacion}).lean();
     for ( const evento of eventos )
     {
       evento.total_entradas = 0;
-      const update_collection = await db_support.EventDB.findOneAndUpdate({id_evento: evento.id_evento}, { $set: evento })
+      const update_collection = await db_support.EventDB.findOneAndUpdate({id_evento: evento.id_evento, id_organizacion: evento.id_organizacion}, { $set: evento })
     }
     res.status(200).json({
       message: 'collection TicketEventoDB deleted',
@@ -2939,7 +2973,7 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
       // Reasignar la familia a un valor único por entrada para aislar la
       // validación familiar de otras entradas de cortesía.
       const familia = `Cortesía-${folioSerialItem}`;
-      await db_support.TicketEventoDB.updateOne({ folio }, { $set: { familia } });
+      await db_support.TicketEventoDB.updateOne({ id_organizacion, id_evento, folio }, { $set: { familia } });
 
       const ticketInfo = {
         url_server,
@@ -2964,7 +2998,7 @@ router.post('/entrada/cortesia', apiKeyAuth, async (req, res) => {
         return res.status(500).json({ error: 'No se pudo generar la imagen de la entrada' });
       }
       await db_support.TicketEventoDB.findOneAndUpdate(
-        { folio, id_evento, nombre_completo: nombreTexto },
+        { id_organizacion, id_evento, folio, nombre_completo: nombreTexto },
         { $set: { qr_str } }
       );
 
@@ -3184,7 +3218,7 @@ router.delete('/entrada/cortesia', apiKeyAuth, async (req, res) => {
     }
 
     const folioNum = parseInt(folio);
-    const ticket = await db_support.TicketEventoDB.findOne({ folio: folioNum });
+    const ticket = await db_support.TicketEventoDB.findOne({ id_organizacion, id_evento, folio: folioNum });
     if (!ticket) {
       return res.status(404).json({ error: 'Entrada no encontrada' });
     }
@@ -3197,7 +3231,7 @@ router.delete('/entrada/cortesia', apiKeyAuth, async (req, res) => {
     // ANULADO para conservar la trazabilidad. Una entrada anulada no debe poder
     // validarse por QR.
     await db_support.TicketEventoDB.updateOne(
-      { folio: folioNum },
+      { id_organizacion, id_evento, folio: folioNum },
       {
         $set: { estado: 'anulada', usado: false, fecha_uso: null, validado_por: null },
         $push: { historial: { accion: 'anulacion', descripcion: `entrada de cortesía anulada por ${user_email}` } }

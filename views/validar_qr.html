@@ -313,6 +313,8 @@
     ⏹ Detener cámara
   </button>
 
+
+
   <p class="estado-msg" id="estado">Apunte la cámara al código QR...</p>
 </div>
 
@@ -323,6 +325,30 @@
     🔄 Escanear otro
   </button>
 </div>
+<hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+  <!-- Sección para simulación manual de QR -->
+  <div id="contenedor_simulacion_qr" style="display: flex; gap: 8px; flex-direction: column;">
+    <label for="input-qr-simulado" style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase;">
+      Simular Escaneo Manual
+    </label>
+    <div style="display: flex; gap: 8px;">
+      <input 
+        type="text" 
+        id="input-qr-simulado" 
+        placeholder="Ej: https://midominio.com/validar?folio=123&familia=Perez" 
+        style="flex: 1; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9rem; outline: none;"
+      >
+      <button 
+        type="button" 
+        class="btn-principal" 
+        style="width: auto; margin-bottom: 0; padding: 10px 16px; white-space: nowrap;" 
+        onclick="simular_escanear_qr(document.getElementById('input-qr-simulado').value)"
+      >
+        Simular QR
+      </button>
+    </div>
+  </div>
 
 <!-- Librería jsQR para decodificar QR desde canvas -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -341,41 +367,39 @@
   // Mapeo de código de color a color real (hex) para el dot.
   // Reutiliza los mismos códigos que el mantenedor de Cursos/Bloque.
   const colorMap = {
-    'ama_m': '#FFD700',
-    'ama_t': '#FFD700',
-    'roj': '#E74C3C',
-    'nar': '#FF8C00',
+    'amarillo': '#FFD700',
+    'rojo': '#E74C3C',
+    'naranja': '#FF8C00',
     'azul': '#2196F3',
-    'ros_m': '#FF69B4',
-    'ros_t': '#FF69B4',
-    'morado': '#8E44AD',
     'rosado': '#FF69B4',
+    'morado': '#8E44AD',
     'dorado': '#FFD700',
     'negro': '#2C3E50',
     'gris': '#95A5A6',
     'verde': '#27AE60',
-    'amarillo': '#F1C40F',
-    'rojo': '#E74C3C',
-    'naranja': '#FF8C00',
+    'verde claro': '#7CFC00',
+    'verde oscuro': '#006400',
+    'plateado': '#C0C0C0',
+    'celeste': '#87CEEB',
+    'rosado linea negra': '#FF69B4'
   };
 
   const colorGlosa = {
-    'ama_m': 'Amarillo',
-    'ama_t': 'Amarillo',
-    'roj': 'Rojo',
-    'nar': 'Naranjo',
+    'amarillo': 'Amarillo',
+    'rojo': 'Rojo',
+    'naranja': 'Naranja',
     'azul': 'Azul',
-    'ros_m': 'Rosado',
-    'ros_t': 'Rosado',
-    'morado': 'Morado',
     'rosado': 'Rosado',
+    'rosado linea negra': 'Rosado Linea Negra',
+    'morado': 'Morado',
     'dorado': 'Dorado',
     'negro': 'Negro',
     'gris': 'Gris',
     'verde': 'Verde',
-    'amarillo': 'Amarillo',
-    'rojo': 'Rojo',
-    'naranja': 'Naranja',
+    'verde claro': 'Verde Claro',
+    'verde oscuro': 'Verde Oscuro',
+    'plateado': 'Plateado',
+    'celeste': 'Celeste',
   };
 
   function getColorReal(codigo) {
@@ -404,16 +428,25 @@
   }
 
   // Devuelve los integrantes (tickets) asociados a una familia, cada uno con su curso.
-  async function obtenerIntegrantesFamilia(familia, apiKey) {
+  async function obtenerIntegrantesFamilia(familia, id_organizacion, id_evento, apiKey) {
     if (!familia || familia === '—') return [];
+    //console.log('Familia a buscar:', familia);
     try {
-      const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(familia)}`, {
+      const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(familia)}&id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
       });
       if (!res.ok) return [];
-      const tickets = await res.json();
+      let tickets = (await res.json());
+      if (id_organizacion) {
+        tickets = tickets.filter(t => t.id_organizacion == id_organizacion);
+      }
+      if (id_evento) {
+        tickets = tickets.filter(t => t.id_evento == id_evento);
+      }
       if (!Array.isArray(tickets)) return [];
+
+      console.log('Tickets obtenidos de la búsqueda:', tickets.length);
       // Solo estudiantes de esa familia (comparación tolerante a mayúsculas/espacios)
       const normalizar = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
       const familiaNorm = normalizar(familia);
@@ -427,9 +460,135 @@
     }
   }
 
-  // Construye el HTML del listado de bloques por integrante, con su color según el curso.
-  function construirListadoBloques(integrantes, mapaCursos) {
-    if (!integrantes || integrantes.length === 0) return '';
+    async function getInfoBloques(id_curso, id_organizacion, id_evento) {
+      //console.log('getInfoBloques llamado con id_curso:', id_curso, 'id_organizacion:', id_organizacion, 'id_evento:', id_evento);
+      try {
+        //console.log('Fetching config for userEmail:', userEmail);
+        const res = await fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
+        const config_json = await res.json();
+        const apiKey = config_json.apiKey;
+        //console.log('id_organizacion:', id_organizacion, 'id_evento:', id_evento, 'apiKey:', apiKey);
+        const resEvento = await fetch(`/api/eventos/buscar?` + new URLSearchParams({id_organizacion, id_evento}), {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey}
+        });
+        if (!resEvento.ok) {
+          console.error('Error fetching event info:', resEvento.status, resEvento.statusText);
+          return null;
+        }
+        const infoEvento = await resEvento.json();
+        //console.log('infoEvento:', infoEvento);
+        const bloques = infoEvento.cursoBloqueMap || [];
+        //console.log('bloques:', bloques);
+        if (typeof bloques === 'object' && bloques !== null) {
+          if (bloques[id_curso])
+            return bloques[id_curso];
+          else 
+            return Object.values(bloques)[0];
+        }
+        return null;
+      } catch (err) {
+        console.error('Error obteniendo info de bloques:', err);
+        return null;
+      }
+    }
+
+    // Construye el HTML del listado de bloques por integrante, con su color según el curso.
+    async function construirListadoBloquesDeLaEntrada(integrantes, bloques_entrada, id_evento, id_organizacion) {
+      try {
+        if (!integrantes || integrantes.length === 0) {
+          console.warn('No hay integrantes para construir el listado de bloques.');
+          return '';
+        }
+
+        //console.log('Integrantes recibidos para construir listado de bloques:', integrantes.length);
+        // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
+        const vistos = new Set();
+        const filas = [];
+        for (const t of integrantes) {
+          //console.log('Procesando integrante:', t);
+          const nombre = (t.nombre_completo || '').trim();
+          const clave = nombre.toLowerCase();
+          if (!nombre || vistos.has(clave)) continue;
+          vistos.add(clave);
+
+          const evento = t.id_evento || '';
+          const curso = t.curso || '';
+          const infoBloques = await getInfoBloques(t.curso, t.id_organizacion, t.id_evento);
+          //console.log('Info bloques obtenida para integrante:', t, 'Info bloques:', infoBloques);
+          const bloque = t.bloques;
+          const colorCodigo = infoBloques.color || '';
+
+          // Construcción dinámica de las sublíneas de colores
+          let lineasColorHtml = '';
+
+          if (colorCodigo && typeof colorCodigo === 'object') {
+            // En caso de que sea un objeto { arbol: 'color 1', casa: 'color 2' }
+            lineasColorHtml = Object.entries(colorCodigo).map(([claveColor, valColor]) => {
+              const colorReal = getColorReal(valColor);
+              const colorNombre = getColorNombre(valColor);
+              return `
+                <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                  <span style="flex-shrink:0; width:12px; height:12px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
+                  <span style="font-size:0.8rem; font-weight:600; color:#666; text-transform:capitalize;">${claveColor}: ${colorNombre}</span>
+                </div>
+              `;
+            }).join('');
+          } else {
+            // En caso de que sea una cadena simple o string
+            const colorReal = getColorReal(colorCodigo);
+            const colorNombre = getColorNombre(colorCodigo);
+            lineasColorHtml = `
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
+                ${colorNombre ? `<span style="font-size:0.8rem; font-weight:600; color:#666; text-transform:capitalize;">${colorNombre}</span>` : ''}
+              </div>
+            `;
+          }
+
+          filas.push(`
+            <div style="display:flex; flex-direction:column; gap:6px; padding:10px 0; border-bottom:1px solid #f0f0f0;">
+              <!-- Línea superior: Nombre -->
+              <div style="font-weight:600; color:#333; font-size:0.95rem; word-break:break-word;">
+                ${nombre}
+              </div>
+
+              <!-- Línea inferior: Múltiples o único color, Evento y Bloque -->
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                <!-- Contenedor de colores (una fila por cada clave del objeto) -->
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  ${lineasColorHtml}
+                </div>
+
+                <!-- Evento y Bloque alineados -->
+                <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+                  ${evento ? `<span style="font-size:0.8rem; color:#666; background:#e0e0e0; padding:2px 6px; border-radius:4px;">${evento}</span>` : ''}
+                  <span style="font-weight:700; color:#555; font-size:0.9rem;">${bloque}</span>
+                </div>
+              </div>
+            </div>
+          `);
+        }
+
+        console.log('Filas construidas para el listado de bloques:', filas.length);
+
+        if (filas.length === 0) return '';
+
+        return `
+          <div style="margin-bottom:16px;">
+            <div class="dato-label" style="margin-bottom:6px;">Bloques de la familia</div>
+            ${filas.join('')}
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error al construir el listado de bloques:', error);
+        return '';
+      }
+    }
+
+    // Construye el HTML del listado de bloques por integrante, con su color según el curso.
+    function construirListadoBloques(integrantes, mapaCursos) {
+      if (!integrantes || integrantes.length === 0) return '';
 
     // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
     const vistos = new Set();
@@ -469,7 +628,7 @@
   // Función de inicialización
   async function init() {
     userEmail = await getUserEmail();
-    console.log(`user email cargado: ${userEmail}`);
+    //console.log(`user email cargado: ${userEmail}`);
   }
 
   // Ejecutar inicialización al cargar el script
@@ -480,7 +639,7 @@
       // 1. Intentar obtener de los parámetros de la URL
       const urlParams = new URLSearchParams(window.parent.location.search);
       let user_email = urlParams.get('user_email');
-      console.log(`user_email: ${user_email}`);
+      //console.log(`user_email: ${user_email}`);
 
       // Si viene en la URL y no está vacío, lo retornamos inmediatamente
       if (user_email && user_email.trim() !== '') {
@@ -503,7 +662,7 @@
           ? currentUser.email 
           : null;
 
-        console.log(`[/api/user] correo: ${user_email}`);
+        //console.log(`[/api/user] correo: ${user_email}`);
         return user_email;
       }
 
@@ -600,6 +759,21 @@
     estado.style.color = '#888';
   }
 
+  function simular_escanear_qr(textoQR) {
+    const valor = (textoQR || '').trim();
+
+    if (!valor) {
+      alert('Por favor ingrese la URL o texto del código QR a simular.');
+      return;
+    }
+
+    // Detener la cámara activa si está ejecutándose
+    detenerEscaneo();
+
+    // Procesar el texto del QR
+    procesarQR(valor);
+  }
+  
   function procesarQR(data) {
     const resultadoCard = document.getElementById('resultado-card');
     const resultadoTitulo = document.getElementById('resultado-titulo');
@@ -611,11 +785,12 @@
 
     // Intentar parsear como URL con parámetros de entrada
     try {
-      console.log(`procesarQR: ${data}`);
+      //console.log(`procesarQR: ${data}`);
       const url = new URL(data);
       const params = url.searchParams;
 
       if (params.has('familia') || params.has('folio')) {
+        //console.log('QR válido detectado con parámetros de entrada: ', params);
         // Es un QR de entrada válido
         const familia = params.get('familia') || '—';
         const jornada = params.get('jornada') || '—';
@@ -626,10 +801,14 @@
         const bloques = params.get('bloques') || '—';
         const numListado = params.get('num_listado') || '—';
         const total = params.get('total') || '—';
+        const id_organizacion = params.get('organizacion') || '—';
+        const id_evento = params.get('evento') || '—';
 
         const jornadaMap = { 'manana': 'Mañana', 'tarde': 'Tarde' };
         const jornadaDisplay = jornadaMap[jornada] || jornada;
         const serial = String(folio).padStart(4, '0');
+
+        //console.log(`jornadaDisplay: ${jornadaDisplay}, serial: ${serial}`);
 
         // Mostrar de inmediato el card con un indicador de carga mientras se
         // consultan la configuración, la familia y el estado del ticket en BD.
@@ -644,13 +823,13 @@
         `;
         if (btnEscanearOtro) btnEscanearOtro.style.display = 'none';
         resultadoCard.style.display = 'block';
-
+        console.log('Consultando estado del ticket en BD para folio:', folio);
         // Consultar estado del ticket en BD
       fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
       .then ( res => res.json() )
       .then ( async config_json => {
         const apiKey = config_json.apiKey;
-        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}`,{
+        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}&organizacion=${encodeURIComponent(id_organizacion)}&evento=${encodeURIComponent(id_evento)}`,{
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -659,15 +838,20 @@
         })
           .then(res => res.json())
           .then(async info => {
+            //console.log('Info de la entrada consultada:', info);
             // Cargar en paralelo el mapa de cursos y los integrantes de la familia
             // para poder listar los bloques (con su color) antes del detalle.
+            //console.log('Cargando mapa de cursos y obteniendo integrantes de la familia: ', familia);
             const [mapaCursos, integrantes] = await Promise.all([
               cargarMapaCursosBloque(),
-              obtenerIntegrantesFamilia(familia, config_json.apiKey)
+              obtenerIntegrantesFamilia(familia, id_organizacion, id_evento, config_json.apiKey)
             ]);
-            const listadoBloquesHtml = construirListadoBloques(integrantes, mapaCursos);
+            console.log('Integrantes de la familia obtenidos:', integrantes);
+            //const listadoBloquesHtml = construirListadoBloques(integrantes, mapaCursos);
+            const listadoBloquesHtml = await construirListadoBloquesDeLaEntrada(integrantes, bloques, id_evento, id_organizacion);
+            //console.log('Listado de bloques HTML construido:', listadoBloquesHtml);
 
-            if (info.usado || info.estado != 'activa') {
+            if (info.estado != 'activa') {
               // TICKET YA FUE USADO
               const validador = info.validado_por_nombre || info.validado_por || '—';
               resultadoCard.className = 'resultado-card error';
@@ -690,7 +874,7 @@
                 ${listadoBloquesHtml}
                 <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
                 <div class="dato-row"><span class="dato-label">Invitados</span><span class="dato-value">${info.cantidad_invitados || 0}</span></div>
-                <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+                <button id="btn-validar-entrada" onclick="validarEntrada('${id_organizacion}', '${id_evento}', ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
                   🎫 VALIDAR ENTRADA
                 </button>
               `;
@@ -704,7 +888,7 @@
             resultadoTitulo.textContent = '✅ Entrada (sin verificar en BD)';
             resultadoContenido.innerHTML = `
               <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-              <button id="btn-validar-entrada" onclick="validarEntrada(${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
+              <button id="btn-validar-entrada" onclick="validarEntrada('${id_organizacion}', '${id_evento}', ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
                 🎫 VALIDAR ENTRADA
               </button>
             `;
@@ -737,7 +921,7 @@
     }
   }
 
-  async function validarEntrada(folio) {
+  async function validarEntrada(id_organizacion, id_evento, folio) {
     const btn = document.getElementById('btn-validar-entrada');
     btn.disabled = true;
     btn.textContent = '⏳ Validando...';
@@ -750,7 +934,7 @@
         const res = await fetch('/api/entrada/validar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey },
-          body: JSON.stringify({ folio: parseInt(folio), email: userEmail })
+          body: JSON.stringify({ id_organizacion, id_evento, folio: parseInt(folio), email: userEmail })
         });
 
         const data = await res.json();
@@ -796,8 +980,58 @@
       }, 3000);
     }
   }
+
+  async function aplicarOpcionesFeature() {
+    try {
+      //const features_keys = ['flow', 'mercadopago', 'btn_pagar'];
+      const id_organizacion = "cpa_patrona";
+      const id_pagina = window.location.pathname.split('/').pop();
+      const feature = 'contenedor_simulacion_qr';
+      const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+      if (!response.ok) {
+        throw new Error('Error al obtener la configuración de características');
+      }
+      
+      // Formato esperado de la respuesta JSON:
+      // [
+      //  { feature: 'flow', enabled: true }, // Habilitar Flow
+      //  { feature: 'mercadopago', enabled: false }, // Habilitar Mercado Pago
+      //  { feature: 'btn_pagar', enabled: false } // Habilitar botón de Pagar
+      // ]
+      const feature_sim_qr = await response.json();
+      //console.log('Features obtenidos:', features);
+      //const feature_flow = features.find(f => f.feature === 'flow');
+
+      if (feature_sim_qr.enabled === true) {
+        mostrarSimuladorQR();
+      } else {
+        ocultarSimuladorQR();
+      }
+    } catch (error) {
+      console.error('Error al cargar características dinámicas:', error);
+    }
+  }
+
+  
+// Función para ocultar el bloque
+function ocultarSimuladorQR() {
+  const contenedor = document.getElementById('contenedor_simulacion_qr');
+  if (contenedor) {
+    contenedor.style.display = 'none';
+  }
+}
+
+// Función para volver a mostrarlo si lo necesitas
+function mostrarSimuladorQR() {
+  const contenedor = document.getElementById('contenedor_simulacion_qr');
+  if (contenedor) {
+    contenedor.style.display = 'flex'; // Usamos 'flex' porque es el layout original del HTML
+  }
+}
+  
   // Iniciar escaneo automáticamente al cargar la página
-  window.addEventListener('load', () => {
+  window.addEventListener('load', async () => {
+    await aplicarOpcionesFeature();
     iniciarEscaneo();
   });
 </script>

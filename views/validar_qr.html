@@ -430,10 +430,11 @@
   }
 
   // Devuelve los integrantes (tickets) asociados a una familia, cada uno con su curso.
-  async function obtenerIntegrantesFamilia(familia, apiKey) {
+  async function obtenerIntegrantesFamilia(familia, id_organizacion, id_evento, apiKey) {
     if (!familia || familia === '—') return [];
+    console.log('Familia a buscar:', familia);
     try {
-      const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(familia)}`, {
+      const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(familia)}&id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
       });
@@ -454,28 +455,32 @@
   }
 
     async function getInfoBloques(id_curso, id_organizacion, id_evento) {
+      console.log('getInfoBloques llamado con id_curso:', id_curso, 'id_organizacion:', id_organizacion, 'id_evento:', id_evento);
       try {
-        fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
-        .then ( res => res.json() )
-        .then ( async config_json => {
-          const apiKey = config_json.apiKey;
-          const resEvento = await fetch(`/api/eventos/buscar?` + new URLSearchParams({id_organizacion, id_evento}), {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey}
-          });
-          if (!resEvento.ok) return null;
-          const infoEvento = await resEvento.json();
-          console.log('infoEvento:', infoEvento);
-          const bloques = infoEvento.cursoBloqueMap || [];
-          console.log('bloques:', bloques);
-          if (typeof bloques === 'object' && bloques !== null) {
-            if (bloques[id_curso])
-              return bloques[id_curso];
-            else 
-              return Object.values(bloques)[0];
-          }
-          return null;
+        console.log('Fetching config for userEmail:', userEmail);
+        const res = await fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
+        const config_json = await res.json();
+        const apiKey = config_json.apiKey;
+        console.log('id_organizacion:', id_organizacion, 'id_evento:', id_evento, 'apiKey:', apiKey);
+        const resEvento = await fetch(`/api/eventos/buscar?` + new URLSearchParams({id_organizacion, id_evento}), {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey}
         });
+        if (!resEvento.ok) {
+          console.error('Error fetching event info:', resEvento.status, resEvento.statusText);
+          return null;
+        }
+        const infoEvento = await resEvento.json();
+        console.log('infoEvento:', infoEvento);
+        const bloques = infoEvento.cursoBloqueMap || [];
+        console.log('bloques:', bloques);
+        if (typeof bloques === 'object' && bloques !== null) {
+          if (bloques[id_curso])
+            return bloques[id_curso];
+          else 
+            return Object.values(bloques)[0];
+        }
+        return null;
       } catch (err) {
         console.error('Error obteniendo info de bloques:', err);
         return null;
@@ -484,43 +489,55 @@
 
     // Construye el HTML del listado de bloques por integrante, con su color según el curso.
     async function construirListadoBloquesDeLaEntrada(integrantes, bloques_entrada, id_evento, id_organizacion) {
-      if (!integrantes || integrantes.length === 0) return '';
+      try {
+        if (!integrantes || integrantes.length === 0) {
+          console.warn('No hay integrantes para construir el listado de bloques.');
+          return '';
+        }
 
-    // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
-    const vistos = new Set();
-    const filas = [];
-    for (const t of integrantes) {
-      const nombre = (t.nombre_completo || '').trim();
-      const clave = nombre.toLowerCase();
-      if (!nombre || vistos.has(clave)) continue;
-      vistos.add(clave);
+        console.log('Integrantes recibidos para construir listado de bloques:', integrantes.length);
+        // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
+        const vistos = new Set();
+        const filas = [];
+        for (const t of integrantes) {
+          console.log('Procesando integrante:', t);
+          const nombre = (t.nombre_completo || '').trim();
+          const clave = nombre.toLowerCase();
+          if (!nombre || vistos.has(clave)) continue;
+          vistos.add(clave);
 
-      const evento = t.id_evento || '';
-      const curso = t.curso || '';
-      const infoBloques = await getInfoBloques(t.curso, t.organizacion, t.id_evento);
-      const bloque = t.bloques;
-      const colorReal = infoBloques.color || '';
-      const colorNombre = getColorNombre(colorCodigo);
+          const evento = t.id_evento || '';
+          const curso = t.curso || '';
+          const infoBloques = await getInfoBloques(t.curso, t.id_organizacion, t.id_evento);
+          const bloque = t.bloques;
+          const colorReal = infoBloques.color || '';
+          const colorNombre = getColorNombre(colorReal);
 
-      filas.push(`
-        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
-          <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
-          <span style="flex:1; font-weight:600; color:#333; font-size:0.95rem;">${nombre}</span>
-          ${evento ? `<span style="flex-shrink:0; font-size:0.8rem; color:#666; background:#e0e0e0; padding:2px 6px; border-radius:4px;">${evento}</span>` : ''}
-          <span style="flex-shrink:0; font-weight:700; color:#555; font-size:0.9rem;">${bloque}</span>
-        </div>
-      `);
+          filas.push(`
+            <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+              <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
+              <span style="flex:1; font-weight:600; color:#333; font-size:0.95rem;">${nombre}</span>
+              ${evento ? `<span style="flex-shrink:0; font-size:0.8rem; color:#666; background:#e0e0e0; padding:2px 6px; border-radius:4px;">${evento}</span>` : ''}
+              <span style="flex-shrink:0; font-weight:700; color:#555; font-size:0.9rem;">${bloque}</span>
+            </div>
+          `);
+        }
+
+        console.log('Filas construidas para el listado de bloques:', filas.length);
+
+        if (filas.length === 0) return '';
+
+        return `
+          <div style="margin-bottom:16px;">
+            <div class="dato-label" style="margin-bottom:6px;">Bloques de la familia</div>
+            ${filas.join('')}
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error al construir el listado de bloques:', error);
+        return '';
+      }
     }
-
-    if (filas.length === 0) return '';
-
-    return `
-      <div style="margin-bottom:16px;">
-        <div class="dato-label" style="margin-bottom:6px;">Bloques de la familia</div>
-        ${filas.join('')}
-      </div>
-    `;
-  }
 
     // Construye el HTML del listado de bloques por integrante, con su color según el curso.
     function construirListadoBloques(integrantes, mapaCursos) {
@@ -564,7 +581,7 @@
   // Función de inicialización
   async function init() {
     userEmail = await getUserEmail();
-    console.log(`user email cargado: ${userEmail}`);
+    //console.log(`user email cargado: ${userEmail}`);
   }
 
   // Ejecutar inicialización al cargar el script
@@ -598,7 +615,7 @@
           ? currentUser.email 
           : null;
 
-        console.log(`[/api/user] correo: ${user_email}`);
+        //console.log(`[/api/user] correo: ${user_email}`);
         return user_email;
       }
 
@@ -721,11 +738,12 @@
 
     // Intentar parsear como URL con parámetros de entrada
     try {
-      console.log(`procesarQR: ${data}`);
+      //console.log(`procesarQR: ${data}`);
       const url = new URL(data);
       const params = url.searchParams;
 
       if (params.has('familia') || params.has('folio')) {
+        //console.log('QR válido detectado con parámetros de entrada: ', params);
         // Es un QR de entrada válido
         const familia = params.get('familia') || '—';
         const jornada = params.get('jornada') || '—';
@@ -743,6 +761,8 @@
         const jornadaDisplay = jornadaMap[jornada] || jornada;
         const serial = String(folio).padStart(4, '0');
 
+        //console.log(`jornadaDisplay: ${jornadaDisplay}, serial: ${serial}`);
+
         // Mostrar de inmediato el card con un indicador de carga mientras se
         // consultan la configuración, la familia y el estado del ticket en BD.
         const btnEscanearOtro = document.getElementById('btn-escanear-otro');
@@ -756,13 +776,13 @@
         `;
         if (btnEscanearOtro) btnEscanearOtro.style.display = 'none';
         resultadoCard.style.display = 'block';
-
+        console.log('Consultando estado del ticket en BD para folio:', folio);
         // Consultar estado del ticket en BD
       fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
       .then ( res => res.json() )
       .then ( async config_json => {
         const apiKey = config_json.apiKey;
-        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}&id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`,{
+        fetch(`/api/entrada/consultar?tipo_output=json&folio=${encodeURIComponent(folio)}&organizacion=${encodeURIComponent(id_organizacion)}&evento=${encodeURIComponent(id_evento)}`,{
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -771,16 +791,20 @@
         })
           .then(res => res.json())
           .then(async info => {
+            //console.log('Info de la entrada consultada:', info);
             // Cargar en paralelo el mapa de cursos y los integrantes de la familia
             // para poder listar los bloques (con su color) antes del detalle.
+            //console.log('Cargando mapa de cursos y obteniendo integrantes de la familia: ', familia);
             const [mapaCursos, integrantes] = await Promise.all([
               cargarMapaCursosBloque(),
-              obtenerIntegrantesFamilia(familia, config_json.apiKey)
+              obtenerIntegrantesFamilia(familia, id_organizacion, id_evento, config_json.apiKey)
             ]);
+            //console.log('Integrantes de la familia obtenidos:', integrantes);
             //const listadoBloquesHtml = construirListadoBloques(integrantes, mapaCursos);
-            const listadoBloquesHtml = construirListadoBloquesDeLaEntrada(integrantes, bloques, id_evento, id_organizacion);
+            const listadoBloquesHtml = await construirListadoBloquesDeLaEntrada(integrantes, bloques, id_evento, id_organizacion);
+            console.log('Listado de bloques HTML construido:', listadoBloquesHtml);
 
-            if (info.usado || info.estado != 'activa') {
+            if (info.estado != 'activa') {
               // TICKET YA FUE USADO
               const validador = info.validado_por_nombre || info.validado_por || '—';
               resultadoCard.className = 'resultado-card error';

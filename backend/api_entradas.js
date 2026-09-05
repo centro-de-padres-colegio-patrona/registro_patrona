@@ -230,6 +230,9 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
     const { q } = req.query;
     const id_organizacion = req.query.id_organizacion;
     const id_evento = req.query.id_evento;
+    //remove id_organizacion and id_evento from q if needed (not used in search)
+    delete q.id_organizacion;
+    delete q.id_evento;
     if (!q || q.trim().length < 2) {
       return res.status(400).json({ error: 'Ingrese al menos 2 caracteres para buscar' });
     }
@@ -293,7 +296,22 @@ router.get('/entrada/listar', apiKeyAuth, async (req, res) => {
 router.get('/entrada/consultar', async (req, res) => {
   try {
     const { organizacion, evento, folio, familia, tipo_output = 'html' } = req.query;
-    if (!folio || !organizacion || !evento) {
+    if (!organizacion) {
+      console.log('Falta el parámetro organizacion');
+      if (tipo_output === 'json') {
+        return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro organizacion' });
+      }
+      return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "organizacion" es requerido.</h2>');
+    }
+    if (!evento) {
+      console.log('Falta el parámetro evento');
+      if (tipo_output === 'json') {
+        return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro evento' });
+      }
+      return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "evento" es requerido.</h2>');
+    }
+    if (!folio) {
+      console.log('Falta el parámetro folio');
       if (tipo_output === 'json') {
         return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro folio' });
       }

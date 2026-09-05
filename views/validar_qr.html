@@ -432,15 +432,17 @@
   // Devuelve los integrantes (tickets) asociados a una familia, cada uno con su curso.
   async function obtenerIntegrantesFamilia(familia, id_organizacion, id_evento, apiKey) {
     if (!familia || familia === '—') return [];
-    console.log('Familia a buscar:', familia);
+    //console.log('Familia a buscar:', familia);
     try {
       const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(familia)}&id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
       });
       if (!res.ok) return [];
-      const tickets = await res.json();
+      const tickets = await res.json().filter(t => t.id_organizacion == id_organizacion && t.id_evento == id_evento);
       if (!Array.isArray(tickets)) return [];
+
+      console.log('Tickets obtenidos de la búsqueda:', tickets.length);
       // Solo estudiantes de esa familia (comparación tolerante a mayúsculas/espacios)
       const normalizar = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
       const familiaNorm = normalizar(familia);
@@ -455,13 +457,13 @@
   }
 
     async function getInfoBloques(id_curso, id_organizacion, id_evento) {
-      console.log('getInfoBloques llamado con id_curso:', id_curso, 'id_organizacion:', id_organizacion, 'id_evento:', id_evento);
+      //console.log('getInfoBloques llamado con id_curso:', id_curso, 'id_organizacion:', id_organizacion, 'id_evento:', id_evento);
       try {
-        console.log('Fetching config for userEmail:', userEmail);
+        //console.log('Fetching config for userEmail:', userEmail);
         const res = await fetch(`/api/config?email=${encodeURIComponent(userEmail)}`)
         const config_json = await res.json();
         const apiKey = config_json.apiKey;
-        console.log('id_organizacion:', id_organizacion, 'id_evento:', id_evento, 'apiKey:', apiKey);
+        //console.log('id_organizacion:', id_organizacion, 'id_evento:', id_evento, 'apiKey:', apiKey);
         const resEvento = await fetch(`/api/eventos/buscar?` + new URLSearchParams({id_organizacion, id_evento}), {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey}
@@ -495,7 +497,7 @@
           return '';
         }
 
-        console.log('Integrantes recibidos para construir listado de bloques:', integrantes.length);
+        //console.log('Integrantes recibidos para construir listado de bloques:', integrantes.length);
         // Evitar duplicados por nombre (una familia puede tener varias entradas por estudiante)
         const vistos = new Set();
         const filas = [];
@@ -509,9 +511,12 @@
           const evento = t.id_evento || '';
           const curso = t.curso || '';
           const infoBloques = await getInfoBloques(t.curso, t.id_organizacion, t.id_evento);
+          console.log('Info bloques obtenida para integrante:', t, 'Info bloques:', infoBloques);
           const bloque = t.bloques;
           const colorReal = infoBloques.color || '';
           const colorNombre = getColorNombre(colorReal);
+
+          console.log('Color real:', colorReal, 'Color nombre:', colorNombre);
 
           filas.push(`
             <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
@@ -592,7 +597,7 @@
       // 1. Intentar obtener de los parámetros de la URL
       const urlParams = new URLSearchParams(window.parent.location.search);
       let user_email = urlParams.get('user_email');
-      console.log(`user_email: ${user_email}`);
+      //console.log(`user_email: ${user_email}`);
 
       // Si viene en la URL y no está vacío, lo retornamos inmediatamente
       if (user_email && user_email.trim() !== '') {
@@ -799,10 +804,10 @@
               cargarMapaCursosBloque(),
               obtenerIntegrantesFamilia(familia, id_organizacion, id_evento, config_json.apiKey)
             ]);
-            //console.log('Integrantes de la familia obtenidos:', integrantes);
+            console.log('Integrantes de la familia obtenidos:', integrantes);
             //const listadoBloquesHtml = construirListadoBloques(integrantes, mapaCursos);
             const listadoBloquesHtml = await construirListadoBloquesDeLaEntrada(integrantes, bloques, id_evento, id_organizacion);
-            console.log('Listado de bloques HTML construido:', listadoBloquesHtml);
+            //console.log('Listado de bloques HTML construido:', listadoBloquesHtml);
 
             if (info.estado != 'activa') {
               // TICKET YA FUE USADO

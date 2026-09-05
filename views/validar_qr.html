@@ -328,7 +328,7 @@
 <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
 
   <!-- Sección para simulación manual de QR -->
-  <div style="display: flex; gap: 8px; flex-direction: column;">
+  <div id="contenedor_simulacion_qr" style="display: flex; gap: 8px; flex-direction: column;">
     <label for="input-qr-simulado" style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase;">
       Simular Escaneo Manual
     </label>
@@ -874,7 +874,7 @@
                 ${listadoBloquesHtml}
                 <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
                 <div class="dato-row"><span class="dato-label">Invitados</span><span class="dato-value">${info.cantidad_invitados || 0}</span></div>
-                <button id="btn-validar-entrada" onclick="validarEntrada(${id_organizacion}, ${id_evento}, ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+                <button id="btn-validar-entrada" onclick="validarEntrada('${id_organizacion}', '${id_evento}', ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
                   🎫 VALIDAR ENTRADA
                 </button>
               `;
@@ -888,7 +888,7 @@
             resultadoTitulo.textContent = '✅ Entrada (sin verificar en BD)';
             resultadoContenido.innerHTML = `
               <div class="dato-row"><span class="dato-label">Familia</span><span class="dato-value">${familia}</span></div>
-              <button id="btn-validar-entrada" onclick="validarEntrada(${id_organizacion}, ${id_evento}, ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
+              <button id="btn-validar-entrada" onclick="validarEntrada('${id_organizacion}', '${id_evento}', ${folio})" style="width:100%; padding:16px; margin-top:18px; background:#e74c3c; color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:700; cursor:pointer;">
                 🎫 VALIDAR ENTRADA
               </button>
             `;
@@ -980,8 +980,58 @@
       }, 3000);
     }
   }
+
+  async function aplicarOpcionesFeature() {
+    try {
+      //const features_keys = ['flow', 'mercadopago', 'btn_pagar'];
+      const id_organizacion = "cpa_patrona";
+      const id_pagina = window.location.pathname.split('/').pop();
+      const feature = 'contenedor_simulacion_qr';
+      const response = await fetch(`/api/feature/options?id_organizacion=${encodeURIComponent(id_organizacion)}&id_pagina=${encodeURIComponent(id_pagina)}&feature=${encodeURIComponent(feature)}&default=false`);
+      if (!response.ok) {
+        throw new Error('Error al obtener la configuración de características');
+      }
+      
+      // Formato esperado de la respuesta JSON:
+      // [
+      //  { feature: 'flow', enabled: true }, // Habilitar Flow
+      //  { feature: 'mercadopago', enabled: false }, // Habilitar Mercado Pago
+      //  { feature: 'btn_pagar', enabled: false } // Habilitar botón de Pagar
+      // ]
+      const feature_sim_qr = await response.json();
+      //console.log('Features obtenidos:', features);
+      //const feature_flow = features.find(f => f.feature === 'flow');
+
+      if (feature_sim_qr.enabled === true) {
+        mostrarSimuladorQR();
+      } else {
+        ocultarSimuladorQR();
+      }
+    } catch (error) {
+      console.error('Error al cargar características dinámicas:', error);
+    }
+  }
+
+  
+// Función para ocultar el bloque
+function ocultarSimuladorQR() {
+  const contenedor = document.getElementById('contenedor_simulacion_qr');
+  if (contenedor) {
+    contenedor.style.display = 'none';
+  }
+}
+
+// Función para volver a mostrarlo si lo necesitas
+function mostrarSimuladorQR() {
+  const contenedor = document.getElementById('contenedor_simulacion_qr');
+  if (contenedor) {
+    contenedor.style.display = 'flex'; // Usamos 'flex' porque es el layout original del HTML
+  }
+}
+  
   // Iniciar escaneo automáticamente al cargar la página
-  window.addEventListener('load', () => {
+  window.addEventListener('load', async () => {
+    await aplicarOpcionesFeature();
     iniciarEscaneo();
   });
 </script>

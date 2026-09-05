@@ -34,7 +34,6 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
   test_array.push({test_fn: test_post_api_correos_tipo, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_delete_user, delay: delay_ms, arguments: url_server});
   test_array.push({test_fn: test_consulta_hijos_registrados, delay: delay_ms, arguments: url_server});
-  //test_array.push({test_fn: test_activar_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_desactivar_entradas, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_crear_perfiles, delay: delay_ms, arguments: url_server});
   //test_array.push({test_fn: test_api_eliminar_perfiles, delay: delay_ms, arguments: url_server});
@@ -99,6 +98,10 @@ async function lauch_test_api(delay_ms = 500, url_server = 'http://localhost:500
 
   if ( config_env.TEST_API_MERGEAR_HERMANOS && config_env.TEST_API_MERGEAR_HERMANOS === 'true') {
     test_array.push({test_fn: test_api_mergear_hermanos, delay: delay_ms, arguments: url_server});
+  }
+
+  if ( config_env.TEST_API_ACTIVAR_ENTRADAS && config_env.TEST_API_ACTIVAR_ENTRADAS === 'true') {
+    test_array.push({test_fn: test_activar_entradas, delay: delay_ms, arguments: url_server});
   }
 
   let test_name = ''

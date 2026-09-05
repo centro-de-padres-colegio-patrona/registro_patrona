@@ -518,44 +518,56 @@
           //console.log('Info bloques obtenida para integrante:', t, 'Info bloques:', infoBloques);
           const bloque = t.bloques;
           const colorCodigo = infoBloques.color || '';
-          if (typeof colorCodigo === 'string') {
+
+          // Construcción dinámica de las sublíneas de colores
+          let lineasColorHtml = '';
+
+          if (colorCodigo && typeof colorCodigo === 'object') {
+            // En caso de que sea un objeto { arbol: 'color 1', casa: 'color 2' }
+            lineasColorHtml = Object.entries(colorCodigo).map(([claveColor, valColor]) => {
+              const colorReal = getColorReal(valColor);
+              const colorNombre = getColorNombre(valColor);
+              return `
+                <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                  <span style="flex-shrink:0; width:12px; height:12px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
+                  <span style="font-size:0.8rem; font-weight:600; color:#666; text-transform:capitalize;">${claveColor}: ${colorNombre}</span>
+                </div>
+              `;
+            }).join('');
+          } else {
+            // En caso de que sea una cadena simple o string
             const colorReal = getColorReal(colorCodigo);
             const colorNombre = getColorNombre(colorCodigo);
+            lineasColorHtml = `
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
+                ${colorNombre ? `<span style="font-size:0.8rem; font-weight:600; color:#666; text-transform:capitalize;">${colorNombre}</span>` : ''}
+              </div>
+            `;
+          }
 
-            console.log('Color real:', colorReal, 'Color nombre:', colorNombre);
+          filas.push(`
+            <div style="display:flex; flex-direction:column; gap:6px; padding:10px 0; border-bottom:1px solid #f0f0f0;">
+              <!-- Línea superior: Nombre -->
+              <div style="font-weight:600; color:#333; font-size:0.95rem; word-break:break-word;">
+                ${nombre}
+              </div>
 
-            filas.push(`
-              <div style="display:flex; flex-direction:column; gap:6px; padding:10px 0; border-bottom:1px solid #f0f0f0;">
-                <!-- Línea superior: Nombre -->
-                <div style="font-weight:600; color:#333; font-size:0.95rem; word-break:break-word;">
-                  ${nombre}
+              <!-- Línea inferior: Múltiples o único color, Evento y Bloque -->
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                <!-- Contenedor de colores (una fila por cada clave del objeto) -->
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  ${lineasColorHtml}
                 </div>
 
-                <!-- Línea inferior: Círculo, Color, Evento y Bloque -->
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                  <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
-                  ${colorNombre ? `<span style="font-size:0.8rem; font-weight:600; color:#666; text-transform:capitalize;">${colorNombre}</span>` : ''}
+                <!-- Evento y Bloque alineados -->
+                <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
                   ${evento ? `<span style="font-size:0.8rem; color:#666; background:#e0e0e0; padding:2px 6px; border-radius:4px;">${evento}</span>` : ''}
-                  <span style="font-weight:700; color:#555; font-size:0.9rem; margin-left:auto;">${bloque}</span>
+                  <span style="font-weight:700; color:#555; font-size:0.9rem;">${bloque}</span>
                 </div>
               </div>
-            `);
-          } else {
-            // El color es un objeto clave: color, y cada color debe quedar en una línea separada con su respectivo círculo y clave.
-            for (const claveColor in colorCodigo) {
-              if (colorCodigo.hasOwnProperty(claveColor)) {
-                const colorReal = getColorReal(colorCodigo[claveColor]);
-                const colorNombre = getColorNombre(colorCodigo[claveColor]);
-
-                filas.push(`
-                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:4px 0;">
-                    <span style="flex-shrink:0; width:14px; height:14px; border-radius:50%; background:${colorReal}; border:1px solid rgba(0,0,0,0.15);" title="${colorNombre}"></span>
-                    <span style="font-size:0.8rem; font-weight:600; color:#666; text-transform:capitalize;">${claveColor}</span>
-                  </div>
-                `);
-              }
-            }
-          }
+            </div>
+          `);
         }
 
         console.log('Filas construidas para el listado de bloques:', filas.length);

@@ -350,7 +350,7 @@
       // 1. Intentar obtener de los parámetros de la URL
       const urlParams = new URLSearchParams(window.parent.location.search);
       let user_email = urlParams.get('user_email');
-      console.log(`user_email: ${user_email}`);
+      //console.log(`user_email: ${user_email}`);
 
       // Si viene en la URL y no está vacío, lo retornamos inmediatamente
       if (user_email && user_email.trim() !== '') {
@@ -373,7 +373,7 @@
           ? currentUser.email 
           : null;
 
-        console.log(`[/api/user] correo: ${user_email}`);
+        //console.log(`[/api/user] correo: ${user_email}`);
         return user_email;
       }
 
@@ -385,81 +385,91 @@
   }
 
   async function buscar() {
-    const q = document.getElementById('inp-busqueda').value.trim();
-    const estadoMsg = document.getElementById('estado-msg');
-    const resultadoCount = document.getElementById('resultado-count');
-    const tablaContainer = document.getElementById('tabla-resultados');
-    const cardsContainer = document.getElementById('cards-resultados');
-
-    // Si el campo está vacío, mostrar listado completo
-    if (q.length === 0) {
-      tablaContainer.classList.remove('visible');
-      cardsContainer.innerHTML = '';
-      resultadoCount.style.display = 'none';
-      estadoMsg.textContent = '';
-      document.getElementById('tabla-listado-all').style.display = '';
-      document.getElementById('cards-all-resultados').style.display = '';
-      document.getElementById('paginador').style.display = 'flex';
-      cargarTodasEntradas(1);
-      return;
-    }
-
-    if (q.length < 2) {
-      estadoMsg.textContent = 'Ingrese al menos 2 caracteres';
-      estadoMsg.style.color = '#e74c3c';
-      return;
-    }
-
-    // Ocultar listado completo al buscar
-    document.getElementById('tabla-listado-all').style.display = 'none';
-    document.getElementById('cards-all-resultados').style.display = 'none';
-    document.getElementById('paginador').style.display = 'none';
-
-    estadoMsg.textContent = 'Buscando...';
-    estadoMsg.style.color = '#888';
-
+    //console.log(`Iniciando búsqueda de entradas con supervisorEmail: ${supervisorEmail}`);
     try {
-      fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`)
-      .then ( res => res.json() )
-      .then ( async config_json => {
-        const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(q)}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey }
-          }
-        );
-        const datos = await res.json();
+      const q = document.getElementById('inp-busqueda').value.trim();
+      const estadoMsg = document.getElementById('estado-msg');
+      const resultadoCount = document.getElementById('resultado-count');
+      const tablaContainer = document.getElementById('tabla-resultados');
+      const cardsContainer = document.getElementById('cards-resultados');
 
-        if (!res.ok) {
-          estadoMsg.textContent = datos.error || 'Error en la búsqueda';
-          estadoMsg.style.color = '#e74c3c';
-          return;
-        }
-
-        if (datos.length === 0) {
-          estadoMsg.textContent = 'No se encontraron entradas con esa búsqueda';
-          estadoMsg.style.color = '#e74c3c';
-          tablaContainer.classList.remove('visible');
-          cardsContainer.innerHTML = '';
-          resultadoCount.style.display = 'none';
-          return;
-        }
-
+      // Si el campo está vacío, mostrar listado completo
+      if (q.length === 0) {
+        tablaContainer.classList.remove('visible');
+        cardsContainer.innerHTML = '';
+        resultadoCount.style.display = 'none';
         estadoMsg.textContent = '';
-        resultadoCount.textContent = `${datos.length} entrada(s) encontrada(s)`;
-        resultadoCount.style.display = 'block';
-
-        renderTabla(datos);
-        renderCards(datos);
-        // Mostrar tabla (en mobile el CSS la oculta con !important)
-        tablaContainer.classList.add('visible');
-      })
-      .catch( err => {
-        console.error(`User ${supervisorEmail} has not access rights`);
-        estadoMsg.textContent = 'Usuario sin permisos de acceso';
+        document.getElementById('tabla-listado-all').style.display = '';
+        document.getElementById('cards-all-resultados').style.display = '';
+        document.getElementById('paginador').style.display = 'flex';
+        cargarTodasEntradas(1);
+        return;
+      }
+      //console.log(`Buscar entradas con query: ${q}`);
+      if (q.length < 2) {
+        estadoMsg.textContent = 'Ingrese al menos 2 caracteres';
         estadoMsg.style.color = '#e74c3c';
-      });
+        return;
+      }
+
+      // Ocultar listado completo al buscar
+      document.getElementById('tabla-listado-all').style.display = 'none';
+      document.getElementById('cards-all-resultados').style.display = 'none';
+      document.getElementById('paginador').style.display = 'none';
+
+      estadoMsg.textContent = 'Buscando...';
+      estadoMsg.style.color = '#888';
+
+      try {
+        //console.log(`Obteniendo configuración para el email: ${supervisorEmail}`);
+        fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`)
+        .then ( res => res.json() )
+        .then ( async config_json => {
+          //console.log(`fetching api/entrada/buscar?q=${encodeURIComponent(q)}: `);
+          const res = await fetch(`/api/entrada/buscar?q=${encodeURIComponent(q)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': config_json.apiKey }
+            }
+          );
+          const datos = await res.json();
+          if (!res.ok) {
+            console.error(`Error en la búsqueda: ${res.status} ${res.statusText}`);
+            estadoMsg.textContent = datos.error || 'Error en la búsqueda';
+            estadoMsg.style.color = '#e74c3c';
+            return;
+          }
+
+          //console.log(`Datos obtenidos: `, datos);
+          if (datos.length === 0) {
+            estadoMsg.textContent = 'No se encontraron entradas con esa búsqueda';
+            estadoMsg.style.color = '#e74c3c';
+            tablaContainer.classList.remove('visible');
+            cardsContainer.innerHTML = '';
+            resultadoCount.style.display = 'none';
+            return;
+          }
+
+          estadoMsg.textContent = '';
+          resultadoCount.textContent = `${datos.length} entrada(s) encontrada(s)`;
+          resultadoCount.style.display = 'block';
+
+          renderTabla(datos);
+          renderCards(datos);
+          // Mostrar tabla (en mobile el CSS la oculta con !important)
+          tablaContainer.classList.add('visible');
+        })
+        .catch( err => {
+          console.error(`User ${supervisorEmail} has not access rights`);
+          estadoMsg.textContent = 'Usuario sin permisos de acceso';
+          estadoMsg.style.color = '#e74c3c';
+        });
+      } catch (err) {
+        estadoMsg.textContent = 'Error de conexión';
+        estadoMsg.style.color = '#e74c3c';
+      }
     } catch (err) {
-      estadoMsg.textContent = 'Error de conexión';
+      console.error(err);
+      estadoMsg.textContent = 'Error inesperado';
       estadoMsg.style.color = '#e74c3c';
     }
   }
@@ -509,23 +519,26 @@
       const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
       const esUsado = t.usado === true;
 
+      console.log('Rendering:', t);
+
       const card = document.createElement('div');
       card.className = `ticket-card-item ${esUsado ? 'usado' : ''}`;
       card.innerHTML = `
-        <div class="card-row"><span class="card-label">Organizacion</span><span class="card-value">${t.organizacion || '—'}</span></div>
-        <div class="card-row"><span class="card-label">Evento</span><span class="card-value">${t.evento || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Organizacion</span><span class="card-value">${t.id_organizacion || '—'}</span></div>
+        <div class="card-row"><span class="card-label">Evento</span><span class="card-value">${t.id_evento || '—'}</span></div>
         <div class="card-row"><span class="card-label">N° Entrada</span><span class="card-value">${serial}</span></div>
+        <div class="card-row"><span class="card-label">Bloques</span><span class="card-value">${t.bloques || '—'}</span></div>
         <div class="card-row"><span class="card-label">Nombre</span><span class="card-value">${t.nombre_completo || '—'}</span></div>
         <div class="card-row"><span class="card-label">Familia</span><span class="card-value">${t.familia || '—'}</span></div>
         <div class="card-row"><span class="card-label">Tipo</span><span class="card-value">${t.tipo || '—'}</span></div>
         <div class="card-row"><span class="card-label">Jornada</span><span class="card-value">${jornadaDisplay}</span></div>
         <div class="card-row"><span class="card-label">Curso</span><span class="card-value">${t.curso || '—'}</span></div>
-        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-estado-${t.organizacion}-${t.evento}-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
-        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-validador-${t.organizacion}-${t.evento}-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
-        <div class="card-actions" id="card-accion-${t.organizacion}-${t.evento}-${t.folio}">
+        <div class="card-row"><span class="card-label">Estado</span><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}" id="card-estado-${t.id_organizacion}-${t.id_evento}-${t.folio}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></div>
+        <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
+        <div class="card-actions" id="card-accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.organizacion}, ${t.evento}, ${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.organizacion}, ${t.evento}, ${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
           }
         </div>
       `;
@@ -658,7 +671,7 @@
   let paginaActual = 1;
   const ITEMS_POR_PAGINA = 20;
 
-  async function cargarTodasEntradas(page = 1) {
+  async function cargarTodasEntradas(page = 1, id_organizacion, id_evento) {
     paginaActual = page;
     const infoEl = document.getElementById('listado-total-info');
     infoEl.textContent = 'Cargando entradas...';
@@ -667,7 +680,7 @@
       const configRes = await fetch(`/api/config?email=${encodeURIComponent(supervisorEmail)}`);
       const config = await configRes.json();
 
-      const res = await fetch(`/api/entrada/listar?page=${page}&limit=${ITEMS_POR_PAGINA}&id_organizacion=${encodeURIComponent(organizacionId)}&id_evento=${encodeURIComponent(eventoId)}`, {
+      const res = await fetch(`/api/entrada/listar?page=${page}&limit=${ITEMS_POR_PAGINA}&id_organizacion=${encodeURIComponent(id_organizacion)}&id_evento=${encodeURIComponent(id_evento)}`, {
         headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey }
       });
 
@@ -682,7 +695,7 @@
 
       renderTablaAll(data.entradas);
       renderCardsAll(data.entradas);
-      renderPaginador(data.page, data.totalPages);
+      renderPaginador(data.page, data.totalPages, id_organizacion, id_evento);
     } catch (err) {
       console.error('[cargarTodasEntradas]', err);
       infoEl.textContent = 'Error al cargar entradas';
@@ -750,7 +763,7 @@
     });
   }
 
-  function renderPaginador(paginaActual, totalPaginas) {
+  function renderPaginador(paginaActual, totalPaginas, id_organizacion, id_evento) {
     const paginador = document.getElementById('paginador');
     paginador.innerHTML = '';
 
@@ -761,7 +774,7 @@
     btnPrev.className = 'pag-btn';
     btnPrev.textContent = '← Anterior';
     btnPrev.disabled = paginaActual <= 1;
-    btnPrev.onclick = () => cargarTodasEntradas(paginaActual - 1);
+    btnPrev.onclick = () => cargarTodasEntradas(paginaActual - 1, id_organizacion, id_evento);
     paginador.appendChild(btnPrev);
 
     // Números de página (mostrar máximo 5 alrededor de la actual)
@@ -772,7 +785,7 @@
       const btn1 = document.createElement('button');
       btn1.className = 'pag-btn';
       btn1.textContent = '1';
-      btn1.onclick = () => cargarTodasEntradas(1);
+      btn1.onclick = () => cargarTodasEntradas(1, id_organizacion, id_evento);
       paginador.appendChild(btn1);
       if (inicio > 2) {
         const dots = document.createElement('span');
@@ -786,7 +799,7 @@
       const btn = document.createElement('button');
       btn.className = 'pag-btn' + (i === paginaActual ? ' active' : '');
       btn.textContent = i;
-      btn.onclick = () => cargarTodasEntradas(i);
+      btn.onclick = () => cargarTodasEntradas(i, id_organizacion, id_evento);
       paginador.appendChild(btn);
     }
 
@@ -800,7 +813,7 @@
       const btnLast = document.createElement('button');
       btnLast.className = 'pag-btn';
       btnLast.textContent = totalPaginas;
-      btnLast.onclick = () => cargarTodasEntradas(totalPaginas);
+      btnLast.onclick = () => cargarTodasEntradas(totalPaginas, id_organizacion, id_evento);
       paginador.appendChild(btnLast);
     }
 
@@ -809,12 +822,12 @@
     btnNext.className = 'pag-btn';
     btnNext.textContent = 'Siguiente →';
     btnNext.disabled = paginaActual >= totalPaginas;
-    btnNext.onclick = () => cargarTodasEntradas(paginaActual + 1);
+    btnNext.onclick = () => cargarTodasEntradas(paginaActual + 1, id_organizacion, id_evento);
     paginador.appendChild(btnNext);
   }
 
   // Cargar listado al iniciar (esperar a que init() termine)
-  setTimeout(() => cargarTodasEntradas(1), 1000);
+  setTimeout(() => cargarTodasEntradas(1, 'cpa_patrona', 'fiesta_chilena_2026'), 1000);
 
   async function revertirDesdeTabla(id_organizacion, id_evento, folio, btn) {
     if (!confirm(`¿Revertir entrada N° ${String(folio).padStart(4, '0')} a PENDIENTE?`)) return;

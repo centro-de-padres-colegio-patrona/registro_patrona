@@ -226,13 +226,14 @@ async function agregarNombreValidador(tickets) {
 
 // 2. GET: Buscar Entradas (Supervisor)
 router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
+  const tag = '[/api/entrada/buscar]';
+  console.log(tag, 'Iniciando búsqueda de entradas');
   try {
     const { q } = req.query;
-    const id_organizacion = req.query.id_organizacion;
-    const id_evento = req.query.id_evento;
-    //remove id_organizacion and id_evento from q if needed (not used in search)
-    delete q.id_organizacion;
-    delete q.id_evento;
+    //const id_organizacion = req.query.id_organizacion;
+    //const id_evento = req.query.id_evento;
+    console.log(tag, `Query: ${q}`);
+
     if (!q || q.trim().length < 2) {
       return res.status(400).json({ error: 'Ingrese al menos 2 caracteres para buscar' });
     }
@@ -241,7 +242,10 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
     const busqueda = normalizar(q.trim());
     // Se excluyen las entradas anuladas (borrado lógico): no deben aparecer en
     // los resultados de búsqueda.
-    const todos = await db_support.TicketEventoDB.find({ estado: { $ne: 'anulada' }, id_organizacion, id_evento });
+    const query = { estado: { $ne: 'anulada' } };
+    console.log(tag, `Buscando en la base de datos todos los tickets vigentes para la query: `, query);
+    const todos = await db_support.TicketEventoDB.find(query).lean();
+    console.log(tag, `Total de tickets vigentes encontrados: ${todos.length}`);
 
     const resultados = todos.filter(ticket => {
       const campos = [
@@ -254,7 +258,9 @@ router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
       return campos.includes(busqueda);
     });
 
+    console.log(tag, `Total de tickets que coinciden con la búsqueda: ${resultados.length}`);
     const resultadosConNombre = await agregarNombreValidador(resultados);
+    console.log(tag, `Total de tickets con nombre de validador agregado: ${resultadosConNombre.length}`);
     res.json(resultadosConNombre);
   } catch (error) {
     console.error('[/api/entrada/buscar] Error:', error);

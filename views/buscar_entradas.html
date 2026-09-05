@@ -498,13 +498,14 @@
         <td id="estado-${t.id_organizacion}-${t.id_evento}-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
         <td id="accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">VALIDAR</button>`
           }
         </td>
         <td id="validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</td>
       `;
       tbody.appendChild(row);
+      //console.log('Appended row html:', row.innerHTML);
     });
   }
 
@@ -519,7 +520,7 @@
       const jornadaDisplay = jornadaMap[t.jornada] || t.jornada || '—';
       const esUsado = t.usado === true;
 
-      console.log('Rendering:', t);
+      //console.log('Rendering:', t);
 
       const card = document.createElement('div');
       card.className = `ticket-card-item ${esUsado ? 'usado' : ''}`;
@@ -537,8 +538,8 @@
         <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
         <div class="card-actions" id="card-accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">VALIDAR</button>`
           }
         </div>
       `;
@@ -611,28 +612,28 @@
           foliosAfectados.forEach(f => {
             // Tabla desktop (resultados de busqueda). El boton queda reversible.
             const tdAccion = document.getElementById(`accion-${id_organizacion}-${id_evento}-${f}`);
-            if (tdAccion) tdAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
+            if (tdAccion) tdAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla('${id_organizacion}', '${id_evento}', ${f}, this)">✓ Validado</button>`;
             const tdValidador = document.getElementById(`validador-${id_organizacion}-${id_evento}-${f}`);
             if (tdValidador) tdValidador.textContent = nombreValidador;
             marcarEstadoUsado(`estado-${id_organizacion}-${id_evento}-${f}`);
 
             // Card mobile (resultados de busqueda)
             const cardAccion = document.getElementById(`card-accion-${f}`);
-            if (cardAccion) cardAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
+            if (cardAccion) cardAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla('${id_organizacion}', '${id_evento}', ${f}, this)">✓ Validado</button>`;
             const cardValidador = document.getElementById(`card-validador-${f}`);
             if (cardValidador) cardValidador.textContent = nombreValidador;
             marcarEstadoUsado(`card-estado-${id_organizacion}-${id_evento}-${f}`);
 
             // Tabla desktop (listado completo)
             const tdAllAccion = document.getElementById(`all-accion-${f}`);
-            if (tdAllAccion) tdAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
+            if (tdAllAccion) tdAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla('${id_organizacion}', '${id_evento}', ${f}, this)">✓ Validado</button>`;
             const tdAllValidador = document.getElementById(`all-validador-${f}`);
             if (tdAllValidador) tdAllValidador.textContent = nombreValidador;
             marcarEstadoUsado(`all-estado-${id_organizacion}-${id_evento}-${f}`);
 
             // Card mobile (listado completo)
             const cardAllAccion = document.getElementById(`card-all-accion-${f}`);
-            if (cardAllAccion) cardAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">✓ Validado</button>`;
+            if (cardAllAccion) cardAllAccion.innerHTML = `<button class="btn-validado" onclick="revertirDesdeTabla('${id_organizacion}', '${id_evento}', ${f}, this)">✓ Validado</button>`;
             const cardAllValidador = document.getElementById(`card-all-validador-${f}`);
             if (cardAllValidador) cardAllValidador.textContent = nombreValidador;
             marcarEstadoUsado(`card-all-estado-${id_organizacion}-${id_evento}-${f}`);
@@ -723,8 +724,8 @@
         <td id="all-estado-${t.id_organizacion}-${t.id_evento}-${t.folio}"><span class="badge-estado ${esUsado ? 'badge-usado' : 'badge-pendiente'}">${esUsado ? 'USADO' : 'PENDIENTE'}</span></td>
         <td id="all-accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">VALIDAR</button>`
           }
         </td>
         <td id="all-validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</td>
@@ -754,8 +755,8 @@
         <div class="card-row"><span class="card-label">Validador</span><span class="card-value" id="card-all-validador-${t.id_organizacion}-${t.id_evento}-${t.folio}">${t.validado_por_nombre || '—'}</span></div>
         <div class="card-actions" id="card-all-accion-${t.id_organizacion}-${t.id_evento}-${t.folio}">
           ${esUsado
-            ? `<button class="btn-validado" onclick="revertirDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">✓ Validado</button>`
-            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${t.id_organizacion}, ${t.id_evento}, ${t.folio}, this)">VALIDAR</button>`
+            ? `<button class="btn-validado" onclick="revertirDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">✓ Validado</button>`
+            : `<button class="btn-validar-tabla" onclick="validarDesdeTabla('${t.id_organizacion}', '${t.id_evento}', ${t.folio}, this)">VALIDAR</button>`
           }
         </div>
       `;
@@ -871,13 +872,13 @@
           // Vista de BUSQUEDA (no se recarga sola): boton vuelve a VALIDAR,
           // se limpia Validador y el estado vuelve a PENDIENTE.
           const tdAccion = document.getElementById(`accion-${id_organizacion}-${id_evento}-${f}`);
-          if (tdAccion) tdAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">VALIDAR</button>`;
+          if (tdAccion) tdAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla('${id_organizacion}', '${id_evento}', ${f}, this)">VALIDAR</button>`;
           const tdValidador = document.getElementById(`validador-${id_organizacion}-${id_evento}-${f}`);
           if (tdValidador) tdValidador.textContent = '—';
           marcarEstadoPendiente(`estado-${id_organizacion}-${id_evento}-${f}`);
 
           const cardAccion = document.getElementById(`card-accion-${id_organizacion}-${id_evento}-${f}`);
-          if (cardAccion) cardAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla(${id_organizacion}, ${id_evento}, ${f}, this)">VALIDAR</button>`;
+          if (cardAccion) cardAccion.innerHTML = `<button class="btn-validar-tabla" onclick="validarDesdeTabla('${id_organizacion}', '${id_evento}', ${f}, this)">VALIDAR</button>`;
           const cardValidador = document.getElementById(`card-validador-${id_organizacion}-${id_evento}-${f}`);
           if (cardValidador) cardValidador.textContent = '—';
           marcarEstadoPendiente(`card-estado-${id_organizacion}-${id_evento}-${f}`);

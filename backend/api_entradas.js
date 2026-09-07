@@ -400,7 +400,7 @@ const serial = String(folio).padStart(4, '0');
         : '—';
 
       // Configurar badges de estado
-      //const isUsado = ticket.usado || ticket.estado !== 'activo';
+      const isUsado = ticket.estado !== 'activo';
       const estadoMap = {
         'inactiva' : `<span class="badge badge-usado">⚪ ENTRADA INACTIVA</span>`,
         'activa' : `<span class="badge badge-valido">🟢 ENTRADA VÁLIDA</span>`,

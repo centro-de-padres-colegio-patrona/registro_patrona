@@ -1330,7 +1330,26 @@ app.get('/auth/google', passport.authenticate('google', {
 
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login-error' }),
-  (req, res) => {
+  async (req, res) => {
+    try {
+      const forwardedFor = req.headers['x-forwarded-for'];
+      const ip_address = Array.isArray(forwardedFor)
+        ? forwardedFor[0]
+        : (forwardedFor || req.socket?.remoteAddress || '').split(',')[0].trim();
+
+      await db_support.registerUserLoginEvent({
+        user_email: req.user?.emails?.[0]?.value || '',
+        google_id: req.user?.id || '',
+        display_name: req.user?.displayName || '',
+        auth_provider: 'google',
+        ip_address,
+        user_agent: req.get('user-agent') || '',
+        session_id: req.sessionID || ''
+      });
+    } catch (error) {
+      console.error('[auth/google/callback] Error registrando login:', error.message);
+    }
+
     res.redirect('/authenticated');
   }
 );

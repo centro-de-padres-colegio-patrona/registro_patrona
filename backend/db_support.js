@@ -110,6 +110,17 @@ const userSchema = new mongoose.Schema({
   historialEmail: [userHistorialSchema],
 });
 
+const userLoginEventSchema = new mongoose.Schema({
+  fecha_login: { type: Date, default: Date.now },
+  user_email: { type: String, default: '' },
+  google_id: { type: String, default: '' },
+  display_name: { type: String, default: '' },
+  auth_provider: { type: String, default: 'google' },
+  ip_address: { type: String, default: '' },
+  user_agent: { type: String, default: '' },
+  session_id: { type: String, default: '' }
+});
+
 const testRunHistorialSchema = new mongoose.Schema({
   fecha: { type: Date, default: Date.now },
   id_pagina: { type: String, required: true },
@@ -628,6 +639,32 @@ async function test_info_organizacion() {
   console.log(`${tag} ... ${testResult}`);
 }
 
+const UserLoginEventDB = mongoose.model('UserLoginEvent', userLoginEventSchema, 'user_login_events');
+
+async function registerUserLoginEvent({
+  user_email = '',
+  google_id = '',
+  display_name = '',
+  auth_provider = 'google',
+  ip_address = '',
+  user_agent = '',
+  session_id = ''
+} = {}) {
+  if (!user_email && !google_id) {
+    throw new Error('Se requiere user_email o google_id para registrar login');
+  }
+
+  return UserLoginEventDB.create({
+    user_email,
+    google_id,
+    display_name,
+    auth_provider,
+    ip_address,
+    user_agent,
+    session_id
+  });
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 /// Exporting 
@@ -659,10 +696,12 @@ module.exports.dbUri = dbUri;
 module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
 module.exports.UserReportIssueDB = UserReportIssueDB;
 module.exports.HuilenMapDB = HuilenMapDB;
+module.exports.UserLoginEventDB = UserLoginEventDB;
 
 module.exports.hasValidadorAccessRights = hasValidadorAccessRights;
 module.exports.hasSupervisorAccessRights = hasSupervisorAccessRights;
 module.exports.hasAdministradorAccessRights = hasAdministradorAccessRights;
+module.exports.registerUserLoginEvent = registerUserLoginEvent;
 
 module.exports.current_database_name = current_database_name;
 

@@ -1383,7 +1383,7 @@ app.get('/auth/google/callback',
   res.sendFile(path.join(__dirname, 'src', 'dashboard', 'dashboard.html'));
 });*/
 
-app.get('/authenticated', async (req, res) => {
+app.get('/authenticated', authCallbackRateLimit, async (req, res) => {
   if (!req.isAuthenticated()) return res.redirect('/');
 
   console.log(`--> req.user.id: ${req.user.id}`)

@@ -335,6 +335,27 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+const authCallbackAttempts = new Map();
+const AUTH_CALLBACK_WINDOW_MS = 5 * 60 * 1000;
+const AUTH_CALLBACK_MAX_ATTEMPTS = 30;
+
+function authCallbackRateLimit(req, res, next) {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const ip = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : (forwardedFor || req.socket?.remoteAddress || '').split(',')[0].trim();
+  const now = Date.now();
+  const recentAttempts = (authCallbackAttempts.get(ip) || []).filter((timestamp) => (now - timestamp) < AUTH_CALLBACK_WINDOW_MS);
+
+  if (recentAttempts.length >= AUTH_CALLBACK_MAX_ATTEMPTS) {
+    return res.status(429).send('Demasiados intentos de autenticación. Intenta más tarde.');
+  }
+
+  recentAttempts.push(now);
+  authCallbackAttempts.set(ip, recentAttempts);
+  return next();
+}
+
 // Middleware de Log asociado a la sesión activa
 app.use((req, res, next) => {
   // Extraer el correo según la estrategia de autenticación (Passport, Sesión manual o Header)
@@ -1329,6 +1350,7 @@ app.get('/auth/google', passport.authenticate('google', {
 }));
 
 app.get('/auth/google/callback',
+  authCallbackRateLimit,
   passport.authenticate('google', { failureRedirect: '/login-error' }),
   async (req, res) => {
     try {

@@ -2,6 +2,7 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const { rateLimit } = require('express-rate-limit');
 const bcrypt = require('bcrypt');
 const CryptoJS = require("crypto-js");
 
@@ -335,26 +336,21 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-const authCallbackAttempts = new Map();
-const AUTH_CALLBACK_WINDOW_MS = 5 * 60 * 1000;
-const AUTH_CALLBACK_MAX_ATTEMPTS = 30;
+const authCallbackRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiados intentos de autenticación. Intenta más tarde.'
+});
 
-function authCallbackRateLimit(req, res, next) {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  const ip = Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : (forwardedFor || req.socket?.remoteAddress || '').split(',')[0].trim();
-  const now = Date.now();
-  const recentAttempts = (authCallbackAttempts.get(ip) || []).filter((timestamp) => (now - timestamp) < AUTH_CALLBACK_WINDOW_MS);
-
-  if (recentAttempts.length >= AUTH_CALLBACK_MAX_ATTEMPTS) {
-    return res.status(429).send('Demasiados intentos de autenticación. Intenta más tarde.');
-  }
-
-  recentAttempts.push(now);
-  authCallbackAttempts.set(ip, recentAttempts);
-  return next();
-}
+const paymentOrderRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiadas solicitudes. Intenta más tarde.'
+});
 
 // Middleware de Log asociado a la sesión activa
 app.use((req, res, next) => {
@@ -1419,7 +1415,7 @@ app.get('/ingreso_manual.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'ingreso_manual.html'));
 });
 
-app.post('/api/boton_pago_compromiso', async (req, res) => {
+app.post('/api/boton_pago_compromiso', paymentOrderRateLimit, async (req, res) => {
   try {
     let {compromiso_key, cantidades = {}, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
     let monto_total = 0;

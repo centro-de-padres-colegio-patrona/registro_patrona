@@ -2,6 +2,7 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const { rateLimit } = require('express-rate-limit');
 const bcrypt = require('bcrypt');
 const CryptoJS = require("crypto-js");
 
@@ -334,6 +335,22 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+const authCallbackRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiados intentos de autenticación. Intenta más tarde.'
+});
+
+const paymentOrderRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiadas solicitudes. Intenta más tarde.'
+});
 
 // Middleware de Log asociado a la sesión activa
 app.use((req, res, next) => {
@@ -1329,8 +1346,28 @@ app.get('/auth/google', passport.authenticate('google', {
 }));
 
 app.get('/auth/google/callback',
+  authCallbackRateLimit,
   passport.authenticate('google', { failureRedirect: '/login-error' }),
-  (req, res) => {
+  async (req, res) => {
+    try {
+      const forwardedFor = req.headers['x-forwarded-for'];
+      const ip_address = Array.isArray(forwardedFor)
+        ? forwardedFor[0]
+        : (forwardedFor || req.socket?.remoteAddress || '').split(',')[0].trim();
+
+      await db_support.registerUserLoginEvent({
+        user_email: req.user?.emails?.[0]?.value || '',
+        google_id: req.user?.id || '',
+        display_name: req.user?.displayName || '',
+        auth_provider: 'google',
+        ip_address,
+        user_agent: req.get('user-agent') || '',
+        session_id: req.sessionID || ''
+      });
+    } catch (error) {
+      console.error('[auth/google/callback] Error registrando login:', error.message);
+    }
+
     res.redirect('/authenticated');
   }
 );
@@ -1342,7 +1379,7 @@ app.get('/auth/google/callback',
   res.sendFile(path.join(__dirname, 'src', 'dashboard', 'dashboard.html'));
 });*/
 
-app.get('/authenticated', async (req, res) => {
+app.get('/authenticated', authCallbackRateLimit, async (req, res) => {
   if (!req.isAuthenticated()) return res.redirect('/');
 
   console.log(`--> req.user.id: ${req.user.id}`)
@@ -1378,7 +1415,7 @@ app.get('/ingreso_manual.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'ingreso_manual.html'));
 });
 
-app.post('/api/boton_pago_compromiso', async (req, res) => {
+app.post('/api/boton_pago_compromiso', paymentOrderRateLimit, async (req, res) => {
   try {
     let {compromiso_key, cantidades = {}, user_email, nombre, rut, telefono, nombres_hijos} = req.body;
     let monto_total = 0;

@@ -661,6 +661,7 @@ async function registerUserLoginEvent({
   user_agent = '',
   session_id = '',
   action = 'login',
+  details = {},
 } = {}) {
   if (!user_email && !google_id) {
     throw new Error('Se requiere user_email o google_id para registrar login');
@@ -674,7 +675,7 @@ async function registerUserLoginEvent({
       ip_address,
       user_agent,
       session_id,
-      action: []
+      actions: []
     };
 
     return UserLoginEventDB.findOneAndUpdate(
@@ -698,7 +699,7 @@ async function registerUserLoginEvent({
     details
   };
 
-  return UserLoginEventDB.findOneAndUpdate(
+  let userDoc = await UserLoginEventDB.findOneAndUpdate(
     filter,
     {
       $setOnInsert: {
@@ -706,11 +707,34 @@ async function registerUserLoginEvent({
         google_id,
         display_name,
         auth_provider
-      },
-      // $push con 'historial.-1.actions' empuja al último subdocumento de 'historial'
-      $push: { 'historial.-1.actions': actionDetail }
+      }
     },
     { new: true, upsert: true }
+  );
+
+  if (!Array.isArray(userDoc.historial) || userDoc.historial.length === 0) {
+    userDoc = await UserLoginEventDB.findByIdAndUpdate(
+      userDoc._id,
+      {
+        $push: {
+          historial: {
+            fecha_login: new Date(),
+            actions: [],
+            ip_address,
+            user_agent,
+            session_id
+          }
+        }
+      },
+      { new: true }
+    );
+  }
+
+  const lastIndex = userDoc.historial.length - 1;
+  return UserLoginEventDB.findByIdAndUpdate(
+    userDoc._id,
+    { $push: { [`historial.${lastIndex}.actions`]: actionDetail } },
+    { new: true }
   );
   
 }

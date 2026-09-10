@@ -742,6 +742,50 @@ app.get('/api/user', async (req, res) => {
   res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
 });
 
+app.post('/api/user/action', express.json(), async (req, res) => {
+  try {
+    const user_email = req.user?.emails?.[0]?.value
+      || req.user?.email
+      || req.body?.user_email
+      || '';
+    const google_id = req.user?.id || '';
+    const action = (typeof req.body?.action === 'string' ? req.body.action.trim() : '');
+    const details = (req.body?.details && typeof req.body.details === 'object' && !Array.isArray(req.body.details))
+      ? req.body.details
+      : {};
+
+    if (!action) {
+      return res.status(400).json({ error: 'Acción requerida' });
+    }
+
+    if (!user_email && !google_id) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ip_address = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : (forwardedFor || req.socket?.remoteAddress || '').split(',')[0].trim();
+
+    await db_support.registerUserLoginEvent({
+      user_email,
+      google_id,
+      display_name: req.user?.displayName || '',
+      auth_provider: req.user ? 'google' : 'manual',
+      ip_address,
+      user_agent: req.get('user-agent') || '',
+      session_id: req.sessionID || '',
+      action: action.slice(0, 200),
+      details
+    });
+
+    res.status(204).end();
+  } catch (error) {
+    console.error('[/api/user/action] Error registrando acción:', error.message);
+    res.status(500).json({ error: 'No se pudo registrar la acción' });
+  }
+});
+
 app.get('/api/manualUser', async (req, res) => {
   const { email } = req.query
   console.log(`/api/manualUser: req: ${JSON.stringify(email)}`);

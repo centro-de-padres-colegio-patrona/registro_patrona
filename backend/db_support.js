@@ -110,15 +110,19 @@ const userSchema = new mongoose.Schema({
   historialEmail: [userHistorialSchema],
 });
 
-const userLoginEventSchema = new mongoose.Schema({
+const userLoginEventParametersSchema = new mongoose.Schema({
   fecha_login: { type: Date, default: Date.now },
+  ip_address: { type: String, default: '' },
+  user_agent: { type: String, default: '' },
+  session_id: { type: String, default: '' }
+});
+
+const userLoginEventSchema = new mongoose.Schema({
   user_email: { type: String, default: '' },
   google_id: { type: String, default: '' },
   display_name: { type: String, default: '' },
   auth_provider: { type: String, default: 'google' },
-  ip_address: { type: String, default: '' },
-  user_agent: { type: String, default: '' },
-  session_id: { type: String, default: '' }
+  historial: [userLoginEventParametersSchema]
 });
 
 const testRunHistorialSchema = new mongoose.Schema({
@@ -654,15 +658,29 @@ async function registerUserLoginEvent({
     throw new Error('Se requiere user_email o google_id para registrar login');
   }
 
-  return UserLoginEventDB.create({
-    user_email,
-    google_id,
-    display_name,
-    auth_provider,
+  const filter = user_email ? { user_email } : { google_id };
+
+// Nuevo evento de sesión para empujar al arreglo historial
+  const loginDetail = {
+    fecha_login: new Date(),
     ip_address,
     user_agent,
     session_id
-  });
+  };
+
+  return UserLoginEventDB.findOneAndUpdate(
+    filter,
+    {
+      $setOnInsert: {
+        user_email,
+        google_id,
+        display_name,
+        auth_provider
+      },
+      $push: { historial: loginDetail }
+    },
+    { new: true, upsert: true }
+  );
 }
 
 

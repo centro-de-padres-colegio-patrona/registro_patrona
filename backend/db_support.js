@@ -663,18 +663,28 @@ async function registerUserLoginEvent({
   action = 'login',
   details = {},
 } = {}) {
-  if (!user_email && !google_id) {
+  const safeUserEmail = typeof user_email === 'string' ? user_email.trim() : '';
+  const safeGoogleId = typeof google_id === 'string' ? google_id.trim() : '';
+  const safeDisplayName = typeof display_name === 'string' ? display_name : '';
+  const safeAuthProvider = typeof auth_provider === 'string' ? auth_provider : 'google';
+  const safeIp = typeof ip_address === 'string' ? ip_address : '';
+  const safeUserAgent = typeof user_agent === 'string' ? user_agent : '';
+  const safeSessionId = typeof session_id === 'string' ? session_id : '';
+  const safeAction = typeof action === 'string' ? action : 'login';
+  const safeDetails = (details && typeof details === 'object' && !Array.isArray(details)) ? details : {};
+
+  if (!safeUserEmail && !safeGoogleId) {
     throw new Error('Se requiere user_email o google_id para registrar login');
   }
 
-  const filter = user_email ? { user_email } : { google_id };
+  const filter = safeUserEmail ? { user_email: safeUserEmail } : { google_id: safeGoogleId };
 
-  if (action === 'login') {
+  if (safeAction === 'login') {
     const loginDetail = {
       fecha_login: new Date(),
-      ip_address,
-      user_agent,
-      session_id,
+      ip_address: safeIp,
+      user_agent: safeUserAgent,
+      session_id: safeSessionId,
       actions: []
     };
 
@@ -682,10 +692,10 @@ async function registerUserLoginEvent({
       filter,
       {
         $setOnInsert: {
-          user_email,
-          google_id,
-          display_name,
-          auth_provider
+          user_email: safeUserEmail,
+          google_id: safeGoogleId,
+          display_name: safeDisplayName,
+          auth_provider: safeAuthProvider
         },
         $push: { historial: loginDetail }
       },
@@ -695,18 +705,18 @@ async function registerUserLoginEvent({
 
   const actionDetail = {
     fecha: new Date(),
-    action,
-    details
+    action: safeAction,
+    details: safeDetails
   };
 
   let userDoc = await UserLoginEventDB.findOneAndUpdate(
     filter,
     {
       $setOnInsert: {
-        user_email,
-        google_id,
-        display_name,
-        auth_provider
+        user_email: safeUserEmail,
+        google_id: safeGoogleId,
+        display_name: safeDisplayName,
+        auth_provider: safeAuthProvider
       }
     },
     { new: true, upsert: true }
@@ -720,9 +730,9 @@ async function registerUserLoginEvent({
           historial: {
             fecha_login: new Date(),
             actions: [],
-            ip_address,
-            user_agent,
-            session_id
+            ip_address: safeIp,
+            user_agent: safeUserAgent,
+            session_id: safeSessionId
           }
         }
       },

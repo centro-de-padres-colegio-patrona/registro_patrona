@@ -352,6 +352,14 @@ const paymentOrderRateLimit = rateLimit({
   message: 'Demasiadas solicitudes. Intenta más tarde.'
 });
 
+const userActionRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiadas acciones registradas. Intenta más tarde.'
+});
+
 // Middleware de Log asociado a la sesión activa
 app.use((req, res, next) => {
   // Extraer el correo según la estrategia de autenticación (Passport, Sesión manual o Header)
@@ -742,11 +750,12 @@ app.get('/api/user', async (req, res) => {
   res.json({ user, req:req.user }); // Aquí envías los datos del usuario al frontend
 });
 
-app.post('/api/user/action', express.json(), async (req, res) => {
+app.post('/api/user/action', userActionRateLimit, express.json(), async (req, res) => {
   try {
+    const bodyUserEmail = typeof req.body?.user_email === 'string' ? req.body.user_email.trim() : '';
     const user_email = req.user?.emails?.[0]?.value
       || req.user?.email
-      || req.body?.user_email
+      || bodyUserEmail
       || '';
     const google_id = req.user?.id || '';
     const action = (typeof req.body?.action === 'string' ? req.body.action.trim() : '');

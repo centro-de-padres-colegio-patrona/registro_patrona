@@ -110,15 +110,26 @@ const userSchema = new mongoose.Schema({
   historialEmail: [userHistorialSchema],
 });
 
-const userLoginEventSchema = new mongoose.Schema({
+const userActionsSchema = new mongoose.Schema({
+  fecha: { type: Date, default: Date.now },
+  action: { type: String, required: true },
+  details: { type: Object, required: true }
+});
+
+const userLoginEventParametersSchema = new mongoose.Schema({
   fecha_login: { type: Date, default: Date.now },
+  actions : [userActionsSchema],
+  ip_address: { type: String, default: '' },
+  user_agent: { type: String, default: '' },
+  session_id: { type: String, default: '' }
+});
+
+const userLoginEventSchema = new mongoose.Schema({
   user_email: { type: String, default: '' },
   google_id: { type: String, default: '' },
   display_name: { type: String, default: '' },
   auth_provider: { type: String, default: 'google' },
-  ip_address: { type: String, default: '' },
-  user_agent: { type: String, default: '' },
-  session_id: { type: String, default: '' }
+  historial: [userLoginEventParametersSchema]
 });
 
 const testRunHistorialSchema = new mongoose.Schema({
@@ -648,23 +659,61 @@ async function registerUserLoginEvent({
   auth_provider = 'google',
   ip_address = '',
   user_agent = '',
-  session_id = ''
+  session_id = '',
+  action = 'login',
 } = {}) {
   if (!user_email && !google_id) {
     throw new Error('Se requiere user_email o google_id para registrar login');
   }
 
-  return UserLoginEventDB.create({
-    user_email,
-    google_id,
-    display_name,
-    auth_provider,
-    ip_address,
-    user_agent,
-    session_id
-  });
-}
+  const filter = user_email ? { user_email } : { google_id };
 
+  if (action === 'login') {
+    const loginDetail = {
+      fecha_login: new Date(),
+      ip_address,
+      user_agent,
+      session_id,
+      action: []
+    };
+
+    return UserLoginEventDB.findOneAndUpdate(
+      filter,
+      {
+        $setOnInsert: {
+          user_email,
+          google_id,
+          display_name,
+          auth_provider
+        },
+        $push: { historial: loginDetail }
+      },
+      { new: true, upsert: true }
+    );
+  }
+
+  const actionDetail = {
+    fecha: new Date(),
+    action,
+    details
+  };
+
+  return UserLoginEventDB.findOneAndUpdate(
+    filter,
+    {
+      $setOnInsert: {
+        user_email,
+        google_id,
+        display_name,
+        auth_provider
+      },
+      // $push con 'historial.-1.actions' empuja al último subdocumento de 'historial'
+      $push: { 'historial.-1.actions': actionDetail }
+    },
+    { new: true, upsert: true }
+  );
+  
+}
 
 /////////////////////////////////////////////////////////////////////////////
 /// Exporting 

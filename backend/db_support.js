@@ -110,8 +110,15 @@ const userSchema = new mongoose.Schema({
   historialEmail: [userHistorialSchema],
 });
 
+const userActionsSchema = new mongoose.Schema({
+  fecha: { type: Date, default: Date.now },
+  action: { type: String, required: true },
+  details: { type: Object, required: true }
+});
+
 const userLoginEventParametersSchema = new mongoose.Schema({
   fecha_login: { type: Date, default: Date.now },
+  actions : [userActionsSchema],
   ip_address: { type: String, default: '' },
   user_agent: { type: String, default: '' },
   session_id: { type: String, default: '' }
@@ -652,7 +659,8 @@ async function registerUserLoginEvent({
   auth_provider = 'google',
   ip_address = '',
   user_agent = '',
-  session_id = ''
+  session_id = '',
+  action = 'login',
 } = {}) {
   if (!user_email && !google_id) {
     throw new Error('Se requiere user_email o google_id para registrar login');
@@ -660,12 +668,34 @@ async function registerUserLoginEvent({
 
   const filter = user_email ? { user_email } : { google_id };
 
-// Nuevo evento de sesión para empujar al arreglo historial
-  const loginDetail = {
-    fecha_login: new Date(),
-    ip_address,
-    user_agent,
-    session_id
+  if (action === 'login') {
+    const loginDetail = {
+      fecha_login: new Date(),
+      ip_address,
+      user_agent,
+      session_id,
+      action: []
+    };
+
+    return UserLoginEventDB.findOneAndUpdate(
+      filter,
+      {
+        $setOnInsert: {
+          user_email,
+          google_id,
+          display_name,
+          auth_provider
+        },
+        $push: { historial: loginDetail }
+      },
+      { new: true, upsert: true }
+    );
+  }
+
+  const actionDetail = {
+    fecha: new Date(),
+    action,
+    details
   };
 
   return UserLoginEventDB.findOneAndUpdate(
@@ -677,12 +707,13 @@ async function registerUserLoginEvent({
         display_name,
         auth_provider
       },
-      $push: { historial: loginDetail }
+      // $push con 'historial.-1.actions' empuja al último subdocumento de 'historial'
+      $push: { 'historial.-1.actions': actionDetail }
     },
     { new: true, upsert: true }
   );
+  
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 /// Exporting 

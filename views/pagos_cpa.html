@@ -421,6 +421,52 @@
     const id_organizacion = getParametroURL('id_organizacion');
     const id_pagina = window.location.pathname.split('/').pop();
 
+    function describeActionTarget(target) {
+      if (!target) return {};
+      return {
+        tag: target.tagName || '',
+        id: target.id || '',
+        name: target.name || '',
+        type: target.type || '',
+        className: (target.className || '').toString().slice(0, 120)
+      };
+    }
+
+    function registerUserAction(action, details = {}) {
+      fetch('/api/user/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_email: user_email || (currentUser && currentUser.email) || '',
+          action: `${id_pagina}:${action}`,
+          details: {
+            page: id_pagina,
+            path: window.location.pathname,
+            ...details
+          }
+        })
+      }).catch(() => {});
+    }
+
+    function setupActionTracking() {
+      registerUserAction('page_view');
+
+      document.addEventListener('click', (event) => {
+        const clickable = event.target?.closest('button, a, [role="button"], input[type="button"], input[type="submit"]') || event.target;
+        registerUserAction('click', describeActionTarget(clickable));
+      }, true);
+
+      document.addEventListener('change', (event) => {
+        registerUserAction('change', describeActionTarget(event.target));
+      }, true);
+
+      document.addEventListener('submit', (event) => {
+        registerUserAction('submit', describeActionTarget(event.target));
+      }, true);
+    }
+
+    setupActionTracking();
+
     const curso_map = {
       "Prekínder": 'PK',
       "Kínder": 'K',

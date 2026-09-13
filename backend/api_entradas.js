@@ -225,10 +225,8 @@ async function agregarNombreValidador(tickets) {
 }
 
 function getRequestIp(req) {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  return Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : (forwardedFor || req.socket?.remoteAddress || '').split(',')[0].trim();
+  const ip = req.ip || req.socket?.remoteAddress || '';
+  return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
 }
 
 function getPlatformFromUserAgent(userAgent = '') {

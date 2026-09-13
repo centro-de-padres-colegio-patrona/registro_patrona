@@ -425,6 +425,20 @@ const ticketAccionSchema = new mongoose.Schema({
   descripcion: String
 });
 
+const ticketHistorialConsultaSchema = new mongoose.Schema({
+  fecha: { type: Date, default: Date.now },
+  ip: { type: String, default: '' },
+  platform: { type: String, default: '' },
+  type: {
+    type: String,
+    enum: ['html', 'json'],
+    default: 'html'
+  },
+  id_organizacion: { type: String, default: '' },
+  id_evento: { type: String, default: '' },
+  folio: { type: Number, default: null }
+});
+
 const ticketEventoSchema = new mongoose.Schema({
   id_organizacion: { type: String, required: true },
   id_evento: { type: String, required: true },
@@ -500,6 +514,7 @@ const FrontEndFeaturesSchema = new mongoose.Schema({
 });
 
 const TicketEventoDB = mongoose.model('TicketEvento', ticketEventoSchema, 'ticketEventos');
+const TicketHistorialConsultaDB = mongoose.model('TicketHistorialConsulta', ticketHistorialConsultaSchema, 'ticketHistorialConsultas');
 const infoOrganizacionDB = mongoose.model('organizacion', InfoOrganizacionSchema, 'info_organizacion');
 const FrontEndFeaturesDB = mongoose.model('FrontEndFeatures', FrontEndFeaturesSchema, 'front_end_features');
 
@@ -775,6 +790,7 @@ module.exports.PaseRuleDB = mongoose.model('PaseRule', PaseRuleSchema, 'PaseRule
 module.exports.infoOrganizacionDB = infoOrganizacionDB
 module.exports.EventDB = EventDB;
 module.exports.TicketEventoDB = TicketEventoDB;
+module.exports.TicketHistorialConsultaDB = TicketHistorialConsultaDB;
 module.exports.dbUri = dbUri;
 module.exports.FrontEndFeaturesDB = FrontEndFeaturesDB;
 module.exports.UserReportIssueDB = UserReportIssueDB;

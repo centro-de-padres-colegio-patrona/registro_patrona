@@ -313,6 +313,7 @@ passport.deserializeUser((obj, done) => done(null, obj));
 // the express static middleware, to serve all files
 // inside the public directory
 const app = express()
+app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
 app.use(express.static('public'));
 

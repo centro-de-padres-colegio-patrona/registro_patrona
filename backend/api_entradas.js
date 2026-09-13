@@ -224,6 +224,56 @@ async function agregarNombreValidador(tickets) {
   });
 }
 
+function getRequestIp(req) {
+  const ip = req.ip || req.socket?.remoteAddress || '';
+
+  return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+}
+
+function getPlatformFromUserAgent(userAgent = '') {
+  if (/android/i.test(userAgent)) return 'Android';
+  if (/(iphone|ipad|ipod)/i.test(userAgent)) return 'iOS';
+  if (/windows/i.test(userAgent)) return 'Windows';
+  if (/(macintosh|mac os x)/i.test(userAgent)) return 'macOS';
+  if (/linux/i.test(userAgent)) return 'Linux';
+  return userAgent ? 'Otro' : 'Desconocida';
+}
+
+async function registrarConsultaEntrada(req, { fecha, tipo, id_organizacion, id_evento, folio }) {
+  const ip = getRequestIp(req);
+  const platform = getPlatformFromUserAgent(req.get('user-agent') || '');
+  const folioNumero = Number.parseInt(folio, 10);
+
+  await db_support.TicketHistorialConsultaDB.create({
+    fecha,
+    ip,
+    platform,
+    type: tipo,
+    id_organizacion: id_organizacion || '',
+    id_evento: id_evento || '',
+    folio: Number.isNaN(folioNumero) ? null : folioNumero
+  });
+
+  return { ip, platform, folioNumero };
+}
+
+async function registrarHistorialConsultaTicket(ticket, { fecha, tipo, ip, platform }) {
+  if (!ticket?._id) return;
+
+  await db_support.TicketEventoDB.updateOne(
+    { _id: ticket._id },
+    {
+      $push: {
+        historial: {
+          timestamp: fecha,
+          accion: 'consulta',
+          descripcion: `consulta ${tipo} desde ${platform} IP ${ip || 'desconocida'}`
+        }
+      }
+    }
+  );
+}
+
 // 2. GET: Buscar Entradas (Supervisor)
 router.get('/entrada/buscar', apiKeyAuth, async (req, res) => {
   const tag = '[/api/entrada/buscar]';
@@ -302,23 +352,39 @@ router.get('/entrada/listar', apiKeyAuth, async (req, res) => {
 router.get('/entrada/consultar', async (req, res) => {
   try {
     const { organizacion, evento, folio, familia, tipo_output = 'html' } = req.query;
+    const tipoConsulta = tipo_output === 'json' ? 'json' : 'html';
+    const fechaConsulta = new Date();
+    let metadataConsulta = null;
+
+    try {
+      metadataConsulta = await registrarConsultaEntrada(req, {
+        fecha: fechaConsulta,
+        tipo: tipoConsulta,
+        id_organizacion: organizacion,
+        id_evento: evento,
+        folio
+      });
+    } catch (historyError) {
+      console.error('[/api/entrada/consultar] Error registrando historial de consulta:', historyError);
+    }
+
     if (!organizacion) {
       console.log('Falta el parámetro organizacion');
-      if (tipo_output === 'json') {
+      if (tipoConsulta === 'json') {
         return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro organizacion' });
       }
       return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "organizacion" es requerido.</h2>');
     }
     if (!evento) {
       console.log('Falta el parámetro evento');
-      if (tipo_output === 'json') {
+      if (tipoConsulta === 'json') {
         return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro evento' });
       }
       return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "evento" es requerido.</h2>');
     }
     if (!folio) {
       console.log('Falta el parámetro folio');
-      if (tipo_output === 'json') {
+      if (tipoConsulta === 'json') {
         return res.status(400).json({ error: 'Error de Consulta. Falta el parámetro folio' });
       }
       return res.status(400).send('<h2>Error: Error de Consulta. El parámetro "folio" es requerido.</h2>');
@@ -326,7 +392,20 @@ router.get('/entrada/consultar', async (req, res) => {
 
     const ticket = await db_support.TicketEventoDB.findOne({ id_organizacion: organizacion, id_evento: evento ,folio: parseInt(folio) });
 
-    if ( tipo_output === 'json' ) {
+    if (ticket && metadataConsulta) {
+      try {
+        await registrarHistorialConsultaTicket(ticket, {
+          fecha: fechaConsulta,
+          tipo: tipoConsulta,
+          ip: metadataConsulta.ip,
+          platform: metadataConsulta.platform
+        });
+      } catch (ticketHistoryError) {
+        console.error('[/api/entrada/consultar] Error registrando historial del ticket:', ticketHistoryError);
+      }
+    }
+
+    if ( tipoConsulta === 'json' ) {
       if (!ticket) {
         return res.json({ existe: false, mensaje: 'Ticket no registrado en el sistema' });
       }
@@ -359,7 +438,7 @@ router.get('/entrada/consultar', async (req, res) => {
         estado: ticket.estado
       });
     }
-    if ( tipo_output === 'html') {
+    if ( tipoConsulta === 'html') {
 const serial = String(folio).padStart(4, '0');
 
       // Escenario 1: Ticket no existe

@@ -225,23 +225,11 @@ async function agregarNombreValidador(tickets) {
 }
 
 function getRequestIp(req) {
-  const normalizarIp = (ip = '') => ip.startsWith('::ffff:') ? ip.slice(7) : ip;
-  const remoteIp = normalizarIp(req.socket?.remoteAddress || req.ip || '');
-  const firstForwardedIp = String(req.get('x-forwarded-for') || '').split(',')[0].trim();
-  const remoteEsProxyConfiable = (
-    remoteIp === '::1' ||
-    remoteIp === '127.0.0.1' ||
-    remoteIp === '::ffff:127.0.0.1' ||
-    /^10\./.test(remoteIp) ||
-    /^192\.168\./.test(remoteIp) ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(remoteIp)
-  );
+  const ip = Array.isArray(req.ips) && req.ips.length > 0
+    ? req.ips[0]
+    : (req.ip || req.socket?.remoteAddress || '');
 
-  if (firstForwardedIp && remoteEsProxyConfiable) {
-    return normalizarIp(firstForwardedIp);
-  }
-
-  return remoteIp;
+  return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
 }
 
 function getPlatformFromUserAgent(userAgent = '') {

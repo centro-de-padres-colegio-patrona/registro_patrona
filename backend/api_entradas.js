@@ -225,9 +225,7 @@ async function agregarNombreValidador(tickets) {
 }
 
 function getRequestIp(req) {
-  const ip = Array.isArray(req.ips) && req.ips.length > 0
-    ? req.ips[0]
-    : (req.ip || req.socket?.remoteAddress || '');
+  const ip = req.ip || req.socket?.remoteAddress || '';
 
   return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
 }

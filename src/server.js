@@ -10,10 +10,6 @@ const config_env = require('./setup/config/env.js');
 
 const git_branch = require('../backend/git_branch');
 
-//const flow_api_key = '7FEF32BF-B9D3-4DA8-A190-9422737A5LCD'
-//const flow_secret_key = 'aefc24bed6613e40db09df328849568a220085ca'
-//const flow_api_key = config_env.FLOW_API_KEY;
-//const flow_secret_key = config_env.FLOW_SECRET_KEY;
 
 const { genEntradaCanvas } = require('./generateTicket');
 const { send_fiesta_chilena_email, send_email_registro_success, send_email_from_cpa_account } = require('../api-correo/send_fiesta_chilena_email.js');
@@ -81,8 +77,8 @@ const axios = require('axios')
 
 // This is the client ID and client secret that you obtained
 // while registering the application
-const clientID = 'Ov23lii9SwvjHBz1HcSG'
-const clientSecret = '2cf3fb6940a31ff7e3889e6bb2a858c476047f38'
+const clientID = config_env.GMAIL_OAUTH2_CLIENT_ID;
+const clientSecret = config_env.GMAIL_OAUTH2_CLIENT_SECRET;
 
 const curso_map = {
   "Prekínder": 'PK',

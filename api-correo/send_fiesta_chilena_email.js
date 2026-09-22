@@ -52,11 +52,11 @@ async function send_fiesta_chilena_email(body) {
      service: 'gmail',
       auth: {
         type: 'OAuth2',
-        user: 'centrodepadres@colegiopatrona.cl',
-        pass: 'Peroconrespeto',
-        clientId: '110435636758-vvkr480b6l0lu7ninig8ddvrkbssuhk7.apps.googleusercontent.com',
-        clientSecret: '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',
-        refreshToken: '1//04wg4HDhyOi4YCgYIARAAGAQSNgF-L9IrEtcIbrnUQ_loGfqrIiEN8NNMACKBBvuNyCW1uKkegggwVsaQmsS9-2ikc2qMQldxpA'
+        user: config_env.EMAIL_USER,
+        pass: config_env.EMAIL_PASS,
+        clientId: config_env.EMAIL_CLIENT_ID,
+        clientSecret: config_env.EMAIL_CLIENT_SECRET,
+        refreshToken: config_env.EMAIL_REFRESH_TOKEN
       },
       tls: {
         rejectUnauthorized: false  // evita problemas con certificados autofirmados
@@ -64,7 +64,7 @@ async function send_fiesta_chilena_email(body) {
     });
 
   const mailOptions = {
-    from: 'centrodepadres@colegiopatrona.cl',
+    from: config_env.EMAIL_USER,
     to: email_destinatario,
     subject: asuntoCorreo,
     text: mensajeCorreo,

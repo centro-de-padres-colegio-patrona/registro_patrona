@@ -2,10 +2,10 @@ const { MercadoPagoConfig, Preference } = require('mercadopago');
 
 const Config = {
   production: {
-    ACCESS_TOKEN: 'APP_USR-5125226598398616-061717-deb2d0807c31471873fa7b9b821eccbf-3479686713',
+    ACCESS_TOKEN: '',
   },
   sandbox: {
-    ACCESS_TOKEN: 'APP_USR-5125226598398616-061717-deb2d0807c31471873fa7b9b821eccbf-3479686713',
+    ACCESS_TOKEN: '',
   }
 };
 
